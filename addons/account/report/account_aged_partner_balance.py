@@ -8,7 +8,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
 
     _name = 'report.account.report_agedpartnerbalance'
 
-    def _get_partner_move_lines(self, form, account_type, date_from, target_move, direction_selection):
+    def _get_partner_move_lines(self, form, account_type, date_from, target_move):
         res = []
         self.total_account = []
         cr = self.env.cr
@@ -53,34 +53,19 @@ class ReportAgedPartnerBalance(models.AbstractModel):
 
         # This dictionary will store the future or past of all partners
         future_past = {}
-        if direction_selection == 'future':
-            cr.execute('SELECT l.partner_id, SUM(l.debit - l.credit) \
-                        FROM account_move_line AS l, account_account, account_move am \
-                        WHERE (l.account_id = account_account.id) AND (l.move_id = am.id) \
-                        AND (am.state IN %s)\
-                        AND (account_account.internal_type IN %s)\
-                        AND (COALESCE(l.date_maturity, l.date) < %s)\
-                        AND (l.partner_id IN %s)\
-                        AND l.reconciled IS FALSE\
-                    AND (l.date <= %s)\
-                        GROUP BY l.partner_id', (tuple(move_state), tuple(account_type), date_from, tuple(partner_ids), date_from,))
-            partner_totals = cr.fetchall()
-            for partner_id, amount in partner_totals:
-                future_past[partner_id] = amount
-        elif direction_selection == 'past': # Using elif so people could extend without this breaking
-            cr.execute('SELECT l.partner_id, SUM(l.debit - l.credit) \
-                    FROM account_move_line AS l, account_account, account_move am \
-                    WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)\
-                        AND (am.state IN %s)\
-                        AND (account_account.internal_type IN %s)\
-                        AND (COALESCE(l.date_maturity,l.date) > %s)\
-                        AND (l.partner_id IN %s)\
-                        AND l.reconciled IS FALSE\
-                    AND (l.date <= %s)\
-                        GROUP BY l.partner_id', (tuple(move_state), tuple(account_type), date_from, tuple(partner_ids), date_from,))
-            partner_totals = cr.fetchall()
-            for partner_id, amount in partner_totals:
-                future_past[partner_id] = amount
+        cr.execute('SELECT l.partner_id, SUM(l.debit - l.credit) \
+                FROM account_move_line AS l, account_account, account_move am \
+                WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)\
+                    AND (am.state IN %s)\
+                    AND (account_account.internal_type IN %s)\
+                    AND (COALESCE(l.date_maturity,l.date) > %s)\
+                    AND (l.partner_id IN %s)\
+                    AND l.reconciled IS FALSE\
+                AND (l.date <= %s)\
+                    GROUP BY l.partner_id', (tuple(move_state), tuple(account_type), date_from, tuple(partner_ids), date_from,))
+        partner_totals = cr.fetchall()
+        for partner_id, amount in partner_totals:
+            future_past[partner_id] = amount
 
         # Use one query per period and store results in history (a list variable)
         # Each history will contain: history[1] = {'<partner_id>': <partner_debit-credit>}
@@ -134,7 +119,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                         partial = date and date[0][0] <= form[str(i)]['stop']
                     if partial:
                         # partial reconcilation
-                        limit_date = 'COALESCE(l.date_maturity, l.date) %s %%s' % ('<=' if direction_selection == 'past' else '>=')
+                        limit_date = 'COALESCE(l.date_maturity, l.date) <= %s'
                         cr.execute('''SELECT SUM(l.debit - l.credit)
                                            FROM account_move_line AS l, account_move AS am
                                            WHERE l.move_id = am.id AND am.state IN %s
@@ -148,22 +133,13 @@ class ReportAgedPartnerBalance(models.AbstractModel):
 
         for partner in partners:
             values = {}
-            ## If choise selection is in the future
-            if direction_selection == 'future':
-                # Query here is replaced by one query which gets the all the partners their 'before' value
-                before = False
-                if future_past.has_key(partner['id']):
-                    before = [ future_past[partner['id']] ]
-                self.total_account[6] = self.total_account[6] + (before and before[0] or 0.0)
-                values['direction'] = before and before[0] or 0.0
-            elif direction_selection == 'past': # Changed this so people could in the future create new direction_selections
-                # Query here is replaced by one query which gets the all the partners their 'after' value
-                after = False
-                if future_past.has_key(partner['id']): # Making sure this partner actually was found by the query
-                    after = [ future_past[partner['id']] ]
+            # Query here is replaced by one query which gets the all the partners their 'after' value
+            after = False
+            if future_past.has_key(partner['id']): # Making sure this partner actually was found by the query
+                after = [ future_past[partner['id']] ]
 
-                self.total_account[6] = self.total_account[6] + (after and after[0] or 0.0)
-                values['direction'] = after and after[0] or 0.0
+            self.total_account[6] = self.total_account[6] + (after and after[0] or 0.0)
+            values['direction'] = after and after[0] or 0.0
 
             for i in range(5):
                 during = False
@@ -191,7 +167,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                 totals[str(i)] += float(r[str(i)] or 0.0)
         return res
 
-    def _get_move_lines_with_out_partner(self, form, account_type, date_from, target_move, direction_selection):
+    def _get_move_lines_with_out_partner(self, form, account_type, date_from, target_move):
         res = []
         cr = self.env.cr
         move_state = ['draft', 'posted']
@@ -215,32 +191,18 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         for amount in total_amount:
             totals['Unknown Partner'] = amount[0]
         future_past = {}
-        if direction_selection == 'future':
-            cr.execute('SELECT SUM(l.debit - l.credit) \
-                        FROM account_move_line AS l, account_account, account_move am\
-                        WHERE (l.account_id=account_account.id) AND (l.move_id = am.id)\
-                        AND (am.state IN %s)\
-                        AND (l.partner_id IS NULL)\
-                        AND (account_account.internal_type IN %s)\
-                        AND (COALESCE(l.date_maturity, l.date) < %s)\
-                        AND l.reconciled IS FALSE'
-                        , (tuple(move_state), tuple(account_type), date_from,))
-            total_amount = cr.fetchall()
-            for amount in total_amount:
-                future_past['Unknown Partner'] = amount[0]
-        elif direction_selection == 'past': # Using elif so people could extend without this breaking
-            cr.execute('SELECT SUM(l.debit-l.credit) \
-                    FROM account_move_line AS l, account_account, account_move am \
-                    WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)\
-                        AND (am.state IN %s)\
-                        AND (l.partner_id IS NULL)\
-                        AND (account_account.internal_type IN %s)\
-                        AND (COALESCE(l.date_maturity,l.date) > %s)\
-                        AND l.reconciled IS FALSE\
-                        ', (tuple(move_state), tuple(account_type), date_from,))
-            total_amount = cr.fetchall()
-            for amount in total_amount:
-                future_past['Unknown Partner'] = amount[0]
+        cr.execute('SELECT SUM(l.debit-l.credit) \
+                FROM account_move_line AS l, account_account, account_move am \
+                WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)\
+                    AND (am.state IN %s)\
+                    AND (l.partner_id IS NULL)\
+                    AND (account_account.internal_type IN %s)\
+                    AND (COALESCE(l.date_maturity,l.date) > %s)\
+                    AND l.reconciled IS FALSE\
+                    ', (tuple(move_state), tuple(account_type), date_from,))
+        total_amount = cr.fetchall()
+        for amount in total_amount:
+            future_past['Unknown Partner'] = amount[0]
 
         history = []
         for i in range(5):
@@ -273,18 +235,11 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             history.append(history_data)
 
         values = {}
-        if direction_selection == 'future':
-            before = False
-            if future_past.has_key('Unknown Partner'):
-                before = [ future_past['Unknown Partner'] ]
-            self.total_account[6] = self.total_account[6] + (before and before[0] or 0.0)
-            values['direction'] = before and before[0] or 0.0
-        elif direction_selection == 'past':
-            after = False
-            if future_past.has_key('Unknown Partner'):
-                after = [ future_past['Unknown Partner'] ]
-            self.total_account[6] = self.total_account[6] + (after and after[0] or 0.0)
-            values['direction'] = after and after[0] or 0.0
+        after = False
+        if future_past.has_key('Unknown Partner'):
+            after = [ future_past['Unknown Partner'] ]
+        self.total_account[6] = self.total_account[6] + (after and after[0] or 0.0)
+        values['direction'] = after and after[0] or 0.0
 
         for i in range(5):
             during = False
@@ -319,7 +274,6 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         model = self.env.context.get('active_model')
         docs = self.env[model].browse(self.env.context.get('active_id'))
 
-        direction_selection = data['form'].get('direction_selection', 'past')
         target_move = data['form'].get('target_move', 'all')
         date_from = data['form'].get('date_from', time.strftime('%Y-%m-%d'))
 
@@ -330,8 +284,8 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         else:
             account_type = ['payable','receivable']
 
-        without_partner_movelines = self._get_move_lines_with_out_partner(data['form'], account_type, date_from, target_move, direction_selection)
-        partner_movelines = self._get_partner_move_lines(data['form'], account_type, date_from, target_move, direction_selection)
+        without_partner_movelines = self._get_move_lines_with_out_partner(data['form'], account_type, date_from, target_move)
+        partner_movelines = self._get_partner_move_lines(data['form'], account_type, date_from, target_move)
         movelines = partner_movelines + without_partner_movelines
         docargs = {
             'doc_ids': self.ids,

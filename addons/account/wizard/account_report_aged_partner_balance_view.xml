@@ -13,7 +13,6 @@
                     <field name="period_length"/>
                     <newline/>
                     <field name="result_selection" widget="radio"/>
-                    <field name="direction_selection" widget="radio"/>
                     <field name="target_move" widget="radio"/>
                 </group>
                 <field name="journal_ids" required="0" invisible="1"/>

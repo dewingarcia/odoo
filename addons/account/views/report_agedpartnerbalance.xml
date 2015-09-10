@@ -26,10 +26,6 @@
                         </p>
                     </div>
                     <div class="col-xs-3">
-                        <strong>Analysis Direction:</strong>
-                        <p t-esc="data['direction_selection']"/>
-                    </div>
-                    <div class="col-xs-3">
                         <strong>Target Moves:</strong>
                         <p>
                             <span t-if="data['target_move'] == 'all'">All Entries</span>
@@ -43,8 +39,7 @@
                         <tr>
                             <th>Partners</th>
                             <th class="text-right">
-                                <span t-if="data['direction_selection'] == 'future'">Due</span>
-                                <span t-if="data['direction_selection'] != 'future'">Not due</span>
+                                <span>Not due</span>
                             </th>
                             <th class="text-right"><span t-esc="data['4']['name']"/></th>
                             <th class="text-right"><span t-esc="data['3']['name']"/></th>
