@@ -8,9 +8,12 @@
         <field name="arch" type="xml">
         <data>
         <xpath expr="//field[@name='target_move']" position="after">
-            <field name="amount_currency"/>
+            <field name="amount_currency" groups="base.group_multi_currency"/>
             <field name="sort_selection" widget="radio"/>
             <newline/>
+        </xpath>
+        <xpath expr="//field[@name='journal_ids']" position="attributes">
+            <attribute name="domain">[('type', 'in', ('sale', 'purchase'))]</attribute>
         </xpath>
         </data>
         </field>

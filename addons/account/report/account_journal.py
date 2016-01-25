@@ -69,6 +69,10 @@ class ReportJournal(models.AbstractModel):
                 'WHERE "account_move_line".move_id=am.id AND am.state IN %s AND "account_move_line".journal_id IN %s AND ' + query_get_clause[1] + ' AND "account_move_line".id in %s',
                 tuple(params + [tuple(amls.ids)]))
             res[tax]['base_amount'] = self.env.cr.fetchone()[0] or 0.0
+            if journal_id.type == 'sale':
+                #sales operation are credits
+                res[tax]['base_amount'] = res[tax]['base_amount'] * -1
+                res[tax]['tax_amount'] = res[tax]['tax_amount'] * -1
         return res
 
     def _get_query_get_clause(self, data):

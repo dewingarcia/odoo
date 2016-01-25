@@ -53,7 +53,7 @@
                                 <td><span t-esc="aml.name[:35]"/></td>
                                 <td><span t-esc="aml.debit" t-esc-options='{"widget": "monetary", "display_currency": "res_company.currency_id"}'/></td>
                                 <td><span t-esc="aml.credit" t-esc-options='{"widget": "monetary", "display_currency": "res_company.currency_id"}'/></td>
-                                <td t-if="data['form']['amount_currency']">
+                                <td t-if="data['form']['amount_currency'] and aml.amount_currency">
                                     <span t-esc="aml.amount_currency" t-esc-options='{"widget": "monetary", "display_currency": "aml.currency_id"}'/>
                                 </td>
                             </tr>
