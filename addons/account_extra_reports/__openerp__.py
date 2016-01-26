@@ -14,7 +14,7 @@ This module adds two new reports:
 * Partner Ledger
     """,
     'website': 'https://www.odoo.com/page/accounting',
-    'depends': ['account'],
+    'depends': ['account_accountant'],
     'data': [
         'wizard/account_report_print_journal_view.xml',
         'views/report_journal.xml',
