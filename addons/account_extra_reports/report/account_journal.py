@@ -17,7 +17,13 @@ class ReportJournal(models.AbstractModel):
 
         query_get_clause = self._get_query_get_clause(data)
         params = [tuple(move_state), tuple(journal_ids)] + query_get_clause[2]
-        self.env.cr.execute('SELECT "account_move_line".id FROM ' + query_get_clause[0] + ', account_move am WHERE "account_move_line".move_id=am.id AND am.state IN %s AND "account_move_line".journal_id IN %s AND ' + query_get_clause[1] + ' ORDER BY ' + sort_selection + ', "account_move_line".move_id', tuple(params))
+        query = 'SELECT "account_move_line".id FROM ' + query_get_clause[0] + ', account_move am WHERE "account_move_line".move_id=am.id AND am.state IN %s AND "account_move_line".journal_id IN %s AND ' + query_get_clause[1] + ' ORDER BY '
+        if sort_selection == 'date':
+            query += '"account_move_line".date'
+        else:
+            query += 'am.name'
+        query += ', "account_move_line".move_id'
+        self.env.cr.execute(query, tuple(params))
         ids = map(lambda x: x[0], self.env.cr.fetchall())
         return self.env['account.move.line'].browse(ids)
 
