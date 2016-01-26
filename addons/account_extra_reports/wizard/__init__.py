@@ -3,3 +3,4 @@
 
 import account_report_common_journal
 import account_report_print_journal
+import account_report_partner_ledger

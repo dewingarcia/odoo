@@ -18,6 +18,8 @@ This module adds two new reports:
     'data': [
         'wizard/account_report_print_journal_view.xml',
         'views/report_journal.xml',
+        'wizard/account_report_partner_ledger_view.xml',
+        'views/report_partnerledger.xml',
         'data/account_report.xml'
     ],
     'demo': [],
