@@ -51,8 +51,8 @@ class Rating(models.Model):
             if hasattr(self.env[rating.res_model], 'message_post'):
                 record = self.env[rating.res_model].sudo().browse(rating.res_id)
                 record.sudo().message_post(
-                    body="%s %s <br/><img src='/rating/static/src/img/rating_%s.png' style='width:20px;height:20px'/>"
-                    % (rating.sudo().partner_id.name, _('rated it'), rate),
+                    body="%s %s <br/><img src='/rating/static/src/img/rating_%s.png' alt=':rating_%s' style='width:20px;height:20px'/>"
+                    % (rating.sudo().partner_id.name, _('rated it'), rate, rate),
                     subtype='mail.mt_comment',
                     author_id=rating.partner_id and rating.partner_id.id or None # None will set the default author in mail_thread.py
                 )
