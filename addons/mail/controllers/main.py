@@ -244,7 +244,7 @@ class MailController(http.Controller):
             'needaction_inbox_counter': request.env['res.partner'].get_needaction_count(),
             'channel_slots': request.env['mail.channel'].channel_fetch_slot(),
             'mention_partner_suggestions': request.env['res.partner'].get_static_mention_suggestions(),
-            'emoji': request.env['mail.shortcode'].sudo().search_read([('shortcode_type', '=', 'image')], ['source', 'substitution', 'description']),
+            'emoji': request.env['mail.shortcode'].sudo().search_read([('shortcode_type', '=', 'image')], ['source', 'unicode_source', 'substitution', 'description']),
             'menu_id': request.env['ir.model.data'].xmlid_to_res_id('mail.mail_channel_menu_root_chat'),
         }
         return values

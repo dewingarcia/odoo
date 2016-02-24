@@ -16,6 +16,7 @@ class MailShortcode(models.Model):
     _description = 'Canned Response / Shortcode'
 
     source = fields.Char('Shortcut', required=True, index=True, help="The shortcut which must be replace in the Chat Messages")
+    unicode_source = fields.Char('Unicode Character', help="It will replaces source code to unicode character in the Chat Messages")
     substitution = fields.Char('Substitution', required=True, index=True, help="The escaped html code replacing the shortcut")
     description = fields.Char('Description')
     shortcode_type = fields.Selection([('image', 'Smiley'), ('text', 'Canned Response')], required=True, default='text',
@@ -39,7 +40,7 @@ class MailShortcode(models.Model):
                 - HTML substitution : only allow the img tag (emoji)
                 - escape other substitutions to avoid XSS
         """
-        is_img_tag = re.match(r'''^<img\s+src=('|")([^'"]*)\1\s*/?>$''', substitution, re.M | re.I)
+        is_img_tag = re.match(r'''^<img\s+src=('|")([^'"]*)\1\s+alt=('|")([^'"]*)\1\s*/?>$''', substitution, re.M | re.I)
         if is_img_tag:
             return substitution
         return cgi.escape(substitution)
