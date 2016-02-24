@@ -378,8 +378,6 @@ class MailThread(models.AbstractModel):
                         ('res_model', 'in', [False, self._name]),
                         ('internal', '=', True)], ['name', 'description', 'sequence'])
                     options['internal_subtypes'] = internal_subtypes
-                # emoji list
-                options['emoji_list'] = self.env['mail.shortcode'].search([('shortcode_type', '=', 'image')]).read(['source', 'description', 'substitution'])
                 # save options on the node
                 node.set('options', repr(options))
             res['arch'] = etree.tostring(doc)
