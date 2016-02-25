@@ -117,14 +117,14 @@
         </record>
 
         <record id="mail_smiley_pinky" model="mail.shortcode">
-            <field name="source">:pinky</field>
+            <field name="source">:pinky</field>  <!-- unicode of this image is not found -->
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/pinky.png' alt=':pinky'/&gt;</field>
             <field name="description">Emoji Pinky</field>
             <field name="shortcode_type">image</field>
         </record>
 
         <record id="mail_smiley_musti" model="mail.shortcode">
-            <field name="source">:musti</field>
+            <field name="source">:musti</field>  <!-- unicode of this image is not found -->
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/musti.png' alt=':musti'/&gt;</field>
             <field name="description">Emoji Musti</field>
             <field name="shortcode_type">image</field>
@@ -139,7 +139,7 @@
         </record>
 
         <record id="mail_smiley_troll" model="mail.shortcode">
-            <field name="source">:troll</field>
+            <field name="source">:troll</field> <!-- unicode of this image is not found -->
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/trollface.png' alt=':troll'/&gt;</field>
             <field name="description">Emoji Troll Face</field>
             <field name="shortcode_type">image</field>

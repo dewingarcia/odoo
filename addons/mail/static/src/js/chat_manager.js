@@ -685,9 +685,8 @@ var chat_manager = {
     post_message: function (data, options) {
         options = options || {};
         _.each(_.keys(emoji_replace), function (key) {
-            var escaped_key = String(key).replace(/([.*+?=^!:${}()|[\]\/\\])/g, '\\$1');
-            var regexp = new RegExp("(?:^|\\s|<[a-z]*>)(" + escaped_key + ")(?=\\s|$|</[a-z]*>)", "g");
-            data.content = data.content.replace(regexp, emoji_replace[key]);
+            // message input is like :) or :( then message data will replace and message result should be like 😄 or 😞
+            data.content = data.content.replace(key, emoji_replace[key]);
         });
         var msg = {
             partner_ids: data.partner_ids,
@@ -1055,13 +1054,10 @@ function init () {
         mention_partner_suggestions = result.mention_partner_suggestions;
         emojis = result.emoji;
         _.each(emojis, function(emoji) {
+            emoji_substitutions[_.escape(emoji.source)] = emoji.substitution;
             if (emoji.unicode_source){
-                emoji_substitutions[_.escape(emoji.source)] = emoji.substitution;
                 emoji_substitutions[_.escape(emoji.unicode_source)] = emoji.substitution;
                 emoji_replace[_.escape(emoji.source)] = emoji.unicode_source
-            }
-            else {
-                emoji_substitutions[_.escape(emoji.source)] = emoji.substitution;
             }
         });
         discuss_menu_id = result.menu_id;
