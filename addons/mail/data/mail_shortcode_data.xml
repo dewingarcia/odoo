@@ -7,7 +7,7 @@
             <field name="source">:)</field>
             <field name="unicode_source">😊</field>
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/normal_smile.png' alt='😊'/&gt;</field>
-            <field name="description">Emoji Smile with smiling eyes</field>
+            <field name="description">Emoji Smile</field>
             <field name="shortcode_type">image</field>
         </record>
         <record id="mail_smiley_smile" model="mail.shortcode">
@@ -28,7 +28,7 @@
             <field name="source">:")</field>
             <field name="unicode_source">😂</field>
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/tears_of_joy.png' alt='😂'/&gt;</field>
-            <field name="description">Emoji Smile tears of joy</field>
+            <field name="description">Emoji tears of joy</field>
             <field name="shortcode_type">image</field>
         </record>
         <record id="mail_smiley_wink" model="mail.shortcode">
@@ -42,7 +42,7 @@
             <field name="source">B)</field>
             <field name="unicode_source">😎</field>
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/sunglass.png' alt='😎'/&gt;</field>
-            <field name="description">Emoji face with sunglasses</field>
+            <field name="description">Emoji face with sunglass</field>
             <field name="shortcode_type">image</field>
         </record>
         <record id="mail_smiley_stuck" model="mail.shortcode">
@@ -105,7 +105,7 @@
             <field name="source">&gt;:(</field>
             <field name="unicode_source">😡</field>
             <field name="substitution">&lt;img src='/mail/static/src/img/smiley/angry.png' alt='😡'/&gt;</field>
-            <field name="description">Emoji angry</field>
+            <field name="description">Emoji Angry</field>
             <field name="shortcode_type">image</field>
         </record>
         <record id="mail_smiley_evil" model="mail.shortcode">
