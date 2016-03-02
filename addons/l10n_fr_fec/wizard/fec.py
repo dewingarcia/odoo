@@ -14,8 +14,8 @@ class AccountFrFec(models.TransientModel):
     _name = 'account.fr.fec'
     _description = 'Ficher Echange Informatise'
 
-    date_from = fields.Date(string='Start Date')
-    date_to = fields.Date(string='End Date')
+    date_from = fields.Date(string='Start Date', required=True)
+    date_to = fields.Date(string='End Date', required=True)
     fec_data = fields.Binary('FEC File', readonly=True)
     filename = fields.Char(string='Filename', size=256, readonly=True)
     export_type = fields.Selection([
