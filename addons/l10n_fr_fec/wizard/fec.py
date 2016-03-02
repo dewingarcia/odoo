@@ -56,6 +56,12 @@ class AccountFrFec(models.TransientModel):
             ]
 
         company = self.env.user.company_id
+        if not company.vat:
+            raise Warning(
+                _("Missing VAT number for company %s") % company.name)
+        if company.vat[0:2] != 'FR':
+            raise Warning(
+                _("FEC is for French companies only !"))
 
         fecfile = StringIO.StringIO()
         w = csv.writer(fecfile, delimiter='|')
@@ -105,15 +111,9 @@ class AccountFrFec(models.TransientModel):
         self._cr.execute(
             sql_query, (formatted_date_from, formatted_date_from, formatted_date_from, self.date_from, company.id))
 
-        while 1:
-            self._cr.arraysize = 100
-            rows = self._cr.fetchmany()
-            if not rows:
-                break
-            for row in rows:
-                # We can't write in a tuple, so I convert to a list
-                listrow = list(row)
-                w.writerow([s.encode("utf-8") for s in listrow])
+        for row in self._cr.fetchall():
+            listrow = list(row)
+            w.writerow([s.encode("utf-8") for s in listrow])
 
         # LINES
         sql_query = '''
@@ -174,22 +174,10 @@ class AccountFrFec(models.TransientModel):
         self._cr.execute(
             sql_query, (self.date_from, self.date_to, company.id))
 
-        while 1:
-            self._cr.arraysize = 100
-            rows = self._cr.fetchmany()
-            if not rows:
-                break
-            for row in rows:
-                # We can't write in a tuple, so I convert to a list
-                listrow = list(row)
-                w.writerow([s.encode("utf-8") for s in listrow])
+        for row in self._cr.fetchall():
+            listrow = list(row)
+            w.writerow([s.encode("utf-8") for s in listrow])
 
-        if not company.vat:
-            raise Warning(
-                _("Missing VAT number for company %s") % company.name)
-        if company.vat[0:2] != 'FR':
-            raise Warning(
-                _("FEC is for French companies only !"))
         siren = company.vat[4:13]
         end_date = self.date_to.replace('-', '')
         suffix = ''
@@ -198,8 +186,8 @@ class AccountFrFec(models.TransientModel):
         fecvalue = fecfile.getvalue()
         self.write({
             'fec_data': base64.encodestring(fecvalue),
-            'filename': '%sFEC%s%s.csv' % (siren, end_date, suffix),
             # Filename = <siren>FECYYYYMMDD where YYYMMDD is the closing date
+            'filename': '%sFEC%s%s.csv' % (siren, end_date, suffix),
             })
         fecfile.close()
 
