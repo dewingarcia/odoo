@@ -168,7 +168,7 @@ class AccountFrFec(models.TransientModel):
         sql_query += '''
         ORDER BY
             am.date,
-            CASE aj.type WHEN 'situation' THEN 1 ELSE 2 END,
+            am.name,
             aml.id
         '''
         self._cr.execute(
