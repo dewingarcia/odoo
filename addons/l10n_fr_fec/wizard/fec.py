@@ -75,8 +75,8 @@ class AccountFrFec(models.TransientModel):
             '-' AS PieceRef,
             %s AS PieceDate,
             '/' AS EcritureLib,
-            CASE WHEN sum(aml.debit - aml.credit) < 0 THEN 0 ELSE sum(aml.debit - aml.credit) END AS Debit,
-            CASE WHEN sum(aml.debit - aml.credit) > 0 THEN 0 ELSE sum(aml.credit - aml.debit) END AS Credit,
+            replace(CASE WHEN sum(aml.balance) <= 0 THEN '0,00' ELSE to_char(SUM(aml.balance), '999999999999999D99') END, '.', ',') AS Debit,
+            replace(CASE WHEN sum(aml.balance) >= 0 THEN '0,00' ELSE to_char(-SUM(aml.balance), '999999999999999D99') END, '.', ',') AS Credit,
             '' AS EcritureLet,
             '' AS DateLet,
             %s AS ValidDate,
@@ -113,9 +113,6 @@ class AccountFrFec(models.TransientModel):
             for row in rows:
                 # We can't write in a tuple, so I convert to a list
                 listrow = list(row)
-                # Decimal separator must be a coma
-                listrow[11] = ('%.2f' % listrow[11]).replace('.', ',')
-                listrow[12] = ('%.2f' % listrow[12]).replace('.', ',')
                 w.writerow([s.encode("utf-8") for s in listrow])
 
         # LINES
@@ -140,12 +137,12 @@ class AccountFrFec(models.TransientModel):
             AS PieceRef,
             TO_CHAR(am.date, 'YYYYMMDD') AS PieceDate,
             CASE WHEN aml.name IS NULL THEN '/' ELSE replace(aml.name, '|', '/') END AS EcritureLib,
-            aml.debit AS Debit,
-            aml.credit AS Credit,
+            replace(CASE WHEN aml.debit = 0 THEN '0,00' ELSE to_char(aml.debit, '999999999999999D99') END, '.', ',') AS Debit,
+            replace(CASE WHEN aml.credit = 0 THEN '0,00' ELSE to_char(aml.credit, '999999999999999D99') END, '.', ',') AS Credit,
             CASE WHEN rec.name IS NULL THEN '' ELSE rec.name END AS EcritureLet,
             CASE WHEN aml.full_reconcile_id IS NULL THEN '' ELSE TO_CHAR(rec.create_date, 'YYYYMMDD') END AS DateLet,
             TO_CHAR(am.date, 'YYYYMMDD') AS ValidDate,
-            aml.amount_currency AS Montantdevise,
+            replace(CASE WHEN aml.amount_currency = 0 THEN '' ELSE to_char(aml.amount_currency, '999999999999999D99') END, '.', ',') AS Montantdevise,
             CASE WHEN aml.currency_id IS NULL THEN '' ELSE rc.name END AS Idevise
         FROM
             account_move_line aml
@@ -185,13 +182,6 @@ class AccountFrFec(models.TransientModel):
             for row in rows:
                 # We can't write in a tuple, so I convert to a list
                 listrow = list(row)
-                # Decimal separator must be a coma
-                listrow[11] = ('%.2f' % listrow[11]).replace('.', ',')
-                listrow[12] = ('%.2f' % listrow[12]).replace('.', ',')
-                if listrow[16]:
-                    listrow[16] = ('%.2f' % listrow[16]).replace('.', ',')
-                else:
-                    listrow[16] = ''
                 w.writerow([s.encode("utf-8") for s in listrow])
 
         if not company.vat:
