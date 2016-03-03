@@ -70,8 +70,8 @@ class AccountFrFec(models.TransientModel):
         # INITIAL BALANCE
         sql_query = '''
         SELECT
-            '' AS JournalCode,
-            '' AS JournalLib,
+            'OUV' AS JournalCode,
+            'Balance initiale' AS JournalLib,
             'Balance initiale ' || MIN(aa.name) AS EcritureNum,
             %s AS EcritureDate,
             MIN(aa.code) AS CompteNum,
