@@ -3,15 +3,28 @@
 import time
 from openerp import api, models, _
 from openerp.tools import float_is_zero
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 
 class ReportAgedPartnerBalance(models.AbstractModel):
 
     _name = 'report.account.report_agedpartnerbalance'
 
-    def _get_partner_move_lines(self, form, account_type, date_from, target_move):
+    def _get_partner_move_lines(self, account_type, date_from, target_move, period_length):
+        periods = {}
+        start = datetime.strptime(date_from, "%Y-%m-%d")
+        for i in range(5)[::-1]:
+            stop = start - relativedelta(days=period_length)
+            periods[str(i)] = {
+                'name': (i!=0 and (str((5-(i+1)) * period_length) + '-' + str((5-i) * period_length)) or ('+'+str(4 * period_length))),
+                'stop': start.strftime('%Y-%m-%d'),
+                'start': (i!=0 and stop.strftime('%Y-%m-%d') or False),
+            }
+            start = stop - relativedelta(days=1)
+
         res = []
-        self.total_account = []
+        total = []
         cr = self.env.cr
         user_company = self.env.user.company_id.id
         move_state = ['draft', 'posted']
@@ -29,7 +42,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             arg_list += (tuple(reconciled_after_date),)
         arg_list += (date_from, user_company)
         query = '''
-            SELECT DISTINCT res_partner.id AS id, res_partner.name AS name, UPPER(res_partner.name) AS uppername
+            SELECT DISTINCT l.partner_id, UPPER(res_partner.name)
             FROM res_partner,account_move_line AS l, account_account, account_move am
             WHERE (l.account_id = account_account.id)
                 AND (l.move_id = am.id)
@@ -45,12 +58,12 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         partners = cr.dictfetchall()
         # put a total of 0
         for i in range(7):
-            self.total_account.append(0)
+            total.append(0)
 
         # Build a string like (1,2,3) for easy use in SQL query
-        partner_ids = [partner['id'] for partner in partners]
+        partner_ids = [partner['partner_id'] for partner in partners]
         if not partner_ids:
-            return []
+            return [], []
 
         # This dictionary will store the not due amount of all partners
         future_past = {}
@@ -87,15 +100,15 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             args_list = (tuple(move_state), tuple(account_type), tuple(partner_ids),)
             dates_query = '(COALESCE(l.date_maturity,l.date)'
 
-            if form[str(i)]['start'] and form[str(i)]['stop']:
+            if periods[str(i)]['start'] and periods[str(i)]['stop']:
                 dates_query += ' BETWEEN %s AND %s)'
-                args_list += (form[str(i)]['start'], form[str(i)]['stop'])
-            elif form[str(i)]['start']:
+                args_list += (periods[str(i)]['start'], periods[str(i)]['stop'])
+            elif periods[str(i)]['start']:
                 dates_query += ' >= %s)'
-                args_list += (form[str(i)]['start'],)
+                args_list += (periods[str(i)]['start'],)
             else:
                 dates_query += ' <= %s)'
-                args_list += (form[str(i)]['stop'],)
+                args_list += (periods[str(i)]['stop'],)
             args_list += (date_from, user_company)
 
             query = '''SELECT l.id
@@ -131,152 +144,38 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             values = {}
             # Query here is replaced by one query which gets the all the partners their 'after' value
             after = False
-            if partner['id'] in future_past:  # Making sure this partner actually was found by the query
-                after = [future_past[partner['id']]]
+            if partner['partner_id'] in future_past:  # Making sure this partner actually was found by the query
+                after = [future_past[partner['partner_id']]]
 
-            self.total_account[6] = self.total_account[6] + (after and after[0] or 0.0)
+            total[6] = total[6] + (after and after[0] or 0.0)
             values['direction'] = after and after[0] or 0.0
             if not float_is_zero(values['direction'], precision_rounding=self.env.user.company_id.currency_id.rounding):
                 at_least_one_amount = True
 
             for i in range(5):
                 during = False
-                if partner['id'] in history[i]:
-                    during = [history[i][partner['id']]]
+                if partner['partner_id'] in history[i]:
+                    during = [history[i][partner['partner_id']]]
                 # Adding counter
-                self.total_account[(i)] = self.total_account[(i)] + (during and during[0] or 0)
+                total[(i)] = total[(i)] + (during and during[0] or 0)
                 values[str(i)] = during and during[0] or 0.0
                 if not float_is_zero(values[str(i)], precision_rounding=self.env.user.company_id.currency_id.rounding):
                     at_least_one_amount = True
             values['total'] = sum([values['direction']] + [values[str(i)] for i in range(5)])
             ## Add for total
-            self.total_account[(i + 1)] += values['total']
-            values['name'] = partner['name']
+            total[(i + 1)] += values['total']
+            browsed_partner = self.env['res.partner'].browse(partner['partner_id'])
+            values['name'] = browsed_partner.name and len(browsed_partner.name) >= 45 and browsed_partner.name[0:40] + '...' or browsed_partner.name
+            values['partner_id'] = partner['partner_id']
 
             if at_least_one_amount:
                 res.append(values)
 
-        total = 0.0
-        totals = {}
-        for r in res:
-            total += float(r['total'] or 0.0)
-            for i in range(5) + ['direction']:
-                totals.setdefault(str(i), 0.0)
-                totals[str(i)] += float(r[str(i)] or 0.0)
-        return res
-
-    def _get_move_lines_with_out_partner(self, form, account_type, date_from, target_move):
-        res = []
-        cr = self.env.cr
-        move_state = ['draft', 'posted']
-        if target_move == 'posted':
-            move_state = ['posted']
-
-        user_company = self.env.user.company_id.id
-        ## put a total of 0
-        for i in range(7):
-            self.total_account.append(0)
-
-        # This dictionary will store the not due amount of the unknown partner
-        future_past = {'Unknown Partner': 0}
-        query = '''SELECT l.id
-                FROM account_move_line AS l, account_account, account_move am
-                WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)
-                    AND (am.state IN %s)
-                    AND (account_account.internal_type IN %s)
-                    AND (COALESCE(l.date_maturity,l.date) > %s)\
-                    AND (l.partner_id IS NULL)
-                AND (l.date <= %s)
-                AND l.company_id = %s'''
-        cr.execute(query, (tuple(move_state), tuple(account_type), date_from, date_from, user_company))
-        aml_ids = cr.fetchall()
-        aml_ids = aml_ids and [x[0] for x in aml_ids] or []
-        for line in self.env['account.move.line'].browse(aml_ids):
-            line_amount = line.balance
-            if line.balance == 0:
-                continue
-            for partial_line in line.matched_debit_ids:
-                if partial_line.create_date[:10] <= date_from:
-                    line_amount += partial_line.amount
-            for partial_line in line.matched_credit_ids:
-                if partial_line.create_date[:10] <= date_from:
-                    line_amount -= partial_line.amount
-            future_past['Unknown Partner'] += line_amount
-
-        history = []
-        for i in range(5):
-            args_list = (tuple(move_state), tuple(account_type))
-            dates_query = '(COALESCE(l.date_maturity,l.date)'
-            if form[str(i)]['start'] and form[str(i)]['stop']:
-                dates_query += ' BETWEEN %s AND %s)'
-                args_list += (form[str(i)]['start'], form[str(i)]['stop'])
-            elif form[str(i)]['start']:
-                dates_query += ' > %s)'
-                args_list += (form[str(i)]['start'],)
-            else:
-                dates_query += ' < %s)'
-                args_list += (form[str(i)]['stop'],)
-            args_list += (date_from, user_company)
-            query = '''SELECT l.id
-                    FROM account_move_line AS l, account_account, account_move am
-                    WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)
-                        AND (am.state IN %s)
-                        AND (account_account.internal_type IN %s)
-                        AND (l.partner_id IS NULL)
-                        AND ''' + dates_query + '''
-                    AND (l.date <= %s)
-                    AND l.company_id = %s'''
-            cr.execute(query, args_list)
-            history_data = {'Unknown Partner': 0}
-            aml_ids = cr.fetchall()
-            aml_ids = aml_ids and [x[0] for x in aml_ids] or []
-            for line in self.env['account.move.line'].browse(aml_ids):
-                line_amount = line.balance
-                if line.balance == 0:
-                    continue
-                for partial_line in line.matched_debit_ids:
-                    if partial_line.create_date[:10] <= date_from:
-                        line_amount += partial_line.amount
-                for partial_line in line.matched_credit_ids:
-                    if partial_line.create_date[:10] <= date_from:
-                        line_amount -= partial_line.amount
-                history_data['Unknown Partner'] += line_amount
-            history.append(history_data)
-
-        values = {}
-        after = False
-        if 'Unknown Partner' in future_past:
-            after = [future_past['Unknown Partner']]
-        self.total_account[6] = self.total_account[6] + (after and after[0] or 0.0)
-        values['direction'] = after and after[0] or 0.0
-
-        for i in range(5):
-            during = False
-            if 'Unknown Partner' in history[i]:
-                during = [history[i]['Unknown Partner']]
-            self.total_account[(i)] = self.total_account[(i)] + (during and during[0] or 0)
-            values[str(i)] = during and during[0] or 0.0
-
-        values['total'] = sum([values['direction']] + [values[str(i)] for i in range(5)])
-        ## Add for total
-        self.total_account[(i + 1)] += values['total']
-        values['name'] = _('Unknown Partner')
-
-        if values['total']:
-            res.append(values)
-
-        total = 0.0
-        totals = {}
-        for r in res:
-            total += float(r['total'] or 0.0)
-            for i in range(5) + ['direction']:
-                totals.setdefault(str(i), 0.0)
-                totals[str(i)] += float(r[str(i)] or 0.0)
-        return res
+        return res, total
 
     @api.multi
     def render_html(self, data):
-        self.total_account = []
+        total = []
         model = self.env.context.get('active_model')
         docs = self.env[model].browse(self.env.context.get('active_id'))
 
@@ -288,14 +187,9 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         elif data['form']['result_selection'] == 'supplier':
             account_type = ['payable']
         else:
-            account_type = ['payable','receivable']
+            account_type = ['payable', 'receivable']
 
-        without_partner_movelines = self._get_move_lines_with_out_partner(data['form'], account_type, date_from, target_move)
-        tot_list = self.total_account
-        partner_movelines = self._get_partner_move_lines(data['form'], account_type, date_from, target_move)
-        for i in range(7):
-            self.total_account[i] += tot_list[i]
-        movelines = partner_movelines + without_partner_movelines
+        movelines, total = self._get_partner_move_lines(account_type, date_from, target_move, data['form']['period_length'])
         docargs = {
             'doc_ids': self.ids,
             'doc_model': model,
@@ -303,6 +197,6 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             'docs': docs,
             'time': time,
             'get_partner_lines': movelines,
-            'get_direction': self.total_account,
+            'get_direction': total,
         }
         return self.env['report'].render('account.report_agedpartnerbalance', docargs)
