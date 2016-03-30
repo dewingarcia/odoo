@@ -317,7 +317,6 @@
               </p>
          </field>
     </record>
-
     <record model="ir.actions.act_window" id="action_hr_job_sources">
         <field name="name">Jobs Sources</field>
         <field name="res_model">hr.recruitment.source</field>
