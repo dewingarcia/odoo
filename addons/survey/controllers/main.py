@@ -4,7 +4,7 @@
 import json
 import logging
 import werkzeug
-from datetime import datetime
+from datetime import date
 from math import ceil
 
 from odoo import fields, http, SUPERUSER_ID
@@ -43,7 +43,7 @@ class WebsiteSurvey(http.Controller):
         ! This will NOT disallow access to users who have already partially filled the survey !'''
         deadline = user_input.deadline
         if deadline:
-            dt_deadline = fields.Datetime.from_string(deadline)
+            dt_deadline = fields.Date.from_string(deadline)
             dt_now = datetime.now()
             if dt_now > dt_deadline:  # survey is not open anymore
                 return request.render("survey.notopen")
