@@ -28,18 +28,28 @@
                             </div>
                         </div>
                         <field name="group_use_lead" widget="radio"/>
-                        <field name="module_crm_voip" widget="upgrade_boolean"/>
+                        <label for="module_crm_voip" string="Voip integration"/>
+                        <div>
+                            <field name="module_crm_voip" widget="upgrade_boolean" class="oe_inline"/>
+                            <label for="module_crm_voip" invisible="1"/>
+                            <a href="https://www.odoo.com/slides/slide/voip-one-click-button-to-automate-calls-272" target="_blank"> More Info </a>
+                        </div>
                     </group>
                     <group string="Odoo Sign" name="config_sign">
-                        <field name="module_website_sign" widget="upgrade_boolean"/>
+                        <label for="module_website_sign" string="Odoo Sign"/>
+                        <div>
+                            <field name="module_website_sign" widget="upgrade_boolean" class="oe_inline"/>
+                            <label for="module_website_sign" invisible="1"/>
+                            <a href="https://www.odoo.com/page/sign" target="_blank"> More Info </a>
+                        </div>                    
                     </group>
                 </div>
             </field>
         </record>
 
         <menuitem id="base.menu_sale_config" name="Configuration" parent="base.menu_base_partner"
-            sequence="100" groups="base.group_configuration"/>
+            sequence="100"/>
         <menuitem id="base.menu_sale_general_settings" name="Settings" parent="base.menu_sale_config"
-            sequence="0" action="base_setup.action_sale_config"/>
+            sequence="0" action="base_setup.action_sale_config" groups="base.group_system"/>
     </data>
 </openerp>

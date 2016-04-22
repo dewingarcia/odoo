@@ -15,7 +15,7 @@ from openerp import modules
 from openerp import tools
 from openerp import SUPERUSER_ID
 from openerp.addons.website.models.website import slug
-from openerp.exceptions import UserError
+from openerp.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class Forum(models.Model):
 
     # description and use
     name = fields.Char('Forum Name', required=True, translate=True)
+    active = fields.Boolean(default=True)
     faq = fields.Html('Guidelines', default=_get_default_faq, translate=True)
     description = fields.Text(
         'Description',
@@ -138,7 +139,7 @@ class Forum(models.Model):
         if (self.default_post_type == 'question' and not self.allow_question) \
                 or (self.default_post_type == 'discussion' and not self.allow_discussion) \
                 or (self.default_post_type == 'link' and not self.allow_link):
-            raise UserError(_('You cannot choose %s as default post since the forum does not allow it.') % self.default_post_type)
+            raise ValidationError(_('You cannot choose %s as default post since the forum does not allow it.') % self.default_post_type)
 
     @api.one
     def _compute_count_posts_waiting_validation(self):
@@ -153,6 +154,14 @@ class Forum(models.Model):
     @api.model
     def create(self, values):
         return super(Forum, self.with_context(mail_create_nolog=True, mail_create_nosubscribe=True)).create(values)
+
+    @api.multi
+    def write(self, vals):
+        res = super(Forum, self).write(vals)
+        if 'active' in vals:
+            # archiving/unarchiving a forum does it on its posts, too
+            self.env['forum.post'].with_context(active_test=False).search([('forum_id', 'in', self.ids)]).write({'active': vals['active']})
+        return res
 
     @api.model
     def _tag_to_write_vals(self, tags=''):
@@ -405,7 +414,7 @@ class Post(models.Model):
         if (self.post_type == 'question' and not self.forum_id.allow_question) \
                 or (self.post_type == 'discussion' and not self.forum_id.allow_discussion) \
                 or (self.post_type == 'link' and not self.forum_id.allow_link):
-            raise UserError(_('This forum does not allow %s') % self.post_type)
+            raise ValidationError(_('This forum does not allow %s') % self.post_type)
 
     def _update_content(self, content, forum_id):
         forum = self.env['forum.forum'].browse(forum_id)
@@ -483,7 +492,8 @@ class Post(models.Model):
                     post.create_uid.sudo().add_karma(post.forum_id.karma_gen_answer_accepted * mult)
                     self.env.user.sudo().add_karma(post.forum_id.karma_gen_answer_accept * mult)
         if 'tag_ids' in vals:
-            if any(self.env.user.karma < post.forum_id.karma_edit_retag for post in self):
+            tag_ids = set(tag.get('id') for tag in self.resolve_2many_commands('tag_ids', vals['tag_ids']))
+            if any(set(post.tag_ids) != tag_ids for post in self) and any(self.env.user.karma < post.forum_id.karma_edit_retag for post in self):
                 raise KarmaError(_('Not enough karma to retag.'))
         if any(key not in ['state', 'active', 'is_correct', 'closed_uid', 'closed_date', 'closed_reason_id', 'tag_ids'] for key in vals.keys()) and any(not post.can_edit for post in self):
             raise KarmaError('Not enough karma to edit a post.')
@@ -500,6 +510,10 @@ class Post(models.Model):
                     body, subtype = _('Question Edited'), 'website_forum.mt_question_edit'
                     obj_id = post
                 obj_id.message_post(body=body, subtype=subtype)
+        if 'active' in vals:
+            answers = self.env['forum.post'].with_context(active_test=False).search([('parent_id', 'in', self.ids)])
+            if answers:
+                answers.write({'active': vals['active']})
         return res
 
     @api.multi

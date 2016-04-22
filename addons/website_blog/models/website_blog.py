@@ -20,7 +20,22 @@ class Blog(osv.Model):
     _columns = {
         'name': fields.char('Blog Name', required=True, translate=True),
         'subtitle': fields.char('Blog Subtitle', translate=True),
+        'active': fields.boolean('Active'),
     }
+
+    _defaults = {
+        'active': True,
+    }
+
+    def write(self, cr, uid, ids, vals, context=None):
+        res = super(Blog, self).write(cr, uid, ids, vals, context=context)
+        if 'active' in vals:
+            # archiving/unarchiving a blog does it on its posts, too
+            BlogPost = self.pool['blog.post']
+            ctx = dict(context or {}, active_test=False)
+            post_ids = BlogPost.search(cr, uid, [('blog_id', 'in', ids)], context=ctx)
+            BlogPost.write(cr, uid, post_ids, {'active': vals['active']}, context=context)
+        return res
 
     def all_tags(self, cr, uid, ids, min_limit=1, context=None):
         req = """
@@ -96,6 +111,7 @@ class BlogPost(osv.Model):
         'name': fields.char('Title', required=True, translate=True),
         'subtitle': fields.char('Sub Title', translate=True),
         'author_id': fields.many2one('res.partner', 'Author'),
+        'active': fields.boolean('Active'),
         'cover_properties': fields.text('Cover Properties'),
         'blog_id': fields.many2one(
             'blog.blog', 'Blog',
@@ -139,6 +155,7 @@ class BlogPost(osv.Model):
 
     _defaults = {
         'name': '',
+        'active': True,
         'content': _default_content,
         'cover_properties': '{"background-image": "none", "background-color": "oe_none", "opacity": "0.6", "resize_class": ""}',
         'author_id': lambda self, cr, uid, ctx=None: self.pool['res.users'].browse(cr, uid, uid, context=ctx).partner_id.id,
@@ -257,7 +274,7 @@ class BlogPost(osv.Model):
         on their notification email. It will lead on the website view of the
         post. """
         res = super(BlogPost, self)._notification_get_recipient_groups(cr, uid, ids, message, recipients, context=context)
-        access_action = self._notification_link_helper('view', model=message.model, res_id=message.res_id)
+        access_action = self._notification_link_helper(cr, uid, ids, 'view', model=message.model, res_id=message.res_id)
         for category, data in res.iteritems():
             res[category]['button_access'] = {'url': access_action, 'title': _('View Blog Post')}
         return res

@@ -642,6 +642,11 @@ file_filter = addons/payment_paypal/i18n/<lang>.po
 source_file = addons/payment_paypal/i18n/payment_paypal.pot
 source_lang = en
 
+[odoo-9.payment_payumoney]
+file_filter = addons/payment_payumoney/i18n/<lang>.po
+source_file = addons/payment_payumoney/i18n/payment_payumoney.pot
+source_lang = en
+
 [odoo-9.payment_sips]
 file_filter = addons/payment_sips/i18n/<lang>.po
 source_file = addons/payment_sips/i18n/payment_sips.pot
@@ -817,11 +822,6 @@ file_filter = addons/sale_expense/i18n/<lang>.po
 source_file = addons/sale_expense/i18n/sale_expense.pot
 source_lang = en
 
-[odoo-9.sale_layout]
-file_filter = addons/sale_layout/i18n/<lang>.po
-source_file = addons/sale_layout/i18n/sale_layout.pot
-source_lang = en
-
 [odoo-9.sale_margin]
 file_filter = addons/sale_margin/i18n/<lang>.po
 source_file = addons/sale_margin/i18n/sale_margin.pot
@@ -835,11 +835,6 @@ source_lang = en
 [odoo-9.sale_order_dates]
 file_filter = addons/sale_order_dates/i18n/<lang>.po
 source_file = addons/sale_order_dates/i18n/sale_order_dates.pot
-source_lang = en
-
-[odoo-9.sale_service]
-file_filter = addons/sale_service/i18n/<lang>.po
-source_file = addons/sale_service/i18n/sale_service.pot
 source_lang = en
 
 [odoo-9.sale_stock]

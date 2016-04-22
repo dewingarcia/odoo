@@ -85,28 +85,32 @@ class product_product(osv.osv):
         operator = context.get('compute_child', True) and 'child_of' or 'in'
         domain = context.get('force_company', False) and ['&', ('company_id', '=', context['force_company'])] or []
         locations = location_obj.browse(cr, uid, location_ids, context=context)
-        if operator == "child_of" and locations and locations[0].parent_left != 0:
-            loc_domain = []
-            dest_loc_domain = []
-            for loc in locations:
-                if loc_domain:
-                    loc_domain = ['|'] + loc_domain  + ['&', ('location_id.parent_left', '>=', loc.parent_left), ('location_id.parent_left', '<', loc.parent_right)]
-                    dest_loc_domain = ['|'] + dest_loc_domain + ['&', ('location_dest_id.parent_left', '>=', loc.parent_left), ('location_dest_id.parent_left', '<', loc.parent_right)]
-                else:
-                    loc_domain += ['&', ('location_id.parent_left', '>=', loc.parent_left), ('location_id.parent_left', '<', loc.parent_right)]
-                    dest_loc_domain += ['&', ('location_dest_id.parent_left', '>=', loc.parent_left), ('location_dest_id.parent_left', '<', loc.parent_right)]
-
-            return (
-                domain + loc_domain,
-                domain + ['&'] + dest_loc_domain + ['!'] + loc_domain,
-                domain + ['&'] + loc_domain + ['!'] + dest_loc_domain
-            )
-        else:
-            return (
-                domain + [('location_id', operator, location_ids)],
-                domain + ['&', ('location_dest_id', operator, location_ids), '!', ('location_id', operator, location_ids)],
-                domain + ['&', ('location_id', operator, location_ids), '!', ('location_dest_id', operator, location_ids)]
-            )
+        # TDE FIXME: should move the support of child_of + auto_join directly in expression
+        # The code has been modified because having one location with parent_left being
+        # 0 make the whole domain unusable
+        hierarchical_locations = [location for location in locations if location.parent_left != 0 and operator == "child_of"]
+        other_locations = [location for location in locations if location not in hierarchical_locations]
+        loc_domain = []
+        dest_loc_domain = []
+        for location in hierarchical_locations:
+            loc_domain = loc_domain and ['|'] + loc_domain or loc_domain
+            loc_domain += ['&',
+                           ('location_id.parent_left', '>=', location.parent_left),
+                           ('location_id.parent_left', '<', location.parent_right)]
+            dest_loc_domain = dest_loc_domain and ['|'] + dest_loc_domain or dest_loc_domain
+            dest_loc_domain += ['&',
+                                ('location_dest_id.parent_left', '>=', location.parent_left),
+                                ('location_dest_id.parent_left', '<', location.parent_right)]
+        if other_locations:
+            loc_domain = loc_domain and ['|'] + loc_domain or loc_domain
+            loc_domain = loc_domain + [('location_id', operator, [location.id for location in other_locations])]
+            dest_loc_domain = dest_loc_domain and ['|'] + dest_loc_domain or dest_loc_domain
+            dest_loc_domain = dest_loc_domain + [('location_dest_id', operator, [location.id for location in other_locations])]
+        return (
+            domain + loc_domain,
+            domain + ['&'] + dest_loc_domain + ['!'] + loc_domain,
+            domain + ['&'] + loc_domain + ['!'] + dest_loc_domain
+        )
 
     def _get_domain_dates(self, cr, uid, ids, context):
         from_date = context.get('from_date', False)
@@ -385,11 +389,12 @@ class product_template(osv.osv):
         return res
 
     def _compute_nbr_reordering_rules(self, cr, uid, ids, field_names=None, arg=None, context=None):
-        res = dict.fromkeys(ids, {'nbr_reordering_rules': 0, 'reordering_min_qty': 0, 'reordering_max_qty': 0})
+        res = {k: {'nbr_reordering_rules': 0, 'reordering_min_qty': 0, 'reordering_max_qty': 0} for k in ids}
         product_data = self.pool['stock.warehouse.orderpoint'].read_group(cr, uid, [('product_id.product_tmpl_id', 'in', ids)], ['product_id', 'product_min_qty', 'product_max_qty'], ['product_id'], context=context)
         for data in product_data:
-            product_tmpl_id = data['__domain'][1][2][0]
-            res[product_tmpl_id]['nbr_reordering_rules'] = res[product_tmpl_id].get('nbr_reordering_rules', 0) + int(data['product_id_count'])
+            p = self.pool['product.product'].browse(cr, uid, [data['product_id'][0]], context=context)
+            product_tmpl_id = p.product_tmpl_id.id
+            res[product_tmpl_id]['nbr_reordering_rules'] += int(data['product_id_count'])
             res[product_tmpl_id]['reordering_min_qty'] = data['product_min_qty']
             res[product_tmpl_id]['reordering_max_qty'] = data['product_max_qty']
         return res

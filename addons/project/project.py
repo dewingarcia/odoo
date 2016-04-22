@@ -157,6 +157,12 @@ class project(osv.osv):
             'context': "{'default_res_model': '%s','default_res_id': %d}" % (self._name, res_id)
         }
 
+    def _get_favorite(self, cr, uid, ids, name, args, context=None):
+        return dict((project.id, uid in project.favorite_user_ids.ids) for project in self.browse(cr, uid, ids, context=context))
+
+    def _get_default_favorite_user_ids(self, cr, uid, context=None):
+        return [(6, 0, [uid])]
+
     # Lambda indirection method to avoid passing a copy of the overridable method when declaring the field
     _alias_models = lambda self, *args, **kwargs: self._get_alias_models(*args, **kwargs)
     _visibility_selection = lambda self, *args, **kwargs: self._get_visibility_selection(*args, **kwargs)
@@ -169,6 +175,11 @@ class project(osv.osv):
             help="Link this project to an analytic account if you need financial management on projects. "
                  "It enables you to connect projects with budgets, planning, cost and revenue analysis, timesheets on projects, etc.",
             ondelete="cascade", required=True, auto_join=True),
+        'favorite_user_ids': fields.many2many(
+            'res.users', 'project_favorite_user_rel', 'project_id', 'user_id',
+            string='Members'),
+        'is_favorite': fields.function(_get_favorite, type="boolean", string='Show Project on dashboard',
+            help="Whether this project should be displayed on the dashboard or not"),
         'label_tasks': fields.char('Use Tasks as', help="Gives label to tasks on project's kanban view."),
         'tasks': fields.one2many('project.task', 'project_id', "Task Activities"),
         'resource_calendar_id': fields.many2one('resource.calendar', 'Working Time', help="Timetable working hours to adjust the gantt diagram report", states={'close':[('readonly',True)]} ),
@@ -208,6 +219,7 @@ class project(osv.osv):
     _order = "sequence, name, id"
     _defaults = {
         'active': True,
+        'favorite_user_ids': _get_default_favorite_user_ids,
         'type': 'contract',
         'label_tasks': 'Tasks',
         'state': 'open',
@@ -331,6 +343,19 @@ class project(osv.osv):
             tasks.write({'active': vals['active']})
         return res
 
+    def toggle_favorite(self, cr, uid, ids, context=None):
+        favorite_project_ids = []
+        not_fav_project_ids = []
+        for project in self.browse(cr, uid, ids, context=context):
+            if uid in project.favorite_user_ids.ids:
+                favorite_project_ids.append(project.id)
+            else:
+                not_fav_project_ids.append(project.id)
+
+        # Project User has no write access for project.
+        self.write(cr, SUPERUSER_ID, not_fav_project_ids, {'favorite_user_ids': [(4, uid)]}, context=context)
+        self.write(cr, SUPERUSER_ID, favorite_project_ids, {'favorite_user_ids': [(3, uid)]}, context=context)
+
 
 class task(osv.osv):
     _name = "project.task"
@@ -379,14 +404,6 @@ class task(osv.osv):
     _group_by_full = {
         'stage_id': _read_group_stage_ids,
     }
-
-    def onchange_remaining(self, cr, uid, ids, remaining=0.0, planned=0.0):
-        if remaining and not planned:
-            return {'value': {'planned_hours': remaining}}
-        return {}
-
-    def onchange_planned(self, cr, uid, ids, planned=0.0, effective=0.0):
-        return {'value': {'remaining_hours': planned - effective}}
 
     def onchange_project(self, cr, uid, id, project_id, context=None):
         if project_id:
@@ -452,7 +469,7 @@ class task(osv.osv):
         'remaining_hours': fields.float('Remaining Hours', digits=(16,2), help="Total remaining time, can be re-estimated periodically by the assignee of the task."),
         'user_id': fields.many2one('res.users', 'Assigned to', select=True, track_visibility='onchange'),
         'partner_id': fields.many2one('res.partner', 'Customer'),
-        'manager_id': fields.related('project_id', 'analytic_account_id', 'user_id', type='many2one', relation='res.users', string='Project Manager'),
+        'manager_id': fields.related('project_id', 'user_id', type='many2one', relation='res.users', string='Project Manager'),
         'company_id': fields.many2one('res.company', 'Company'),
         'id': fields.integer('ID', readonly=True),
         'color': fields.integer('Color Index'),

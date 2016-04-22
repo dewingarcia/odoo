@@ -13,7 +13,7 @@ class SaleOrder(models.Model):
     carrier_id = fields.Many2one("delivery.carrier", string="Delivery Method", help="Fill this field if you plan to invoice the shipping based on picking.")
     invoice_shipping_on_delivery = fields.Boolean(string="Invoice Shipping on Delivery")
 
-    @api.depends('carrier_id', 'partner_id', 'order_line')
+    @api.depends('carrier_id', 'order_line')
     def _compute_delivery_price(self):
         for order in self:
             if order.state != 'draft':
@@ -96,11 +96,6 @@ class SaleOrder(models.Model):
         if self.order_line:
             values['sequence'] = self.order_line[-1].sequence + 1
         sol = SaleOrderLine.create(values)
-        if hasattr(sol, 'product_id_change_margin'):
-            # if `sale_margin` module is installed, force computation of field `purchase_price`
-            # As there is not dependency between modules (nor a bridge module), this is the only
-            # place we can get the value for this field
-            sol.product_id_change_margin()
         return sol
 
 

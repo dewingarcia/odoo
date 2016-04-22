@@ -13,9 +13,10 @@
             <field name="arch" type="xml">
                 <search string="Salesteams Search">
                     <filter name="personal" string="My Salesteams" domain="['|', ('member_ids', '=', uid), ('user_id', '=', uid)]"/>
+                    <separator/>
+                    <filter string="Archived" name="inactive" domain="[('active','=',False)]"/>
                     <field name="name"/>
                     <field name="user_id"/>
-                    <field name="code"/>
                     <group expand="0" string="Group By...">
                         <filter string="Team Leader" domain="[]" context="{'group_by':'user_id'}"/>
                     </group>
@@ -50,6 +51,11 @@
             <field name="arch" type="xml">
                 <form string="Sales Team">
                     <sheet>
+                      <div class="oe_button_box" name="button_box">
+                            <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
+                                <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
+                            </button>
+                        </div>
                         <div class="oe_title">
                             <label for="name" class="oe_edit_only" string="Sales team"/>
                             <h1>
@@ -60,14 +66,13 @@
                         <group>
                             <group name="left">
                                 <field name="user_id"/>
-                                <field name="code" groups="base.group_no_one"/>
                             </group>
                             <group name="right">
                             </group>
                         </group>
                         <notebook>
                             <page name="members" string="Team Members">
-                                <field name="member_ids" widget="many2many_kanban">
+                                <field name="member_ids" widget="many2many_kanban" options="{'not_delete': True}">
                                     <kanban quick_create="false" create="true" delete="true">
                                         <field name="name"/>
                                         <templates>
@@ -87,9 +92,6 @@
                                 </field>
                             </page>
                             <page string="More Info" name="more_info" groups="base.group_no_one">
-                                <group>
-                                    <field name="active"/>
-                                </group>
                                 <group string="Company" groups="base.group_multi_company">
                                     <field name="company_id" options="{'no_create': True}"/>
                                 </group>
@@ -112,7 +114,7 @@
             <field name="arch" type="xml">
                 <tree string="Sales Team">
                     <field name="name"/>
-                    <field name="code"/>
+                    <field name="active" invisible="1"/>
                     <field name="user_id"/>
                 </tree>
             </field>
@@ -168,7 +170,6 @@
 
         <menuitem name="Sales Teams"
             id="base.sales_team_config"
-            groups="base.group_configuration"
             parent="base.menu_sale_config"
             action="sales_team_config_action"/>
 

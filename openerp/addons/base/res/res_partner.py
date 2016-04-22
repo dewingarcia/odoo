@@ -15,34 +15,22 @@ from odoo.modules import get_module_resource
 from odoo.osv.expression import get_unaccent_wrapper
 from odoo.exceptions import UserError, ValidationError
 
-ADDRESS_FORMAT_LAYOUTS = {
-    '%(city)s %(state_code)s\n%(zip)s': """
-        <div class="address_format">
-            <field name="city" placeholder="%(city)s" style="width: 50%%"/>
-            <field name="state_id" class="oe_no_button" placeholder="%(state)s" style="width: 47%%" options='{"no_open": true}'/>
-            <br/>
-            <field name="zip" placeholder="%(zip)s"/>
-        </div>
-    """,
-    '%(zip)s %(city)s': """
-        <div class="address_format">
-            <field name="zip" placeholder="%(zip)s" style="width: 40%%"/>
-            <field name="city" placeholder="%(city)s" style="width: 57%%"/>
-            <br/>
-            <field name="state_id" class="oe_no_button" placeholder="%(state)s" options='{"no_open": true}'/>
-        </div>
-    """,
-    '%(city)s\n%(state_name)s\n%(zip)s': """
-        <div class="address_format">
-            <field name="city" placeholder="%(city)s"/>
-            <field name="state_id" class="oe_no_button" placeholder="%(state)s" options='{"no_open": true}'/>
-            <field name="zip" placeholder="%(zip)s"/>
-        </div>
-    """
+# Global variables used for the warning fields declared on the res.partner
+# in the following modules : sale, purchase, account, stock 
+WARNING_MESSAGE = [
+                   ('no-message','No Message'),
+                   ('warning','Warning'),
+                   ('block','Blocking Message')
+                   ]
+WARNING_HELP = _('Selecting the "Warning" option will notify user with the message, Selecting "Blocking Message" will throw an exception with the message and block the flow. The Message has to be written in the next field.')
+
+
+ADDRESS_FORMAT_CLASSES = {
+    '%(city)s %(state_code)s\n%(zip)s': 'o_city_state',
+    '%(zip)s %(city)s': 'o_zip_city'
 }
 
 ADDRESS_FIELDS = ('street', 'street2', 'zip', 'city', 'state_id', 'country_id')
-
 @api.model
 def _lang_get(self):
     return self.env['res.lang'].get_installed()
@@ -56,17 +44,19 @@ def _tz_get(self):
 class FormatAddress(object):
     @api.model
     def fields_view_get_address(self, arch):
-        fmt = self.env.user.company_id.country_id.address_format or ''
-        for k, v in ADDRESS_FORMAT_LAYOUTS.items():
-            if k in fmt:
+        address_format = self.env.user.company_id.country_id.address_format or ''
+        for format_pattern, format_class in ADDRESS_FORMAT_CLASSES.iteritems():
+            if format_pattern in address_format:
                 doc = etree.fromstring(arch)
-                for node in doc.xpath("//div[@class='address_format']"):
-                    tree = etree.fromstring(v % {'city': _('City'), 'zip': _('ZIP'), 'state': _('State')})
-                    for child in node.xpath("//field"):
-                        if child.attrib.get('modifiers'):
-                            for field in tree.xpath("//field[@name='%s']" % child.attrib.get('name')):
-                                field.attrib['modifiers'] = child.attrib.get('modifiers')
-                    node.getparent().replace(node, tree)
+                for address_node in doc.xpath("//div[@class='o_address_format']"):
+                    # add address format class to address block
+                    address_node.attrib['class'] += ' ' + format_class
+                    if format_class.startswith('o_zip'):
+                        zip_fields = address_node.xpath("//field[@name='zip']")
+                        city_fields = address_node.xpath("//field[@name='city']")
+                        if zip_fields and city_fields:
+                            # move zip field before city field
+                            city_fields[0].addprevious(zip_fields[0])
                 arch = etree.tostring(doc)
                 break
         return arch
@@ -131,7 +121,6 @@ class PartnerTitle(models.Model):
 
     name = fields.Char(string='Title', required=True, translate=True)
     shortcut = fields.Char(string='Abbreviation', translate=True)
-
 
 class Partner(models.Model, FormatAddress):
     _description = 'Partner'
@@ -218,13 +207,11 @@ class Partner(models.Model, FormatAddress):
     # image: all image fields are base64 encoded and PIL-supported
     image = fields.Binary("Image", attachment=True,
         help="This field holds the image used as avatar for this contact, limited to 1024x1024px",)
-    image_medium = fields.Binary("Medium-sized image",
-        compute='_compute_images', inverse='_inverse_image_medium', store=True, attachment=True,
+    image_medium = fields.Binary("Medium-sized image", attachment=True,
         help="Medium-sized image of this contact. It is automatically "\
              "resized as a 128x128px image, with aspect ratio preserved. "\
              "Use this field in form views or some kanban views.")
-    image_small = fields.Binary("Small-sized image",
-        compute='_compute_images', inverse='_inverse_image_small', store=True, attachment=True,
+    image_small = fields.Binary("Small-sized image", attachment=True,
         help="Small-sized image of this contact. It is automatically "\
              "resized as a 64x64px image, with aspect ratio preserved. "\
              "Use this field anywhere a small image is required.")
@@ -258,20 +245,6 @@ class Partner(models.Model, FormatAddress):
             else:
                 partner.commercial_partner_id = partner.parent_id.commercial_partner_id
 
-    @api.depends('image')
-    def _compute_images(self):
-        for rec in self:
-            rec.image_medium = tools.image_resize_image_medium(rec.image)
-            rec.image_small = tools.image_resize_image_small(rec.image)
-
-    def _inverse_image_medium(self):
-        for rec in self:
-            rec.image = tools.image_resize_image_big(rec.image_medium)
-
-    def _inverse_image_small(self):
-        for rec in self:
-            rec.image = tools.image_resize_image_big(rec.image_small)
-
     @api.model
     def _get_default_image(self, partner_type, is_company, parent_id):
         if getattr(threading.currentThread(), 'testing', False) or self._context.get('install_mode'):
@@ -280,7 +253,8 @@ class Partner(models.Model, FormatAddress):
         colorize, img_path, image = False, False, False
 
         if partner_type in ['contact', 'other'] and parent_id:
-            image = self.browse(parent_id).image.decode('base64')
+            parent_image = self.browse(parent_id).image
+            image = parent_image and parent_image.decode('base64') or None
 
         if not image and partner_type == 'invoice':
             img_path = get_module_resource('base', 'static/src/img', 'money.png')
@@ -503,16 +477,17 @@ class Partner(models.Model, FormatAddress):
                     companies = set(user.company_id for user in partner.user_ids)
                     if len(companies) > 1 or company not in companies:
                         raise UserError(_("You can not change the company as the partner/user has multiple user linked with different companies."))
+        tools.image_resize_images(vals)
 
         result = super(Partner, self).write(vals)
         for partner in self:
+            if any(u.has_group('base.group_user') for u in partner.user_ids if u != self.env.user):
+                self.env['res.users'].check_access_rights('write')
             partner._fields_sync(vals)
         return result
 
     @api.model
     def create(self, vals):
-        if vals.get('type') and not self._context.get('partner_type'):
-            self = self.with_context(partner_type=vals['type'])
         if vals.get('website'):
             vals['website'] = self._clean_website(vals['website'])
         # compute default image in create, because computing gravatar in the onchange
@@ -522,6 +497,7 @@ class Partner(models.Model, FormatAddress):
         partner = super(Partner, self).create(vals)
         partner._fields_sync(vals)
         partner._handle_first_contact_creation()
+        tools.image_resize_images(vals)
         return partner
 
     @api.multi

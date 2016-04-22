@@ -180,7 +180,8 @@ class website(osv.osv):
         'cdn_url': fields.char('CDN Base URL'),
         'cdn_filters': fields.text('CDN Filters', help="URL matching those filters will be rewritten using the CDN Base URL"),
         'partner_id': fields.related('user_id','partner_id', type='many2one', relation='res.partner', string='Public Partner'),
-        'menu_id': fields.function(_get_menu, relation='website.menu', type='many2one', string='Main Menu')
+        'menu_id': fields.function(_get_menu, relation='website.menu', type='many2one', string='Main Menu'),
+        'favicon': fields.binary(string="Website Favicon", help="This field holds the image used to display a favicon on the website."),
     }
     _defaults = {
         'user_id': lambda self,cr,uid,c: self.pool['ir.model.data'].xmlid_to_res_id(cr, openerp.SUPERUSER_ID, 'base.public_user'),
@@ -363,14 +364,22 @@ class website(osv.osv):
         if req is None:
             req = request.httprequest
         default = self.get_current_website(cr, uid, context=context).default_lang_code
-        uri = req.path
-        if req.query_string:
-            uri += '?' + req.query_string
         shorts = []
+
+        def get_url_localized(router, lang):
+            arguments = dict(request.endpoint_arguments)
+            for k, v in arguments.items():
+                if isinstance(v, orm.browse_record):
+                    arguments[k] = v.with_context(lang=lang)
+            return router.build(request.endpoint, arguments)
+        router = request.httprequest.app.get_db_router(request.db).bind('')
         for code, name in self.get_languages(cr, uid, ids, context=context):
             lg_path = ('/' + code) if code != default else ''
             lg = code.split('_')
             shorts.append(lg[0])
+            uri = request.endpoint and get_url_localized(router, code) or request.httprequest.path
+            if req.query_string:
+                uri += '?' + req.query_string
             lang = {
                 'hreflang': ('-'.join(lg)).lower(),
                 'short': lg[0],
@@ -416,7 +425,7 @@ class website(osv.osv):
 
     def _render(self, cr, uid, ids, template, values=None, context=None):
         # TODO: remove this. (just kept for backward api compatibility for saas-3)
-        return self.pool['ir.ui.view'].render(cr, uid, template, values=values, context=context)
+        return self.pool['ir.ui.view'].render_template(cr, uid, template, values=values, context=context)
 
     def render(self, cr, uid, ids, template, values=None, status_code=None, context=None):
         # TODO: remove this. (just kept for backward api compatibility for saas-3)
@@ -515,7 +524,7 @@ class website(osv.osv):
         """
         router = request.httprequest.app.get_db_router(request.db)
         # Force enumeration to be performed as public user
-        url_list = []
+        url_set = set()
         for rule in router.iter_rules():
             if not self.rule_is_enumerable(rule):
                 continue
@@ -547,9 +556,9 @@ class website(osv.osv):
                         page[key[2:]] = val
                 if url in ('/sitemap.xml',):
                     continue
-                if url in url_list:
+                if url in url_set:
                     continue
-                url_list.append(url)
+                url_set.add(url)
 
                 yield page
 

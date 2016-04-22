@@ -73,13 +73,20 @@ class AccountInvoiceLine(models.Model):
                 self.asset_category_id = self.product_id.product_tmpl_id.asset_category_id
 
     def _set_additional_fields(self, invoice):
-        if invoice.type == 'out_invoice':
-            self.asset_category_id = self.product_id.product_tmpl_id.deferred_revenue_category_id.id
-        elif invoice.type == 'in_invoice':
-            self.asset_category_id = self.product_id.product_tmpl_id.asset_category_id.id
+        if not self.asset_category_id:
+            if invoice.type == 'out_invoice':
+                self.asset_category_id = self.product_id.product_tmpl_id.deferred_revenue_category_id.id
+            elif invoice.type == 'in_invoice':
+                self.asset_category_id = self.product_id.product_tmpl_id.asset_category_id.id
         super(AccountInvoiceLine, self)._set_additional_fields(invoice)
+
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
     asset_category_id = fields.Many2one('account.asset.category', string='Asset Type', ondelete="restrict")
     deferred_revenue_category_id = fields.Many2one('account.asset.category', string='Deferred Revenue Type', ondelete="restrict")
+
+    @api.onchange('deferred_revenue_category_id')
+    def onchange_revenue_category_id(self):
+        if self.deferred_revenue_category_id:
+            self.property_account_income_id = self.deferred_revenue_category_id.account_depreciation_id.id

@@ -37,18 +37,13 @@ You can manage:
     'data': [
         'security/hr_security.xml',
         'security/ir.model.access.csv',
-        'hr_view.xml',
-        'hr_installer.xml',
-        'hr_data.xml',
-        'hr_tip_data.xml',
-        'views/hr.xml',
-        'hr_dashboard.xml',
+        'views/hr_views.xml',
+        'views/hr_templates.xml',
+        'data/hr_data.xml',
+        'data/web_tip_data.xml',
     ],
-    'demo': ['hr_demo.xml'],
-    'test': [
-        'test/hr_users.yml',
-        'test/open2recruit2close_job.yml',
-        'test/hr_demo.yml',
+    'demo': [
+        'data/hr_demo.xml'
     ],
     'installable': True,
     'application': True,

@@ -7,20 +7,19 @@ import re
 import collections
 
 from lxml import etree
-from openerp.addons.base.ir.ir_qweb import QWebContext, FileSystemLoader
-import openerp.modules
 
+import openerp.modules
+from openerp.addons.base.ir.ir_qweb import QWebContext, FileSystemLoader
 from openerp.tests import common
-from openerp.addons.base.ir import ir_qweb
 
 class TestQWebTField(common.TransactionCase):
     def setUp(self):
         super(TestQWebTField, self).setUp()
-        self.engine = self.registry('ir.qweb')
+        self.env = self.env(context={'inherit_branding': True})
+        self.engine = self.env['ir.qweb']
 
     def context(self, values):
-        return ir_qweb.QWebContext(
-            self.cr, self.uid, values, context={'inherit_branding': True})
+        return QWebContext(self.env, values)
 
     def test_trivial(self):
         field = etree.Element('span', {'t-field': u'company.name'})
@@ -114,7 +113,7 @@ class TestQWeb(common.TransactionCase):
     def run_test_file(self, path):
         doc = etree.parse(path).getroot()
         loader = FileSystemLoader(path)
-        context = QWebContext(self.cr, self.uid, {}, loader=loader)
+        context = QWebContext(self.env, {}, loader=loader)
         qweb = self.env['ir.qweb']
         for template in loader:
             if not template or template.startswith('_'):

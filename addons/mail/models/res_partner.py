@@ -28,7 +28,7 @@ class Partner(models.Model):
     opt_out = fields.Boolean(
         'Opt-Out', help="If opt-out is checked, this contact has refused to receive emails for mass mailing and marketing campaign. "
                         "Filter 'Available for Mass Mailing' allows users to filter the partners when performing mass mailing.")
-    channel_ids = fields.Many2many('mail.channel', 'mail_channel_partner', 'partner_id', 'channel_id', string='Channels')
+    channel_ids = fields.Many2many('mail.channel', 'mail_channel_partner', 'partner_id', 'channel_id', string='Channels', copy=False)
 
     @api.multi
     def message_get_suggested_recipients(self):
@@ -73,6 +73,8 @@ class Partner(models.Model):
                              tracking_value.get_old_display_value()[0],
                              tracking_value.get_new_display_value()[0]))
 
+        is_discussion = message.subtype_id.id == self.env['ir.model.data'].xmlid_to_res_id('mail.mt_comment'),
+
         return {
             'signature': signature,
             'website_url': website_url,
@@ -80,6 +82,7 @@ class Partner(models.Model):
             'model_name': model_name,
             'record_name': record_name,
             'tracking': tracking,
+            'is_discussion': is_discussion,
         }
 
     @api.model
@@ -94,6 +97,7 @@ class Partner(models.Model):
 
         mail_values = {
             'mail_message_id': message.id,
+            'mail_server_id': message.mail_server_id.id,
             'auto_delete': self._context.get('mail_auto_delete', True),
             'references': references,
         }
@@ -158,6 +162,7 @@ class Partner(models.Model):
             base_template_ctx['signature'] = False
         base_mail_values = self._notify_prepare_email_values(message)
 
+
         # classify recipients: actions / no action
         if message.model and message.res_id and hasattr(self.env[message.model], '_message_notification_recipients'):
             recipients = self.env[message.model].browse(message.res_id)._message_notification_recipients(message, self)
@@ -220,6 +225,18 @@ class Partner(models.Model):
                 WHERE R.res_partner_id = %s """, (self.env.user.partner_id.id,))
             return self.env.cr.dictfetchall()[0].get('needaction_count')
         _logger.error('Call to needaction_count without partner_id')
+        return 0
+
+    @api.model
+    def get_starred_count(self):
+        """ compute the number of starred of the current user """
+        if self.env.user.partner_id:
+            self.env.cr.execute("""
+                SELECT count(*) as starred_count
+                FROM mail_message_res_partner_starred_rel R
+                WHERE R.res_partner_id = %s """, (self.env.user.partner_id.id,))
+            return self.env.cr.dictfetchall()[0].get('starred_count')
+        _logger.error('Call to starred_count without partner_id')
         return 0
 
     @api.model

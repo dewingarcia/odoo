@@ -18,7 +18,7 @@ class Web_Editor(http.Controller):
     #------------------------------------------------------
     @http.route('/web_editor/snippets', type='json', auth="user")
     def snippets(self, **kwargs):
-        return request.registry["ir.ui.view"].render(request.cr, request.uid, 'web_editor.snippets', None, context=request.context)
+        return request.env.ref('web_editor.snippets').render(None)
 
     #------------------------------------------------------
     # Backend html field
@@ -85,6 +85,8 @@ class Web_Editor(http.Controller):
 
             :returns PNG image converted from given font
         """
+        # Make sure we have at least size=1
+        size = max(1, size)
         # Initialize font
         addons_path = http.addons_manifest['web']['addons_path']
         font_obj = ImageFont.truetype(addons_path + font, size)

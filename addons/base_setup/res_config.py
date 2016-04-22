@@ -9,14 +9,14 @@ class base_config_settings(osv.osv_memory):
     _inherit = 'res.config.settings'
 
     _columns = {
-        'group_light_multi_company': fields.boolean('Manage multiple companies',
+        'group_multi_company': fields.boolean('Manage multiple companies',
             help='Work in multi-company environments, with appropriate security access between companies.',
-            implied_group='base.group_light_multi_company'),
+            implied_group='base.group_multi_company'),
         'module_share': fields.boolean('Allow documents sharing',
             help="""Share or embbed any screen of Odoo."""),
         'module_portal': fields.boolean('Activate the customer portal',
             help="""Give your customers access to their documents."""),
-        'module_auth_oauth': fields.boolean('Use external authentication providers, sign in with Google...'),
+        'module_auth_oauth': fields.boolean('Use external authentication providers (OAuth)'),
         'module_base_import': fields.boolean("Allow users to import data from CSV/XLS/XLSX/ODS files"),
         'module_google_drive': fields.boolean('Attach Google documents to any record',
                                               help="""This installs the module google_docs."""),
@@ -28,6 +28,10 @@ class base_config_settings(osv.osv_memory):
             help="Share your partners to all companies defined in your instance.\n"
                  " * Checked : Partners are visible for every companies, even if a company is defined on the partner.\n"
                  " * Unchecked : Each company can see only its partner (partners where company is defined). Partners not related to a company are visible for all companies."),
+        'group_multi_currency': fields.boolean('Allow multi currencies',
+            implied_group='base.group_multi_currency',
+            help="Allows to work in a multi currency environment"),
+
     }
 
     def open_company(self, cr, uid, ids, context=None):

@@ -75,7 +75,7 @@
         <field name="arch" type="xml">
             <form string="Website Public Categories">
                 <sheet>
-                    <field name="image_medium" widget='image' class="oe_avatar oe_right"/>
+                    <field name="image_medium" widget='image' class="oe_avatar"/>
                     <div class="oe_left">
                         <group>
                             <field name="name"/>
@@ -94,7 +94,7 @@
         <field name="arch" type="xml">
             <tree string="Product Public Categories">
                 <field name="sequence" invisible="1"/>
-                <field name="complete_name"/>
+                <field name="display_name"/>
             </tree>
         </field>
     </record>
@@ -115,6 +115,7 @@
         </field>
     </record>
     <menuitem action="product_public_category_action" id="menu_product_public_category" parent="product.prod_config_main" sequence="2" />
+    <menuitem action="product_public_category_action" id="menu_product_public_category_product_catalog" parent="product.product_parameters_menu" sequence="2"/>
 
     <record id="website_sale_pricelists_by_website" model="ir.actions.act_window">
         <field name="name">Website Pricelist</field>

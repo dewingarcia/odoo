@@ -146,15 +146,6 @@
                 padding: 4px;
             }
         }
-
-        &.o_message_expanded .o_thread_message_core {
-            .o_mail_body_short {
-                display: none;
-            }
-            .o_mail_body_long {
-                display: block;
-            }
-        }
     }
     .o_thread_title {
         margin-top: 20px;
@@ -164,5 +155,12 @@
 
     .o_mail_no_content {
         .o-webclient-padding();
+    }
+
+    [data-o-mail-quote="1"] {
+        display: none;
+    }
+    .o_thread_message .o_thread_message_core .o_mail_read_more {
+        display: block;
     }
 }

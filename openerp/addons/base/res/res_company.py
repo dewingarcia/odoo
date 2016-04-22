@@ -11,7 +11,7 @@ from odoo.exceptions import ValidationError
 class Company(models.Model):
     _name = "res.company"
     _description = 'Companies'
-    _order = 'name'
+    _order = 'sequence, name'
 
     _header = """
 <header>
@@ -112,6 +112,11 @@ class Company(models.Model):
     def _get_euro(self):
         return self.env['res.currency.rate'].search([('rate', '=', 1)], limit=1).currency_id
 
+    @api.model
+    def _get_user_currency(self):
+        currency_id = self.env['res.users'].browse(self._uid).company_id.currency_id
+        return currency_id or self._get_euro()
+
     name = fields.Char(related='partner_id.name', string='Company Name', required=True, store=True)
     parent_id = fields.Many2one('res.company', string='Parent Company', index=True)
     child_ids = fields.One2many('res.company', 'parent_id', string='Child Companies')
@@ -130,7 +135,7 @@ class Company(models.Model):
     # logo_web: do not store in attachments, since the image is retrieved in SQL for
     # performance reasons (see addons/web/controllers/main.py, Binary.company_logo)
     logo_web = fields.Binary(compute='_compute_logo_web', store=True)
-    currency_id = fields.Many2one('res.currency', string='Currency', required=True, default=lambda self: self._get_euro())
+    currency_id = fields.Many2one('res.currency', string='Currency', required=True, default=lambda self: self._get_user_currency())
     user_ids = fields.Many2many('res.users', 'res_company_users_rel', 'cid', 'user_id', string='Accepted Users')
     account_no = fields.Char(string='Account No.')
     street = fields.Char(compute='_compute_address', inverse='_inverse_street')
@@ -147,6 +152,7 @@ class Company(models.Model):
     vat = fields.Char(related='partner_id.vat', string="Tax ID")
     company_registry = fields.Char()
     rml_paper_format = fields.Selection([('a4', 'A4'), ('us_letter', 'US Letter')], string="Paper Format", required=True, default='a4', oldname='paper_format')
+    sequence = fields.Integer(help='Used to order Companies in the company switcher', default=10)
 
     _sql_constraints = [
         ('name_uniq', 'unique (name)', 'The company name must be unique !')
@@ -237,7 +243,7 @@ class Company(models.Model):
     def on_change_country(self, country_id):
         # This function is called from account/models/chart_template.py, hence decorated with `multi`.
         self.ensure_one()
-        currency_id = self._get_euro()
+        currency_id = self._get_user_currency()
         if country_id:
             currency_id = self.env['res.country'].browse(country_id).currency_id.id
         return {'value': {'currency_id': currency_id}}

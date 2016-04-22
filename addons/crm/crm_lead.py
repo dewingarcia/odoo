@@ -61,7 +61,7 @@ class crm_lead(FormatAddress, osv.osv):
 
     def _get_default_probability(self, cr, uid, context=None):
         """ Gives default probability """
-        stage_id = self._get_default_stage_id(cr, uid, context=None)
+        stage_id = self._get_default_stage_id(cr, uid, context=context)
         if stage_id:
             return self.pool['crm.stage'].browse(cr, uid, stage_id, context=context).probability
         else:
@@ -114,18 +114,16 @@ class crm_lead(FormatAddress, osv.osv):
     }
 
     def _compute_kanban_state(self, cr, uid, ids, fields, args, context=None):
-        """ Very interesting kanban state color. This makes complete sense. Or
-        not. """
         result = {}
         today = date.today()
         for lead in self.browse(cr, uid, ids, context=context):
-            result[lead.id] = 'grey'
+            result[lead.id] = 'red'
             if lead.date_action:
                 lead_date = datetime.strptime(lead.date_action, tools.DEFAULT_SERVER_DATE_FORMAT).date()
-                if lead_date > today:
+                if lead_date >= today:
                     result[lead.id] = 'green'
                 elif lead_date < today:
-                    result[lead.id] = 'red'
+                    result[lead.id] = 'grey'
         return result
 
     def _compute_day(self, cr, uid, ids, fields, args, context=None):
@@ -174,7 +172,7 @@ class crm_lead(FormatAddress, osv.osv):
                         select=True, track_visibility='onchange', help='When sending mails, the default email address is taken from the sales team.'),
         'kanban_state': fields.function(
             _compute_kanban_state, string='Activity State', type="selection",
-            selection=[('grey', 'Normal'), ('red', 'Blocked'), ('green', 'Ready for next stage')]),
+            selection=[('grey', 'No next activity planned'), ('red', 'Next activity late'), ('green', 'Next activity is planned')]),
         'create_date': fields.datetime('Creation Date', readonly=True),
         'email_cc': fields.text('Global CC', help="These email addresses will be added to the CC field of all inbound and outbound emails for this record before being sent. Separate multiple email addresses with a comma"),
         'description': fields.text('Notes'),
@@ -190,7 +188,7 @@ class crm_lead(FormatAddress, osv.osv):
             string='Type', select=True, required=True,
             help="Type is used to separate Leads and Opportunities"),
         'priority': fields.selection(crm_stage.AVAILABLE_PRIORITIES, 'Rating', select=True),
-        'date_closed': fields.datetime('Closed', readonly=True, copy=False),
+        'date_closed': fields.datetime('Closed Date', readonly=True, copy=False),
         'stage_id': fields.many2one('crm.stage', 'Stage', track_visibility='onchange', select=True,
                         domain="['|', ('team_id', '=', False), ('team_id', '=', team_id)]"),
         'user_id': fields.many2one('res.users', 'Salesperson', select=True, track_visibility='onchange'),
@@ -233,7 +231,7 @@ class crm_lead(FormatAddress, osv.osv):
         'phone': fields.char('Phone'),
         'fax': fields.char('Fax'),
         'mobile': fields.char('Mobile'),
-        'function': fields.char('Function'),
+        'function': fields.char('Job Position'),
         'title': fields.many2one('res.partner.title', 'Title'),
         'company_id': fields.many2one('res.company', 'Company', select=1),
         'meeting_count': fields.function(_meeting_count, string='# Meetings', type='integer'),
@@ -291,6 +289,8 @@ class crm_lead(FormatAddress, osv.osv):
     def on_change_user(self, cr, uid, ids, user_id, context=None):
         """ When changing the user, also set a team_id or restrict team id
             to the ones user_id is member of. """
+        if not context:
+            context = {}
         if user_id and context.get('team_id'):
             team = self.pool['crm.team'].browse(cr, uid, context['team_id'], context=context)
             if user_id in team.member_ids.ids:
@@ -323,7 +323,7 @@ class crm_lead(FormatAddress, osv.osv):
         else:
             search_domain = [('team_id', '=', False)]
         # AND with the domain in parameter
-        search_domain = ['&'] + list(domain) + search_domain
+        search_domain += list(domain)
         # perform search, return the first found
         stage_ids = self.pool.get('crm.stage').search(cr, uid, search_domain, order=order, limit=1, context=context)
         if stage_ids:
@@ -606,7 +606,8 @@ class crm_lead(FormatAddress, osv.osv):
 
         # Check if the stage is in the stages of the sales team. If not, assign the stage with the lowest sequence
         if merged_data.get('team_id'):
-            team_stage_ids = self.pool.get('crm.stage').search(cr, uid, [('team_id', '=', merged_data['team_id'])], order='sequence', context=context)
+            team_stage_ids = self.pool.get('crm.stage').search(cr, uid, ['|', ('team_id', '=', merged_data['team_id']), ('team_id', '=', False)], order='sequence', context=context)
+
             if merged_data.get('stage_id') not in team_stage_ids:
                 merged_data['stage_id'] = team_stage_ids and team_stage_ids[0] or False
         # Write merged data into first opportunity
@@ -632,7 +633,10 @@ class crm_lead(FormatAddress, osv.osv):
             'date_conversion': fields.datetime.now(),
         }
         if not lead.stage_id:
-            val['stage_id'] = self.stage_find(cr, uid, [lead], team_id, [], context=context)
+            stage_id = self.stage_find(cr, uid, [lead], team_id, [], context=context)
+            val['stage_id'] = stage_id
+            if stage_id:
+                val['probability'] = self.pool['crm.stage'].browse(cr, uid, stage_id, context=context).probability
         return val
 
     def convert_opportunity(self, cr, uid, ids, partner_id, user_ids=False, team_id=False, context=None):
@@ -945,6 +949,12 @@ Update your business card, phone book, social media,... Send an email right now 
             through message_process.
             This override updates the document according to the email.
         """
+        # remove default author when going through the mail gateway. Indeed we
+        # do not want to explicitly set user_id to False; however we do not
+        # want the gateway user to be responsible if no other responsible is
+        # found.
+        create_context = dict(context or {})
+        create_context['default_user_id'] = False
         if custom_values is None:
             custom_values = {}
         defaults = {
@@ -952,14 +962,13 @@ Update your business card, phone book, social media,... Send an email right now 
             'email_from': msg.get('from'),
             'email_cc': msg.get('cc'),
             'partner_id': msg.get('author_id', False),
-            'user_id': False,
         }
         if msg.get('author_id'):
             defaults.update(self.on_change_partner_id(cr, uid, None, msg.get('author_id'), context=context)['value'])
         if msg.get('priority') in dict(crm_stage.AVAILABLE_PRIORITIES):
             defaults['priority'] = msg.get('priority')
         defaults.update(custom_values)
-        return super(crm_lead, self).message_new(cr, uid, msg, custom_values=defaults, context=context)
+        return super(crm_lead, self).message_new(cr, uid, msg, custom_values=defaults, context=create_context)
 
     def message_update(self, cr, uid, ids, msg, update_vals=None, context=None):
         """ Overrides mail_thread message_update that is called by the mailgateway

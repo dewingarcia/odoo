@@ -157,7 +157,6 @@ var abstractReconciliation = Widget.extend(ControlPanelMixin, {
                     relation: "account.analytic.account",
                     string: _t("Analytic Acc."),
                     type: "many2one",
-                    domain: [['account_type', '=', 'normal']],
                 },
             },
         };
@@ -493,21 +492,20 @@ var abstractReconciliationLine = Widget.extend({
         // field_manager
         var dataset = new data.DataSet(this, "account.account", self.context);
         dataset.ids = [];
-        dataset.arch = {
+        var fields_view = {};
+        fields_view.arch = {
             attrs: { string: "Stéphanie de Monaco", version: "7.0", class: "oe_form_container o_form_container" },
             children: [],
             tag: "form"
         };
-
         self.field_manager = new FormView (
-            this, dataset, false, {
+            this, dataset, fields_view, {
                 initial_mode: 'edit',
                 disable_autofocus: false,
                 $buttons: $(),
                 $pager: $()
         });
-
-        self.field_manager.load_form(dataset);
+        self.field_manager.appendTo(document.createDocumentFragment()); // starts the FormView
 
         // fields default properties
         var Default_field = function() {
@@ -2451,7 +2449,7 @@ var manualReconciliationLine = abstractReconciliationLine.extend({
         self.$(".button_reconcile").text(_t("Reconcile"));
         self.persist_action = "reconcile";
         if (self.get("mv_lines_selected").length < 2) {
-            self.$(".button_reconcile").text(_t("Done"));
+            self.$(".button_reconcile").text(_t("Skip"));
             self.persist_action = "mark_as_reconciled";
         } else if (self.monetaryIsZero(balance)) {
             self.$(".button_reconcile").addClass("btn-primary");

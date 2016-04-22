@@ -12,7 +12,12 @@
                     </header>
                     <group string="Mass Mailing">
                         <field name="group_mass_mailing_campaign" widget="radio"/>
-                        <field name="module_mass_mailing_themes" widget="upgrade_boolean"/>
+                        <label for="module_mass_mailing_themes" string="Mass mailing themes"/>
+                        <div>
+                            <field name="module_mass_mailing_themes" widget="upgrade_boolean"/>
+                            <label for="module_mass_mailing_themes" invisible="1"/>
+                            <a href="https://www.odoo.com/page/email-marketing" target="_blank"> More Info </a>
+                        </div>
                         <field name="group_website_popup_on_exit" widget="radio"/>
                     </group>
                 </form>
@@ -27,8 +32,8 @@
         </record>
 
         <menuitem id="menu_mass_mailing_configuration" name="Configuration" parent="mass_mailing_menu_root"
-            sequence="100" groups="base.group_configuration"/>
+            sequence="100"/>
         <menuitem id="menu_mass_mailing_global_settings" name="Settings" 
-            parent="menu_mass_mailing_configuration" sequence="0" action="action_mass_mailing_configuration"/>
+            parent="menu_mass_mailing_configuration" sequence="0" action="action_mass_mailing_configuration" groups="base.group_system"/>
     </data>
 </openerp>

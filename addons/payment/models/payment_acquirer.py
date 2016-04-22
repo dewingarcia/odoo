@@ -3,7 +3,7 @@ import logging
 
 import openerp
 from openerp.osv import osv, fields
-from openerp.tools import float_round, float_repr, image_get_resized_images, image_resize_image_big
+from openerp.tools import float_round, float_repr, image_resize_images
 from openerp.tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -54,25 +54,26 @@ class PaymentAcquirer(osv.Model):
     _order = 'sequence'
 
     def _get_providers(self, cr, uid, context=None):
-        return []
+        return [('manual', 'Manual Configuration')]
 
     # indirection to ease inheritance
     _provider_selection = lambda self, *args, **kwargs: self._get_providers(*args, **kwargs)
 
     _columns = {
         'name': fields.char('Name', required=True, translate=True),
-        'provider': fields.selection(_provider_selection, string='Provider', required=True),
+        'provider': fields.selection(_provider_selection, string='Provider', required=True, default='manual'),
         'company_id': fields.many2one('res.company', 'Company', required=True),
         'pre_msg': fields.html('Help Message', translate=True,
                                help='Message displayed to explain and help the payment process.'),
-        'post_msg': fields.html('Thanks Message', help='Message displayed after having done the payment process.'),
+        'post_msg': fields.html('Thanks Message', translate=True,
+                                help='Message displayed after having done the payment process.'),
         'view_template_id': fields.many2one('ir.ui.view', 'Form Button Template', required=True),
         'registration_view_template_id': fields.many2one('ir.ui.view', 'S2S Form Template',
                                                          domain=[('type', '=', 'qweb')],
                                                          help="Template for method registration"),
         'environment': fields.selection(
             [('test', 'Test'), ('prod', 'Production')],
-            string='Environment', oldname='env'),
+            string='Environment', required=True, oldname='env'),
         'website_published': fields.boolean(
             'Visible in Portal / Website', copy=False,
             help="Make this payment acquirer available (Customer invoices, etc.)"),
@@ -92,38 +93,25 @@ class PaymentAcquirer(osv.Model):
         'fees_int_fixed': fields.float('Fixed international fees'),
         'fees_int_var': fields.float('Variable international fees (in percents)'),
         'sequence': fields.integer('Sequence', help="Determine the display order"),
+        'module_id': fields.many2one('ir.module.module', string='Corresponding Module'),
+        'module_state': fields.related('module_id', 'state', type='char', string='Installation State'),
+        'description': fields.html('Description'),
     }
 
     image = openerp.fields.Binary("Image", attachment=True,
         help="This field holds the image used for this provider, limited to 1024x1024px")
-    image_medium = openerp.fields.Binary("Medium-sized image",
-        compute='_compute_images', inverse='_inverse_image_medium', store=True, attachment=True,
+    image_medium = openerp.fields.Binary("Medium-sized image", attachment=True,
         help="Medium-sized image of this provider. It is automatically "\
              "resized as a 128x128px image, with aspect ratio preserved. "\
              "Use this field in form views or some kanban views.")
-    image_small = openerp.fields.Binary("Small-sized image",
-        compute='_compute_images', inverse='_inverse_image_small', store=True, attachment=True,
+    image_small = openerp.fields.Binary("Small-sized image", attachment=True,
         help="Small-sized image of this provider. It is automatically "\
              "resized as a 64x64px image, with aspect ratio preserved. "\
              "Use this field anywhere a small image is required.")
 
-    @openerp.api.depends('image')
-    def _compute_images(self):
-        for rec in self:
-            rec.image_medium = openerp.tools.image_resize_image_medium(rec.image)
-            rec.image_small = openerp.tools.image_resize_image_small(rec.image)
-
-    def _inverse_image_medium(self):
-        for rec in self:
-            rec.image = openerp.tools.image_resize_image_big(rec.image_medium)
-
-    def _inverse_image_small(self):
-        for rec in self:
-            rec.image = openerp.tools.image_resize_image_big(rec.image_small)
-
     _defaults = {
         'company_id': lambda self, cr, uid, obj, ctx=None: self.pool['res.users'].browse(cr, uid, uid).company_id.id,
-        'environment': 'prod',
+        'environment': 'test',
         'website_published': False,
         'auto_confirm': 'at_pay_confirm',
         'pending_msg': '<i>Pending,</i> Your online payment has been successfully processed. But your order is not validated yet.',
@@ -143,6 +131,16 @@ class PaymentAcquirer(osv.Model):
     _constraints = [
         (_check_required_if_provider, 'Required fields not filled', ['required for this provider']),
     ]
+
+    @openerp.api.model
+    def create(self, vals):
+        image_resize_images(vals)
+        return super(PaymentAcquirer, self).create(vals)
+
+    @openerp.api.multi
+    def write(self, vals):
+        image_resize_images(vals)
+        return super(PaymentAcquirer, self).write(vals)
 
     def get_form_action_url(self, cr, uid, id, context=None):
         """ Returns the form action URL, for form-based acquirer implementations. """
@@ -276,8 +274,7 @@ class PaymentAcquirer(osv.Model):
         })
         values.setdefault('return_url', False)
 
-        # because render accepts view ids but not qweb -> need to use the xml_id
-        return self.pool['ir.ui.view'].render(cr, uid, acquirer.view_template_id.xml_id, values, engine='ir.qweb', context=context)
+        return acquirer.view_template_id.render(values, engine='ir.qweb')
 
     def _registration_render(self, cr, uid, id, partner_id, qweb_context=None, context=None):
         acquirer = self.browse(cr, uid, id, context=context)
@@ -288,7 +285,7 @@ class PaymentAcquirer(osv.Model):
         if hasattr(self, method_name):
             method = getattr(self, method_name)
             qweb_context.update(method(cr, uid, id, qweb_context, context=context))
-        return self.pool['ir.ui.view'].render(cr, uid, acquirer.registration_view_template_id.xml_id, qweb_context, engine='ir.qweb', context=context)
+        return acquirer.registration_view_template_id.render(qweb_context, engine='ir.qweb')
 
     def s2s_process(self, cr, uid, id, data, context=None):
         acquirer = self.browse(cr, uid, id, context=context)
@@ -307,6 +304,27 @@ class PaymentAcquirer(osv.Model):
             method = getattr(self, cust_method_name)
             return method(cr, uid, id, data, context=context)
         return True
+
+    def toggle_enviroment_value(self, cr, uid, ids, context=None):
+        acquirers = self.browse(cr, uid, ids, context=context)
+        prod_ids = [acquirer.id for acquirer in acquirers if acquirer.environment == 'prod']
+        test_ids = [acquirer.id for acquirer in acquirers if acquirer.environment == 'test']
+        self.write(cr, uid, prod_ids, {'environment': 'test'}, context=context)
+        self.write(cr, uid, test_ids, {'environment': 'prod'}, context=context)
+
+    def button_immediate_install(self, cr, uid, ids, context=None):
+        acquirer_id = self.browse(cr, uid, ids, context=context)
+        if acquirer_id.module_id and acquirer_id.module_state != 'installed':
+            acquirer_id.module_id.button_immediate_install()
+            context['active_id'] = ids[0]
+            return {
+                'view_type': 'form',
+                'view_mode': 'form',
+                'res_model': 'payment.acquirer',
+                'type': 'ir.actions.act_window',
+                'res_id': ids[0],
+                'context': context,
+            }
 
 
 class PaymentTransaction(osv.Model):

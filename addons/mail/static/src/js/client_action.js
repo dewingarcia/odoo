@@ -10,6 +10,7 @@ var config = require('web.config');
 var ControlPanelMixin = require('web.ControlPanelMixin');
 var core = require('web.core');
 var data = require('web.data');
+var data_manager = require('web.data_manager');
 var Dialog = require('web.Dialog');
 var framework = require('web.framework');
 var Model = require('web.Model');
@@ -160,6 +161,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
     init: function(parent, action, options) {
         this._super.apply(this, arguments);
         this.action_manager = parent;
+        this.dataset = new data.DataSetSearch(this, 'mail.message');
         this.domain = [];
         this.action = action;
         this.options = options || {};
@@ -170,7 +172,14 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
     },
 
     willStart: function () {
-        return chat_manager.is_ready;
+        var self = this;
+        var view_id = this.action && this.action.search_view_id && this.action.search_view_id[0];
+        var def = data_manager
+            .load_fields_view(this.dataset, view_id, 'search', false)
+            .then(function (fields_view) {
+                self.fields_view = fields_view;
+            });
+        return $.when(this._super(), chat_manager.is_ready, def);
     },
 
     start: function() {
@@ -182,8 +191,6 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
             action: this.action,
             disable_groupby: true,
         };
-        var dataset = new data.DataSetSearch(this, 'mail.message');
-        var view_id = (this.action && this.action.search_view_id && this.action.search_view_id[0]) || false;
         var default_channel_id = this.options.active_id ||
                                  this.action.context.active_id ||
                                  this.action.params.default_active_id ||
@@ -191,14 +198,13 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
         var default_channel = chat_manager.get_channel(default_channel_id) ||
                               chat_manager.get_channel('channel_inbox');
 
-        this.searchview = new SearchView(this, dataset, view_id, {}, options);
+        this.searchview = new SearchView(this, this.dataset, this.fields_view, options);
         this.searchview.on('search_data', this, this.on_search);
 
         this.basic_composer = new composer.BasicComposer(this, {mention_partners_restricted: true});
         this.extended_composer = new composer.ExtendedComposer(this, {mention_partners_restricted: true});
         this.thread = new ChatThread(this, {
             display_help: true,
-            shorten_messages: false,
         });
 
         this.$buttons = $(QWeb.render("mail.chat.ControlButtons", {}));
@@ -256,6 +262,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
                 });
                 chat_manager.bus.on('unsubscribe_from_channel', self, self.render_sidebar);
                 chat_manager.bus.on('update_needaction', self, self.throttled_render_sidebar);
+                chat_manager.bus.on('update_starred', self, self.throttled_render_sidebar);
                 chat_manager.bus.on('update_channel_unread_counter', self, self.throttled_render_sidebar);
                 chat_manager.bus.on('update_dm_presence', self, self.throttled_render_sidebar);
                 self.thread.$el.on("scroll", null, _.debounce(function () {
@@ -297,6 +304,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
             active_channel_id: this.channel ? this.channel.id: undefined,
             channels: chat_manager.get_channels(),
             needaction_counter: chat_manager.get_needaction_counter(),
+            starred_counter: chat_manager.get_starred_counter(),
         }));
         this.$(".o_mail_chat_sidebar").html($sidebar.contents());
 
@@ -651,6 +659,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
             target: 'current'
         });
     },
+            context: "{'default_no_auto_thread': False}",
 });
 
 

@@ -142,30 +142,24 @@ class fleet_vehicle_model_brand(osv.Model):
 
     image = openerp.fields.Binary("Logo", attachment=True,
         help="This field holds the image used as logo for the brand, limited to 1024x1024px.")
-    image_medium = openerp.fields.Binary("Medium-sized image",
-        compute='_compute_images', inverse='_inverse_image_medium', store=True, attachment=True,
+    image_medium = openerp.fields.Binary("Medium-sized image", attachment=True,
         help="Medium-sized logo of the brand. It is automatically "\
              "resized as a 128x128px image, with aspect ratio preserved. "\
              "Use this field in form views or some kanban views.")
-    image_small = openerp.fields.Binary("Small-sized image",
-        compute='_compute_images', inverse='_inverse_image_small', store=True, attachment=True,
+    image_small = openerp.fields.Binary("Small-sized image", attachment=True,
         help="Small-sized logo of the brand. It is automatically "\
              "resized as a 64x64px image, with aspect ratio preserved. "\
              "Use this field anywhere a small image is required.")
 
-    @openerp.api.depends('image')
-    def _compute_images(self):
-        for rec in self:
-            rec.image_medium = tools.image_resize_image_medium(rec.image)
-            rec.image_small = tools.image_resize_image_small(rec.image)
+    @openerp.api.model
+    def create(self, vals):
+        tools.image_resize_images(vals)
+        return super(fleet_vehicle_model_brand, self).create(vals)
 
-    def _inverse_image_medium(self):
-        for rec in self:
-            rec.image = tools.image_resize_image_big(rec.image_medium)
-
-    def _inverse_image_small(self):
-        for rec in self:
-            rec.image = tools.image_resize_image_big(rec.image_small)
+    @openerp.api.multi
+    def write(self, vals):
+        tools.image_resize_images(vals)
+        return super(fleet_vehicle_model_brand, self).write(vals)
 
 
 class fleet_vehicle(osv.Model):
@@ -312,6 +306,7 @@ class fleet_vehicle(osv.Model):
     _order= 'license_plate asc'
     _columns = {
         'name': fields.function(_vehicle_name_get_fnc, type="char", string='Name', store=True),
+        'active': fields.boolean('Active'),
         'company_id': fields.many2one('res.company', 'Company'),
         'license_plate': fields.char('License Plate', required=True, help='License plate number of the vehicle (ie: plate number for a car)'),
         'vin_sn': fields.char('Chassis Number', help='Unique number written on the vehicle motor (VIN/SN number)', copy=False),
@@ -351,6 +346,7 @@ class fleet_vehicle(osv.Model):
         }
 
     _defaults = {
+        'active': True,
         'doors': 5,
         'odometer_unit': 'kilometers',
         'state_id': _get_default_state,
@@ -761,6 +757,7 @@ class fleet_vehicle_log_contract(osv.Model):
     _order='state desc,expiration_date'
     _columns = {
         'name': fields.function(_vehicle_contract_name_get_fnc, type="text", string='Name', store=True),
+        'active': fields.boolean('Active'),
         'start_date': fields.date('Contract Start Date', help='Date when the coverage of the contract begins'),
         'expiration_date': fields.date('Contract Expiration Date', help='Date when the coverage of the contract expirates (by default, one year after begin date)'),
         'days_left': fields.function(get_days_left, type='integer', string='Warning Date'),
@@ -779,6 +776,7 @@ class fleet_vehicle_log_contract(osv.Model):
         'cost_amount': fields.related('cost_id', 'amount', string='Amount', type='float', store=True), #we need to keep this field as a related with store=True because the graph view doesn't support (1) to address fields from inherited table and (2) fields that aren't stored in database
     }
     _defaults = {
+        'active': True,
         'purchaser_id': lambda self, cr, uid, ctx: self.pool.get('res.users').browse(cr, uid, uid, context=ctx).partner_id.id or False,
         'date': fields.date.context_today,
         'start_date': fields.date.context_today,

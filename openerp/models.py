@@ -32,7 +32,7 @@ import re
 import time
 from collections import defaultdict, MutableMapping
 from inspect import getmembers, currentframe
-from operator import itemgetter
+from operator import attrgetter, itemgetter
 
 import babel.dates
 import dateutil.relativedelta
@@ -109,9 +109,9 @@ def raise_on_invalid_object_name(name):
 def check_pg_name(name):
     """ Check whether the given name is a valid PostgreSQL identifier name. """
     if not regex_pg_name.match(name):
-        raise ValueError("Invalid characters in table name %r" % name)
+        raise ValidationError("Invalid characters in table name %r" % name)
     if len(name) > 63:
-        raise ValueError("Table name %r is too long" % name)
+        raise ValidationError("Table name %r is too long" % name)
 
 POSTGRES_CONFDELTYPES = {
     'RESTRICT': 'r',
@@ -231,16 +231,7 @@ class MetaModel(api.Meta):
             return
 
         if not hasattr(self, '_module'):
-            # The (OpenERP) module name can be in the ``openerp.addons`` namespace
-            # or not.  For instance, module ``sale`` can be imported as
-            # ``openerp.addons.sale`` (the right way) or ``sale`` (for backward
-            # compatibility).
-            module_parts = self.__module__.split('.')
-            if len(module_parts) > 2 and module_parts[:2] == ['openerp', 'addons']:
-                module_name = self.__module__.split('.')[2]
-            else:
-                module_name = self.__module__.split('.')[0]
-            self._module = module_name
+            self._module = self._get_addon_name(self.__module__)
 
         # Remember which models to instanciate for this module.
         if not self._custom:
@@ -259,6 +250,18 @@ class MetaModel(api.Meta):
                 _logger.warning("In class %s, field %r overriding an existing value", self, name)
             column._module = self._module
             setattr(self, name, column.to_field())
+
+    def _get_addon_name(self, full_name):
+        # The (OpenERP) module name can be in the ``openerp.addons`` namespace
+        # or not. For instance, module ``sale`` can be imported as
+        # ``openerp.addons.sale`` (the right way) or ``sale`` (for backward
+        # compatibility).
+        module_parts = full_name.split('.')
+        if len(module_parts) > 2 and module_parts[:2] == ['openerp', 'addons']:
+            addon_name = full_name.split('.')[2]
+        else:
+            addon_name = full_name.split('.')[0]
+        return addon_name
 
 
 class NewId(object):
@@ -743,6 +746,7 @@ class BaseModel(object):
             attrs = {
                 'manual': True,
                 'string': field['field_description'],
+                'help': field['help'],
                 'index': bool(field['index']),
                 'copy': bool(field['copy']),
                 'related': field['related'],
@@ -957,10 +961,10 @@ class BaseModel(object):
                         if lines2:
                             # merge first line with record's main line
                             for j, val in enumerate(lines2[0]):
-                                if val:
+                                if val or isinstance(val, bool):
                                     current[j] = val
                             # check value of current field
-                            if not current[i]:
+                            if not current[i] and not isinstance(current[i], bool):
                                 # assign xml_ids, and forget about remaining lines
                                 xml_ids = [item[1] for item in value.name_get()]
                                 current[i] = ','.join(xml_ids)
@@ -1529,6 +1533,38 @@ class BaseModel(object):
 
         return view
 
+    def load_views(self, cr, uid, views, options=None, context=None):
+        """ Returns the fields_views of given views, and optionally filters and fields.
+
+        :param views: list of [view_id, view_type]
+        :param options.toolbar: true to include contextual actions when loading fields_views
+        :param options.load_filters: true to return the model's filters
+        :param options.action_id: id of the action to get the filters
+        :param options.load_fields: true to load the model's fields
+        :return: dictionary with fields_views, filters and fields
+        """
+        if options is None:
+            options = {}
+        if context is None:
+            context = {}
+        result = {}
+
+        toolbar = options.get('toolbar')
+        result['fields_views'] = {
+            v_type: self.fields_view_get(cr, uid, v_id, v_type if v_type != 'list' else 'tree',
+                                         toolbar=toolbar if v_type != 'search' else False,
+                                         context=context)
+            for [v_id, v_type] in views
+        }
+
+        if options.get('load_filters'):
+            result['filters'] = self.pool['ir.filters'].get_filters(cr, uid, self._name, options.get('action_id'), context=context)
+
+        if options.get('load_fields'):
+            result['fields'] = self.fields_get(cr, uid, context=context)
+
+        return result
+
     def fields_view_get(self, cr, uid, view_id=None, view_type='form', context=None, toolbar=False, submenu=False):
         """ fields_view_get([view_id | view_type='form'])
 
@@ -2023,37 +2059,68 @@ class BaseModel(object):
                 value =  pytz.timezone(context['tz']).localize(value)
         return value
 
-    def _read_group_get_domain(self, groupby, value):
-        """
-            Helper method to construct the domain corresponding to a groupby and 
-            a given value. This is mostly relevant for date/datetime.
-        """
-        if groupby['type'] in ('date', 'datetime') and value:
-            dt_format = DEFAULT_SERVER_DATETIME_FORMAT if groupby['type'] == 'datetime' else DEFAULT_SERVER_DATE_FORMAT
-            domain_dt_begin = value
-            domain_dt_end = value + groupby['interval']
-            if groupby['tz_convert']:
-                domain_dt_begin = domain_dt_begin.astimezone(pytz.utc)
-                domain_dt_end = domain_dt_end.astimezone(pytz.utc)
-            return [(groupby['field'], '>=', domain_dt_begin.strftime(dt_format)),
-                   (groupby['field'], '<', domain_dt_end.strftime(dt_format))]
-        if groupby['type'] == 'many2one' and value:
-                value = value[0]
-        return [(groupby['field'], '=', value)]
-
-    def _read_group_format_result(self, data, annotated_groupbys, groupby, groupby_dict, domain, context):
+    def _read_group_format_result(self, data, annotated_groupbys, groupby, domain, context):
         """
             Helper method to format the data contained in the dictionary data by 
             adding the domain corresponding to its values, the groupbys in the 
-            context and by properly formatting the date/datetime values. 
-        """
-        domain_group = [dom for gb in annotated_groupbys for dom in self._read_group_get_domain(gb, data[gb['groupby']])]
-        for k,v in data.iteritems():
-            gb = groupby_dict.get(k)
-            if gb and gb['type'] in ('date', 'datetime') and v:
-                data[k] = babel.dates.format_date(v, format=gb['display_format'], locale=context.get('lang', 'en_US'))
+            context and by properly formatting the date/datetime values.
 
-        data['__domain'] = domain_group + domain 
+        :param data: a single group
+        :param annotated_groupbys: expanded grouping metainformation
+        :param groupby: original grouping metainformation
+        :param domain: original domain for read_group
+        """
+
+        sections = []
+        for gb in annotated_groupbys:
+            ftype = gb['type']
+            value = data[gb['groupby']]
+
+            # full domain for this groupby spec
+            d = None
+            if value:
+                if ftype == 'many2one':
+                    value = value[0]
+                elif ftype in ('date', 'datetime'):
+                    locale = context.get('lang', 'en_US')
+                    fmt = DEFAULT_SERVER_DATETIME_FORMAT if ftype == 'datetime' else DEFAULT_SERVER_DATE_FORMAT
+                    tzinfo = None
+                    range_start = value
+                    range_end = value + gb['interval']
+                    # value from postgres is in local tz (so range is
+                    # considered in local tz e.g. "day" is [00:00, 00:00[
+                    # local rather than UTC which could be [11:00, 11:00]
+                    # local) but domain and raw value should be in UTC
+                    if gb['tz_convert']:
+                        tzinfo = range_start.tzinfo
+                        range_start = range_start.astimezone(pytz.utc)
+                        range_end = range_end.astimezone(pytz.utc)
+
+                    range_start = range_start.strftime(fmt)
+                    range_end = range_end.strftime(fmt)
+                    if ftype == 'datetime':
+                        label = babel.dates.format_datetime(
+                            value, format=gb['display_format'],
+                            tzinfo=tzinfo, locale=locale
+                        )
+                    else:
+                        label = babel.dates.format_date(
+                            value, format=gb['display_format'],
+                            locale=locale
+                        )
+                    data[gb['groupby']] = ('%s/%s' % (range_start, range_end), label)
+                    d = [
+                        '&',
+                        (gb['field'], '>=', range_start),
+                        (gb['field'], '<', range_end),
+                    ]
+
+            if d is None:
+                d = [(gb['field'], '=', value)]
+            sections.append(d)
+        sections.append(domain)
+
+        data['__domain'] = expression.AND(sections)
         if len(groupby) - len(annotated_groupbys) >= 1:
             data['__context'] = { 'group_by': groupby[len(annotated_groupbys):]}
         del data['id']
@@ -2091,6 +2158,29 @@ class BaseModel(object):
         :raise AccessError: * if user has no read rights on the requested object
                             * if user tries to bypass access rules for read on the requested object
         """
+        if context is None:
+            context = context
+        result = self._read_group_raw(cr, uid, domain, fields, groupby, offset=offset, limit=limit, context=context, orderby=orderby, lazy=lazy)
+
+        groupby = [groupby] if isinstance(groupby, basestring) else groupby
+        dt = [
+            f for f in groupby
+            if self._fields[f.split(':')[0]].type in ('date', 'datetime')
+        ]
+
+        # iterate on all results and replace the "full" date/datetime value
+        # (range, label) by just the formatted label, in-place
+        for group in result:
+            for df in dt:
+                # could group on a date(time) field which is empty in some
+                # records, in which case as with m2o the _raw value will be
+                # `False` instead of a (value, label) pair. In that case,
+                # leave the `False` value alone
+                if group.get(df):
+                    group[df] = group[df][1]
+        return result
+
+    def _read_group_raw(self, cr, uid, domain, fields, groupby, offset=0, limit=None, context=None, orderby=False, lazy=True):
         if context is None:
             context = {}
         self.check_access_rights(cr, uid, 'read')
@@ -2130,7 +2220,7 @@ class BaseModel(object):
             self._inherits_join_calc(cr, uid, self._table, f, query, context=context),
             f,
         )
-        select_terms = ["%s(%s) AS %s" % field_formatter(f) for f in aggregated_fields]
+        select_terms = ['%s(%s) AS "%s" ' % field_formatter(f) for f in aggregated_fields]
 
         for gb in annotated_groupbys:
             select_terms.append('%s as "%s" ' % (gb['qualified_field'], gb['groupby']))
@@ -2180,7 +2270,7 @@ class BaseModel(object):
                 d.update(data_dict[d['id']])
 
         data = map(lambda r: {k: self._read_group_prepare_data(k,v, groupby_dict, context) for k,v in r.iteritems()}, fetched_data)
-        result = [self._read_group_format_result(d, annotated_groupbys, groupby, groupby_dict, domain, context) for d in data]
+        result = [self._read_group_format_result(d, annotated_groupbys, groupby, domain, context) for d in data]
         if lazy and groupby_fields[0] in self._group_by_full:
             # Right now, read_group only fill results in lazy mode (by default).
             # If you need to have the empty groups in 'eager' mode, then the
@@ -3100,17 +3190,32 @@ class BaseModel(object):
         cls._setup_done = True
 
     @api.model
-    def _setup_fields(self):
+    def _setup_fields(self, partial):
         """ Setup the fields, except for recomputation triggers. """
         cls = type(self)
 
         # set up fields, and determine their corresponding column
         cls._columns = {}
+        bad_fields = []
         for name, field in cls._fields.iteritems():
-            field.setup_full(self)
+            try:
+                field.setup_full(self)
+            except Exception:
+                if partial and field.manual:
+                    # Something goes wrong when setup a manual field.
+                    # This can happen with related fields using another manual many2one field
+                    # that hasn't been loaded because the comodel does not exist yet.
+                    # This can also be a manual function field depending on not loaded fields yet.
+                    bad_fields.append(name)
+                    continue
+                raise
             column = field.to_column()
             if column:
                 cls._columns[name] = column
+
+        for name in bad_fields:
+            del cls._fields[name]
+            delattr(cls, name)
 
         # map each field to the fields computed with the same method
         groups = defaultdict(list)
@@ -3127,7 +3232,10 @@ class BaseModel(object):
         if isinstance(self, Model):
             # set up field triggers (on database-persisted models only)
             for field in cls._fields.itervalues():
-                field.setup_triggers(self.env)
+                # dependencies of custom fields may not exist; ignore that case
+                exceptions = (Exception,) if field.manual else ()
+                with tools.ignore(*exceptions):
+                    field.setup_triggers(self.env)
 
             # add invalidation triggers on model dependencies
             if cls._depends:
@@ -4662,7 +4770,7 @@ class BaseModel(object):
         :return: the qualified field name (or expression) to use for ``field``
         """
         lang = self._context.get('lang')
-        if lang and lang != 'en_US':
+        if lang:
             # Sub-select to return at most one translation per record.
             # Even if it shoud probably not be the case,
             # this is possible to have multiple translations for a same record in the same language.
@@ -5607,16 +5715,17 @@ class BaseModel(object):
         """ Return the recordset ``self`` ordered by ``key``.
 
             :param key: either a function of one argument that returns a
-                comparison key for each record, or ``None``, in which case
-                records are ordered according the default model's order
+                comparison key for each record, or a field name, or ``None``, in
+                which case records are ordered according the default model's order
 
             :param reverse: if ``True``, return the result in reverse order
         """
         if key is None:
             recs = self.search([('id', 'in', self.ids)])
             return self.browse(reversed(recs._ids)) if reverse else recs
-        else:
-            return self.browse(map(itemgetter('id'), sorted(self, key=key, reverse=reverse)))
+        if isinstance(key, basestring):
+            key = itemgetter(key)
+        return self.browse(map(attrgetter('id'), sorted(self, key=key, reverse=reverse)))
 
     @api.multi
     def update(self, values):

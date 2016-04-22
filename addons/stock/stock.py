@@ -574,7 +574,7 @@ class stock_quant(osv.osv):
                                                  ('qty', '>', 0.0), ('location_id.usage', '=', 'internal')], context=context)
             if other_quants:
                 lot_name = self.pool['stock.production.lot'].browse(cr, uid, lot_id, context=context).name
-                raise UserError(_('The serial number %s is already in stock') % lot_name)
+                raise UserError(_('The serial number %s is already in stock.') % lot_name + _("Otherwise make sure the right stock/owner is set."))
 
         #create the quant as superuser, because we want to restrict the creation of quant manually: we should always use this method to create quants
         quant_id = self.create(cr, SUPERUSER_ID, vals, context=context)
@@ -914,8 +914,35 @@ class stock_picking(models.Model):
                 location_dest_id = picking_type.default_location_dest_id.id
 
             res['value'] = {'location_id': location_id,
-                            'location_dest_id': location_dest_id,}
+                            'location_dest_id': location_dest_id}
+
+        if partner_id:
+            warning = {}
+            title = False
+            message = False
+            partner = self.pool['res.partner'].browse(cr, uid, partner_id, context=context)
+
+            # If partner has no warning, check its company
+            if partner.picking_warn == 'no-message' and partner.parent_id:
+                partner = partner.parent_id
+
+            if partner.picking_warn != 'no-message':
+                # Block if partner only has warning but parent company is blocked
+                if partner.picking_warn != 'block' and partner.parent_id and partner.parent_id.picking_warn == 'block':
+                    partner = partner.parent_id
+                title = _("Warning for %s") % partner.name
+                message = partner.picking_warn_msg
+                warning = {
+                    'title': title,
+                    'message': message
+                }
+                if partner.picking_warn == 'block':
+                    return {'value': {'partner_id': False}, 'warning': warning}
+                return {'warning': warning}
+
         return res
+
+
 
     def _default_location_destination(self):
         # retrieve picking type from context; if none this returns an empty recordset
@@ -964,7 +991,7 @@ class stock_picking(models.Model):
         'move_lines': fields.one2many('stock.move', 'picking_id', string="Stock Moves", copy=True),
         'move_lines_related': fields.related('move_lines', type='one2many', relation='stock.move', string="Move Lines"),
         'picking_type_id': fields.many2one('stock.picking.type', 'Picking Type', states={'done': [('readonly', True)], 'cancel': [('readonly', True)]}, required=True),
-        'picking_type_code': fields.related('picking_type_id', 'code', type='selection', selection=[('incoming', 'Suppliers'), ('outgoing', 'Customers'), ('internal', 'Internal')]),
+        'picking_type_code': fields.related('picking_type_id', 'code', type='selection', selection=[('incoming', 'Vendors'), ('outgoing', 'Customers'), ('internal', 'Internal')]),
         'picking_type_entire_packs': fields.related('picking_type_id', 'show_entire_packs', type='boolean'),
         'priority': fields.function(get_min_max_date, multi="min_max_date", fnct_inv=_set_priority, type='selection', selection=procurement.PROCUREMENT_PRIORITIES, string='Priority',
                                     store={'stock.move': (_get_pickings_dates_priority, ['priority', 'picking_id'], 20)}, states={'done': [('readonly', True)], 'cancel': [('readonly', True)]}, select=1, help="Priority for this picking. Setting manually a value here would set it as priority for all the moves",
@@ -1392,7 +1419,8 @@ class stock_picking(models.Model):
         prod2move_ids = {}
         still_to_do = []
         #make a dictionary giving for each product, the moves and related quantity that can be used in operation links
-        for move in [x for x in picking.move_lines if x.state not in ('done', 'cancel')]:
+        moves = sorted([x for x in picking.move_lines if x.state not in ('done', 'cancel')], key=lambda x: (((x.state == 'assigned') and -2 or 0) + (x.partially_available and -1 or 0)))
+        for move in moves:
             if not prod2move_ids.get(move.product_id.id):
                 prod2move_ids[move.product_id.id] = [{'move': move, 'remaining_qty': move.product_qty}]
             else:
@@ -1981,6 +2009,7 @@ class stock_move(osv.osv):
         'restrict_partner_id': fields.many2one('res.partner', 'Owner ', help="Technical field used to depict a restriction on the ownership of quants to consider when marking this move as 'done'"),
         'route_ids': fields.many2many('stock.location.route', 'stock_location_route_move', 'move_id', 'route_id', 'Destination route', help="Preferred route to be followed by the procurement order"),
         'warehouse_id': fields.many2one('stock.warehouse', 'Warehouse', help="Technical field depicting the warehouse to consider for the route selection on the next procurement (if any)."),
+        'ordered_qty': fields.float('Ordered Quantity', digits_compute=dp.get_precision('Product Unit of Measure')),
     }
 
     def _default_destination_address(self, cr, uid, context=None):
@@ -2111,6 +2140,7 @@ class stock_move(osv.osv):
         if track:
             picking = picking_obj.browse(cr, uid, vals['picking_id'], context=context)
             initial_values = {picking.id: {'state': picking.state}}
+        vals['ordered_qty'] = vals.get('product_uom_qty')
         res = super(stock_move, self).create(cr, uid, vals, context=context)
         if track:
             picking_obj.message_track(cr, uid, [vals['picking_id']], picking_obj.fields_get(cr, uid, ['state'], context=context), initial_values, context=context)
@@ -2451,8 +2481,6 @@ class stock_move(osv.osv):
                             move_qty -= qty
 
         for move in todo_moves:
-            if move.linked_move_operation_ids:
-                continue
             #then if the move isn't totally assigned, try to find quants without any specific domain
             if move.state != 'assigned':
                 qty_already_assigned = move.reserved_availability
@@ -2795,9 +2823,7 @@ class stock_move(osv.osv):
             if move.state == 'done' and scrap_move.location_id.usage not in ('supplier', 'inventory', 'production'):
                 domain = [('qty', '>', 0), ('history_ids', 'in', [move.id])]
                 # We use scrap_move data since a reservation makes sense for a move not already done
-                quants = quant_obj.quants_get_preferred_domain(cr, uid, scrap_move.location_id,
-                        scrap_move.product_id, quantity, domain=domain, preferred_domain_list=[],
-                        restrict_lot_id=scrap_move.restrict_lot_id.id, restrict_partner_id=scrap_move.restrict_partner_id.id, context=context)
+                quants = quant_obj.quants_get_preferred_domain(cr, uid, quantity, scrap_move, domain=domain, context=context)
                 quant_obj.quants_reserve(cr, uid, quants, scrap_move, context=context)
         self.action_done(cr, uid, res, context=context)
         return res
@@ -3295,6 +3321,7 @@ class stock_warehouse(osv.osv):
 
     _columns = {
         'name': fields.char('Warehouse Name', required=True, select=True),
+        'active': fields.boolean('Active'),
         'company_id': fields.many2one('res.company', 'Company', required=True, readonly=True, select=True, help='The company is automatically set from your user preferences.'),
         'partner_id': fields.many2one('res.partner', 'Address'),
         'view_location_id': fields.many2one('stock.location', 'View Location', required=True, domain=[('usage', '=', 'view')]),
@@ -3387,6 +3414,7 @@ class stock_warehouse(osv.osv):
                     self.write(cr, uid, [warehouse.id, wh.id], {'route_ids': [(4, inter_wh_route_id)]}, context=context)
 
     _defaults = {
+        'active': True,
         'company_id': lambda self, cr, uid, c: self.pool.get('res.company')._company_default_get(cr, uid, 'stock.inventory', context=c),
         'reception_steps': 'one_step',
         'delivery_steps': 'ship_only',
@@ -4062,10 +4090,10 @@ class stock_location_path(osv.osv):
         'picking_type_id': fields.many2one('stock.picking.type', 'Picking Type', required=True,
                                            help="This is the picking type that will be put on the stock moves"),
         'auto': fields.selection(
-            [('auto','Automatic Move'), ('manual','Manual Operation'),('transparent','Automatic No Step Added')],
+            [('manual','Manual Operation'),('transparent','Automatic No Step Added')],
             'Automatic Move',
             required=True, select=1,
-            help="The 'Automatic Move' / 'Manual Operation' value will create a stock move after the current one.  " \
+            help="The 'Manual Operation' value will create a stock move after the current one.  " \
                  "With 'Automatic No Step Added', the location is replaced in the original move."
             ),
         'propagate': fields.boolean('Propagate cancel and split', help='If checked, when the previous move is cancelled or split, the move generated by this move will too'),
@@ -4079,7 +4107,7 @@ class stock_location_path(osv.osv):
         'sequence': fields.integer('Sequence'),
     }
     _defaults = {
-        'auto': 'auto',
+        'auto': 'manual',
         'delay': 0,
         'company_id': lambda self, cr, uid, c: self.pool.get('res.company')._company_default_get(cr, uid, 'procurement.order', context=c),
         'propagate': True,
@@ -4282,9 +4310,9 @@ class stock_package(osv.osv):
         quant_obj = self.pool.get('stock.quant')
         res = {}
         for quant in quant_obj.browse(cr, uid, self.get_content(cr, uid, package_id, context=context)):
-            if quant.product_id.id not in res:
-                res[quant.product_id.id] = 0
-            res[quant.product_id.id] += quant.qty
+            if quant.product_id not in res:
+                res[quant.product_id] = 0
+            res[quant.product_id] += quant.qty
         return res
 
     #Remove me?
@@ -4454,6 +4482,7 @@ class stock_pack_operation(osv.osv):
                 ('assigned', 'Available'),
                 ('done', 'Done'),
                 ]),
+        'ordered_qty': fields.float('Ordered Quantity', digits_compute=dp.get_precision('Product Unit of Measure')),
     }
 
     _defaults = {
@@ -4474,6 +4503,10 @@ class stock_pack_operation(osv.osv):
             else:
                 raise UserError(_('The quantity to split should be smaller than the quantity To Do.  '))
         return True
+
+    def create(self, cr, uid, vals, context=None):
+        vals['ordered_qty'] = vals.get('product_qty')
+        return super(stock_pack_operation, self).create(cr, uid, vals, context=context)
 
     def write(self, cr, uid, ids, vals, context=None):
         vals['fresh_record'] = False
@@ -4896,7 +4929,7 @@ class stock_picking_type(osv.osv):
         'sequence_id': fields.many2one('ir.sequence', 'Reference Sequence', required=True),
         'default_location_src_id': fields.many2one('stock.location', 'Default Source Location', help="This is the default source location when you create a picking manually with this picking type. It is possible however to change it or that the routes put another location. If it is empty, it will check for the supplier location on the partner. "),
         'default_location_dest_id': fields.many2one('stock.location', 'Default Destination Location', help="This is the default destination location when you create a picking manually with this picking type. It is possible however to change it or that the routes put another location. If it is empty, it will check for the customer location on the partner. "),
-        'code': fields.selection([('incoming', 'Suppliers'), ('outgoing', 'Customers'), ('internal', 'Internal')], 'Type of Operation', required=True),
+        'code': fields.selection([('incoming', 'Vendors'), ('outgoing', 'Customers'), ('internal', 'Internal')], 'Type of Operation', required=True),
         'return_picking_type_id': fields.many2one('stock.picking.type', 'Picking Type for Returns'),
         'show_entire_packs': fields.boolean('Allow moving packs', help="If checked, this shows the packs to be moved as a whole in the Operations tab all the time, even if there was no entire pack reserved."),
         'warehouse_id': fields.many2one('stock.warehouse', 'Warehouse', ondelete='cascade'),

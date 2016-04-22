@@ -3,7 +3,7 @@
     <data>
 
         <menuitem id="base.menu_sale_config_sales" name="Configuration"
-            parent="base.menu_base_partner" sequence="100" groups="base.group_configuration"/>
+            parent="base.menu_base_partner" sequence="100"/>
         <menuitem id="menu_product_pricelist_main" name="Pricelists" 
             parent="base.menu_sale_config" groups="product.group_sale_pricelist" sequence="3"/>
 
@@ -66,7 +66,8 @@
 
                         <label string="New Price ="/>
                         <div>
-                            <span attrs="{'invisible':[('base', 'not in', ('list_price','standard_price'))]}">Public Price  -  </span>
+                            <span attrs="{'invisible':[('base', '!=', 'list_price')]}">Public Price  -  </span>
+                            <span attrs="{'invisible':[('base', '!=', 'standard_price')]}">Cost  -  </span>
                             <span attrs="{'invisible':[('base', '!=', 'pricelist')]}">Other Pricelist  -  </span>
                         </div>
                         <label for="price_discount"/>

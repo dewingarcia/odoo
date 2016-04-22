@@ -18,8 +18,9 @@
                         <field name="group_discount_per_so_line" widget="radio"/>
                         <field name="module_website_quote" widget="radio"/>
                         <field name="module_sale_margin" widget="radio"/>
-                        <field name="module_sale_layout" widget="radio"/>
+                        <field name="group_sale_layout" widget="radio"/>
                         <field name="auto_done_setting" widget="radio"/>
+                        <field name="group_warning" widget="radio"/>
                         <label for="sale_pricelist_setting" string="Sale Price"/>
                         <div>
                             <field name="sale_pricelist_setting" class="oe_inline" widget="radio" on_change="onchange_sale_price(sale_pricelist_setting)"/>
@@ -31,6 +32,7 @@
                         <div>
                             <field name="module_sale_contract" class="oe_inline" widget="upgrade_boolean"/>
                             <label for="module_sale_contract"/>
+                            <a href="https://www.odoo.com/page/subscriptions" target="_blank"> More Info</a>
                         </div>
                         <label for="id" string="Customer portal"/>
                         <div>
@@ -49,9 +51,9 @@
         </record>
 
         <menuitem id="base.menu_sale_config" name="Configuration" parent="base.menu_base_partner"
-            sequence="100" groups="base.group_configuration"/>
+            sequence="100"/>
         <menuitem id="base.menu_sale_general_settings" name="Settings" parent="base.menu_sale_config"
-            sequence="0" action="base_setup.action_sale_config"/>
+            sequence="0" action="base_setup.action_sale_config" groups="base.group_system"/>
 
     </data>
 </openerp>

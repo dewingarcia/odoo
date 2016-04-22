@@ -28,6 +28,7 @@
                               <div>
                                   <field name="module_pos_loyalty" widget="upgrade_boolean"/>
                                   <label for="module_pos_loyalty" string="Manage loyalty program with points and rewards for customers"/>
+                                  <a href="https://www.odoo.com/page/point-of-sale" target="_blank"> More Info</a>
                               </div>
                         </div>
                     </group>
@@ -41,6 +42,6 @@
             <field name="target">inline</field>
         </record>
 
-        <menuitem id="menu_pos_global_settings" name="Settings"
-            parent="menu_point_config_product" sequence="7" action="action_pos_configuration"/>
+        <menuitem id="menu_pos_global_settings" name="Settings" 
+            parent="menu_point_config_product" sequence="7" action="action_pos_configuration" groups="base.group_system"/>
 </odoo>

@@ -128,9 +128,6 @@
         </record>
 
         <!-- add applications to base groups -->
-        <record model="res.groups" id="group_configuration">
-            <field name="category_id" ref="module_category_administration"/>
-        </record>
         <record model="res.groups" id="group_erp_manager">
             <field name="category_id" ref="module_category_administration"/>
         </record>
@@ -144,10 +141,6 @@
 
         <record model="res.groups" id="group_multi_company">
             <field name="category_id" ref="module_category_usability"/>
-        </record>
-
-        <record model="res.groups" id="group_light_multi_company">
-            <field name="category_id" ref="module_category_hidden"/>
         </record>
 
         <record model="res.groups" id="group_multi_currency">

@@ -173,10 +173,11 @@
                             <field name="project_id" context="{'default_partner_id':partner_invoice_id, 'default_name':name}" groups="analytic.group_analytic_accounting"/>
                         </group>
                         <group>
-                            <field name="date_order" invisible="1"/>
+                            <field name="date_order" attrs="{'invisible': [('state', 'in', ['sale', 'done', 'cancel'])]}"/>
+                            <field name="validity_date" attrs="{'invisible': [('state', 'in', ['sale', 'done'])]}"/>
+                            <field name="confirmation_date" attrs="{'invisible': [('state', 'in', ['draft', 'sent', 'cancel'])]}"/>
                             <field name="pricelist_id" groups="product.group_sale_pricelist"/>
                             <field name="currency_id" invisible="1"/>
-                            <field name="validity_date"/>
                             <field name="payment_term_id" options="{'no_create': True}"/>
                         </group>
                     </group>
@@ -191,6 +192,7 @@
                                                 context="{'partner_id':parent.partner_id, 'quantity':product_uom_qty, 'pricelist':parent.pricelist_id, 'uom':product_uom, 'company_id': parent.company_id}"
                                                 attrs="{'readonly': ['|', ('qty_invoiced', '&gt;', 0), ('procurement_ids', '!=', [])]}"
                                                />
+                                            <field name="layout_category_id" groups="sale.group_sale_layout"/>
                                             <field name="invoice_status" invisible="1"/>
                                             <field name="qty_to_invoice" invisible="1"/>
                                             <field name="qty_delivered_updateable" invisible="1"/>
@@ -204,14 +206,12 @@
                                                 <field name="product_uom" groups="product.group_uom" class="oe_inline oe_no_button"
                                                     attrs="{'readonly': [('state', 'in', ('sale','done', 'cancel'))]}"/>
                                             </div>
-                                            <label for="qty_delivered" string="Delivered Quantity"
-                                                invisible="not context.get('show_sale')"/>
-                                            <div>
-                                                <field name="qty_delivered" invisible="not context.get('show_sale')"
-                                                    attrs="{'readonly': [('qty_delivered_updateable', '=', False)]}"/>
+                                            <label for="qty_delivered" string="Delivered Quantity" invisible="not context.get('show_sale')"/>
+                                            <div invisible="not context.get('show_sale')">
+                                                <field name="qty_delivered" attrs="{'readonly': [('qty_delivered_updateable', '=', False)]}"/>
                                             </div>
                                             <label for="qty_invoiced" string="Invoiced Quantity" invisible="not context.get('show_sale')"/>
-                                            <div>
+                                            <div invisible="not context.get('show_sale')">
                                                 <field name="qty_invoiced" invisible="not context.get('show_sale')"/>
                                             </div>
                                             <field name="price_unit"/>
@@ -243,6 +243,7 @@
                                         attrs="{'readonly': ['|', ('qty_invoiced', '&gt;', 0), ('procurement_ids', '!=', [])]}"
                                         context="{'partner_id':parent.partner_id, 'quantity':product_uom_qty, 'pricelist':parent.pricelist_id, 'uom':product_uom, 'company_id': parent.company_id}"
                                        />
+                                    <field name="layout_category_id" groups="sale.group_sale_layout"/>
                                     <field name="name"/>
                                     <field name="product_uom_qty"
                                         string="Ordered Qty"
@@ -565,7 +566,6 @@
                         <field string="Sales" name="sales_count" widget="statinfo" />
                     </button>
                 </div>
-
             </field>
         </record>
 
@@ -581,6 +581,13 @@
                         <field string="Sales" name="sales_count" widget="statinfo" />
                     </button>
                 </div>
+                <group name="description" position="after">
+                    <group string="Warning when Selling this Product" colspan="2" groups="sale.group_warning">
+                        <field name="sale_line_warn" nolabel="1"/>
+                        <field name="sale_line_warn_msg" colspan="3" nolabel="1"
+                                attrs="{'required':[('sale_line_warn','!=','no-message')],'readonly':[('sale_line_warn','=','no-message')]}"/>
+                    </group>
+                </group>
             </field>
         </record>
 
@@ -638,6 +645,22 @@
                 <data>
                     <xpath expr="//field[@name='user_id']" position="after">
                         <field name="team_id"/>
+                    </xpath>
+                    <xpath expr="//page/field[@name='invoice_line_ids']/tree/field[@name='product_id']" position="after">
+                        <field name="layout_category_id" groups="sale.group_sale_layout"/>
+                    </xpath>
+                </data>
+            </field>
+        </record>
+
+        <record model="ir.ui.view" id="account_invoice_line_form">
+            <field name="name">account.invoice.line.form</field>
+            <field name="model">account.invoice.line</field>
+            <field name="inherit_id" ref="account.view_invoice_line_form"/>
+            <field name="arch" type="xml">
+                <data>
+                    <xpath expr="//group/group/field[@name='product_id']" position="after">
+                        <field name="layout_category_id" groups="sale.group_sale_layout"/>
                     </xpath>
                 </data>
             </field>

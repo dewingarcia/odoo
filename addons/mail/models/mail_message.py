@@ -110,7 +110,7 @@ class Message(models.Model):
         help='Answers do not go in the original document discussion thread. This has an impact on the generated message-id.')
     message_id = fields.Char('Message-Id', help='Message unique identifier', select=1, readonly=1, copy=False)
     reply_to = fields.Char('Reply-To', help='Reply email address. Setting the reply_to bypasses the automatic thread creation.')
-    mail_server_id = fields.Many2one('ir.mail_server', 'Outgoing mail server', readonly=1)
+    mail_server_id = fields.Many2one('ir.mail_server', 'Outgoing mail server')
 
     @api.multi
     def _get_needaction(self):
@@ -175,7 +175,7 @@ class Message(models.Model):
             if channel_ids:
                 msg_domain += [('channel_ids', 'in', channel_ids)]
             unread_messages = self.search(expression.AND([msg_domain, domain]))
-            unread_messages.write({'needaction_partner_ids': [(3, partner_id)]})
+            unread_messages.sudo().write({'needaction_partner_ids': [(3, partner_id)]})
             ids = unread_messages.mapped('id')
 
         notification = {'type': 'mark_as_read', 'message_ids': ids, 'channel_ids': channel_ids}
@@ -237,14 +237,13 @@ class Message(models.Model):
         self.env['bus.bus'].sendone((self._cr.dbname, 'res.partner', self.env.user.partner_id.id), notification)
 
     @api.multi
-    def set_message_starred(self, starred):
-        """ Set messages as (un)starred. Technically, the notifications related
+    def toggle_message_starred(self):
+        """ Toggle messages as (un)starred. Technically, the notifications related
             to uid are set to (un)starred.
-
-            :param bool starred: set notification as (un)starred
         """
         # a user should always be able to star a message he can read
         self.check_access_rule('read')
+        starred = not self.starred
         if starred:
             self.sudo().write({'starred_partner_ids': [(4, self.env.user.partner_id.id)]})
         else:
@@ -331,9 +330,6 @@ class Message(models.Model):
                 'attachment_ids': attachment_ids,
                 'tracking_value_ids': tracking_value_ids,
             })
-            body_short = tools.html_email_clean(message_dict['body'], shorten=True, remove=True)
-            message_dict['body'] = tools.html_email_clean(message_dict['body'], shorten=False, remove=False)
-            message_dict['body_short'] = body_short != message_dict['body'] and body_short or False
 
         return True
 

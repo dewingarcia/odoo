@@ -88,12 +88,33 @@ class SaleOrder(models.Model):
         res.update({'move_type': self.picking_policy, 'partner_id': self.partner_shipping_id.id})
         return res
 
+    @api.model
+    def _get_customer_lead(self, product_tmpl_id):
+        super(SaleOrder, self)._get_customer_lead(product_tmpl_id)
+        return product_tmpl_id.sale_delay
+
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
     product_packaging = fields.Many2one('product.packaging', string='Packaging', default=False)
     route_id = fields.Many2one('stock.location.route', string='Route', domain=[('sale_selectable', '=', True)])
     product_tmpl_id = fields.Many2one('product.template', related='product_id.product_tmpl_id', string='Product Template', readonly=True)
+
+    @api.depends('order_id.state')
+    def _compute_invoice_status(self):
+        super(SaleOrderLine, self)._compute_invoice_status()
+        for line in self:
+            # We handle the following specific situation: a physical product is partially delivered,
+            # but we would like to set its invoice status to 'Fully Invoiced'. The use case is for
+            # products sold by weight, where the delivered quantity rarely matches exactly the
+            # quantity ordered.
+            if line.order_id.state == 'done'\
+                    and line.invoice_status == 'no'\
+                    and line.product_id.type in ['consu', 'product']\
+                    and line.product_id.invoice_policy == 'delivery'\
+                    and line.procurement_ids.mapped('move_ids')\
+                    and all(move.state in ['done', 'cancel'] for move in line.procurement_ids.mapped('move_ids')):
+                line.invoice_status = 'invoiced'
 
     @api.multi
     @api.depends('product_id')
@@ -114,7 +135,13 @@ class SaleOrderLine(models.Model):
             return self._check_package()
         return {}
 
-    @api.onchange('product_id', 'product_uom_qty', 'product_uom', 'route_id')
+    @api.onchange('product_id')
+    def _onchange_product_id_uom_check_availability(self):
+        if not self.product_uom or (self.product_id.uom_id.category_id.id != self.product_uom.category_id.id):
+            self.product_uom = self.product_id.uom_id
+        self._onchange_product_id_check_availability()
+
+    @api.onchange('product_uom_qty', 'product_uom', 'route_id')
     def _onchange_product_id_check_availability(self):
         if not self.product_id or not self.product_uom_qty or not self.product_uom:
             self.product_packaging = False
@@ -166,10 +193,10 @@ class SaleOrderLine(models.Model):
         super(SaleOrderLine, self)._get_delivered_qty()
         qty = 0.0
         for move in self.procurement_ids.mapped('move_ids').filtered(lambda r: r.state == 'done' and not r.scrapped):
-            #Note that we don't decrease quantity for customer returns on purpose: these are exeptions that must be treated manually. Indeed,
-            #modifying automatically the delivered quantity may trigger an automatic reinvoicing (refund) of the SO, which is definitively not wanted
             if move.location_dest_id.usage == "customer":
                 qty += self.env['product.uom']._compute_qty_obj(move.product_uom, move.product_uom_qty, self.product_uom)
+            elif move.location_dest_id.usage == "internal" and move.to_refund_so:
+                qty -= self.env['product.uom']._compute_qty_obj(move.product_uom, move.product_uom_qty, self.product_uom)
         return qty
 
     @api.multi
@@ -213,8 +240,8 @@ class SaleOrderLine(models.Model):
         # Check Drop-Shipping
         if not is_available:
             for pull_rule in product_routes.mapped('pull_ids'):
-                if pull_rule.picking_type_id.default_location_src_id.usage == 'supplier' and\
-                        pull_rule.picking_type_id.default_location_dest_id.usage == 'customer':
+                if pull_rule.picking_type_id.sudo().default_location_src_id.usage == 'supplier' and\
+                        pull_rule.picking_type_id.sudo().default_location_dest_id.usage == 'customer':
                     is_available = True
                     break
 
@@ -249,6 +276,9 @@ class ProcurementOrder(models.Model):
 class StockMove(models.Model):
     _inherit = "stock.move"
 
+    to_refund_so = fields.Boolean(string="To Refund in SO", default=False,
+        help='Trigger a decrease of the delivered quantity in the associated Sale Order')
+
     @api.multi
     def action_done(self):
         result = super(StockMove, self).action_done()
@@ -277,6 +307,27 @@ class StockPicking(models.Model):
             picking.sale_id = sale_order.id if sale_order else False
 
     sale_id = fields.Many2one(comodel_name='sale.order', string="Sale Order", compute='_compute_sale_id')
+
+
+class StockReturnPicking(models.TransientModel):
+    _inherit = "stock.return.picking"
+
+    @api.multi
+    def _create_returns(self):
+        new_picking_id, pick_type_id = super(StockReturnPicking, self)._create_returns()
+        new_picking = self.env['stock.picking'].browse([new_picking_id])
+        for move in new_picking.move_lines:
+            return_picking_line = self.product_return_moves.filtered(lambda r: r.move_id == move.origin_returned_move_id)
+            if return_picking_line and return_picking_line.to_refund_so:
+                move.to_refund_so = True
+
+        return new_picking_id, pick_type_id
+
+
+class StockReturnPickingLine(models.TransientModel):
+    _inherit = "stock.return.picking.line"
+
+    to_refund_so = fields.Boolean(string="To Refund in SO", help='Trigger a decrease of the delivered quantity in the associated Sale Order')
 
 
 class AccountInvoiceLine(models.Model):

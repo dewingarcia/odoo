@@ -174,13 +174,16 @@ class Users(models.Model):
     __uid_cache = defaultdict(dict)             # {dbname: {uid: password}}
 
     # User can write on a few of his own fields (but not his groups for example)
-    SELF_WRITEABLE_FIELDS = ['password', 'signature', 'action_id', 'company_id', 'email', 'name', 'image', 'image_medium', 'image_small', 'lang', 'tz']
+    SELF_WRITEABLE_FIELDS = ['signature', 'action_id', 'company_id', 'email', 'name', 'image', 'image_medium', 'image_small', 'lang', 'tz']
     # User can read a few of his own fields
     SELF_READABLE_FIELDS = ['signature', 'company_id', 'login', 'email', 'name', 'image', 'image_medium', 'image_small', 'lang', 'tz', 'tz_offset', 'groups_id', 'partner_id', '__last_update', 'action_id']
 
     def _default_groups(self):
         default_user = self.env.ref('base.default_user', raise_if_not_found=False)
         return (default_user or self.env['res.users']).groups_id
+
+    def _companies_count(self):
+        return self.env['res.company'].sudo().search_count([])
 
     partner_id = fields.Many2one('res.partner', required=True, ondelete='restrict', auto_join=True,
         string='Related Partner', help='Partner-related data of the user')
@@ -201,7 +204,8 @@ class Users(models.Model):
     login_date = fields.Datetime(related='log_ids.create_date', string='Latest connection')
     share = fields.Boolean(compute='_compute_share', string='Share User', store=True,
          help="External user with limited access, created only for the purpose of sharing data.")
-
+    companies_count = fields.Integer(compute='_compute_companies_count', string="Number of Companies", default=_companies_count)
+    
     @api.v7
     def _get_company(self, cr, uid, context=None, uid2=False):
         user = self.browse(cr, uid, uid2 or uid, context=context)
@@ -250,6 +254,12 @@ class Users(models.Model):
     def _compute_share(self):
         for user in self:
             user.share = not user.has_group('base.group_user')
+
+    @api.multi
+    def _compute_companies_count(self):
+        companies_count = self._companies_count()
+        for user in self:
+            user.companies_count = companies_count
 
     @api.onchange('login')
     def on_change_login(self):
@@ -500,8 +510,8 @@ class Users(models.Model):
         """
         self.check(self._cr.dbname, self._uid, old_passwd)
         if new_passwd:
-            # do not use self.env.user here, since it has uid=SUPERUSER_ID
-            return self.browse(self._uid).write({'password': new_passwd})
+            # use self.env.user here, because it has uid=SUPERUSER_ID
+            return self.env.user.write({'password': new_passwd})
         raise UserError(_("Setting empty passwords is not allowed for security reasons!"))
 
     @api.multi
@@ -664,7 +674,8 @@ class GroupsView(models.Model):
     @api.multi
     def write(self, values):
         res = super(GroupsView, self).write(values)
-        self._update_user_groups_view()
+        if 'category_id' in values:
+            self._update_user_groups_view()
         # ir_values.get_actions() depends on action records
         self.env['ir.values'].clear_caches()
         return res
@@ -697,7 +708,7 @@ class GroupsView(models.Model):
             for app, kind, gs in self.get_groups_by_application():
                 # hide groups in categories 'Hidden' and 'Extra' (except for group_no_one)
                 attrs = {}
-                if app.xml_id in ('base.module_category_hidden', 'base.module_category_extra'):
+                if app.xml_id in ('base.module_category_hidden', 'base.module_category_extra', 'base.module_category_usability'):
                     attrs['groups'] = 'base.group_no_one'
 
                 if kind == 'selection':
@@ -769,12 +780,27 @@ class UsersView(models.Model):
     @api.model
     def create(self, values):
         values = self._remove_reified_groups(values)
-        return super(UsersView, self).create(values)
+        user = super(UsersView, self).create(values)
+        group_multi_company = self.env.ref('base.group_multi_company', False)
+        if group_multi_company and 'company_ids' in values:
+            if len(user.company_ids) <= 1 and user.id in group_multi_company.users.ids:
+                group_multi_company.write({'users': [(3, user.id)]})
+            elif len(user.company_ids) > 1 and user.id not in group_multi_company.users.ids:
+                group_multi_company.write({'users': [(4, user.id)]})
+        return user
 
     @api.multi
     def write(self, values):
         values = self._remove_reified_groups(values)
-        return super(UsersView, self).write(values)
+        res = super(UsersView, self).write(values)
+        group_multi_company = self.env.ref('base.group_multi_company', False)
+        if group_multi_company and 'company_ids' in values:
+            for user in self:
+                if len(user.company_ids) <= 1 and user.id in group_multi_company.users.ids:
+                    group_multi_company.write({'users': [(3, user.id)]})
+                elif len(user.company_ids) > 1 and user.id not in group_multi_company.users.ids:
+                    group_multi_company.write({'users': [(4, user.id)]})
+        return res
 
     def _remove_reified_groups(self, values):
         """ return `values` without reified group fields """
@@ -851,7 +877,7 @@ class UsersView(models.Model):
         # add reified groups fields
         if not self.env.user._is_admin():
             return res
-        for app, kind, gs in self.env['res.groups'].get_groups_by_application():
+        for app, kind, gs in self.env['res.groups'].sudo().get_groups_by_application():
             if kind == 'selection':
                 # selection group field
                 tips = ['%s: %s' % (g.name, g.comment) for g in gs if g.comment]

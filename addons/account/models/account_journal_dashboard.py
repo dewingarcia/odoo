@@ -150,7 +150,8 @@ class account_journal(models.Model):
             # optimization to read sum of balance from account_move_line
             account_ids = tuple(filter(None, [self.default_debit_account_id.id, self.default_credit_account_id.id]))
             if account_ids:
-                query = """SELECT sum(balance) FROM account_move_line WHERE account_id in %s;"""
+                amount_field = 'balance' if not self.currency_id else 'amount_currency'
+                query = """SELECT sum(%s) FROM account_move_line WHERE account_id in %%s;""" % (amount_field,)
                 self.env.cr.execute(query, (account_ids,))
                 query_results = self.env.cr.dictfetchall()
                 if query_results and query_results[0].get('sum') != None:
@@ -188,6 +189,7 @@ class account_journal(models.Model):
             'number_to_reconcile': number_to_reconcile,
             'account_balance': formatLang(self.env, account_sum, currency_obj=self.currency_id or self.company_id.currency_id),
             'last_balance': formatLang(self.env, last_balance, currency_obj=self.currency_id or self.company_id.currency_id),
+            'difference': (last_balance-account_sum) and formatLang(self.env, last_balance-account_sum, currency_obj=self.currency_id or self.company_id.currency_id) or False,
             'number_draft': number_draft,
             'number_waiting': number_waiting,
             'number_late': number_late,

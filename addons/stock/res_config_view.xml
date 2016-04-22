@@ -20,6 +20,7 @@
                             <div>
                                 <field name="module_stock_barcode" widget="upgrade_boolean"/>
                                 <label for="module_stock_barcode"/>
+                                <a href="https://www.odoo.com/page/warehouse-features" target="_blank"> More Info</a>
                             </div>
                         </div>
                     </group>
@@ -73,6 +74,7 @@
                         <field name="module_stock_dropshipping" widget="radio"/>
                         <field name="module_stock_picking_wave" widget="radio"/>
                         <field name="module_stock_calendar" widget="radio"/>
+                        <field name="group_warning" widget="radio"/>
                     </group>
                     <group string="Products">
                         <field name="group_uom" widget="radio"/>
@@ -92,8 +94,8 @@
         </record>
 
         <menuitem id="menu_stock_config_settings" name="Configuration" parent="menu_stock_root"
-            sequence="100" groups="group_stock_manager,base.group_configuration"/>
+            sequence="100" groups="group_stock_manager"/>
         <menuitem id="menu_stock_general_settings" name="Settings" parent="menu_stock_config_settings"
-            sequence="0" action="action_stock_config_settings"/>
+            sequence="0" action="action_stock_config_settings" groups="base.group_system"/>
     </data>
 </openerp>

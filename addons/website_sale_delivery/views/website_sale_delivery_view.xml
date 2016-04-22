@@ -12,9 +12,12 @@
             </div>
             <div name="title" position="after">
                 <group name="website">
-                    <field name="website_description" string="Description" placeholder="Description displayed on the eCommerce and on the Online Quotations."/>
+                    <field name="website_description" string="Description" placeholder="Description displayed on the eCommerce and on online quotations."/>
                 </group>
             </div>
         </field>
     </record>
+
+    <menuitem id="menu_ecommerce_delivery" parent="website_sale.menu_ecommerce_settings" name="Delivery Methods" action="delivery.action_delivery_carrier_form"/>
+
  </odoo>

@@ -104,7 +104,7 @@
 
         <menuitem name="Members" id="base.menu_association" icon="terp-calendar" sequence="15" web_icon="membership,static/description/icon.png"/>
         <menuitem name="Configuration" id="base.menu_marketing_config_association"
-            parent="base.menu_association" sequence="100" groups="base.group_configuration" action="action_membership_products"/>
+            parent="base.menu_association" sequence="100" action="action_membership_products"/>
 
 
         <!-- MEMBERSHIP/CURRENT MEMBERS -->
@@ -235,11 +235,17 @@
                                 <field name="state"/>
                             </tree>
                             <form string="Memberships">
-                                <field name="date"/>
-                                <field name="member_price"/>
-                                <field name="membership_id"/>
-                                <field name="account_invoice_id" context="{'form_view_ref': 'account.invoice_form'}"/>
-                                <field name="state" colspan="4"/>
+                                <group col="2">
+                                    <group>
+                                        <field name="membership_id"/>
+                                        <field name="date"/>
+                                        <field name="state"/>
+                                    </group>
+                                    <group>
+                                        <field name="member_price"/>
+                                        <field name="account_invoice_id" context="{'form_view_ref': 'account.invoice_form'}"/>
+                                    </group>
+                                </group>
                             </form>
                         </field>
 

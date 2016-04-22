@@ -30,10 +30,9 @@ var ChatterComposer = composer.BasicComposer.extend({
             display_mode: 'textarea',
             record_name: false,
             is_log: false,
-            internal_subtypes: [],
         });
         if (this.options.is_log) {
-            this.options.send_text = _('Log');
+            this.options.send_text = _t('Log');
         }
         this.events = _.extend(this.events, {
             'click .o_composer_button_full_composer': 'on_open_full_composer',
@@ -56,7 +55,6 @@ var ChatterComposer = composer.BasicComposer.extend({
         var def = $.Deferred();
         this._super().then(function (message) {
             message = _.extend(message, {
-                subtype_id: false,
                 subtype: 'mail.mt_comment',
                 message_type: 'comment',
                 content_subtype: 'html',
@@ -65,12 +63,7 @@ var ChatterComposer = composer.BasicComposer.extend({
 
             // Subtype
             if (self.options.is_log) {
-                var subtype_id = parseInt(self.$('.o_chatter_composer_subtype_select').val());
-                if (_.indexOf(_.pluck(self.options.internal_subtypes, 'id'), subtype_id) === -1) {
-                    message.subtype = 'mail.mt_note';
-                } else {
-                    message.subtype_id = subtype_id;
-                }
+                message.subtype = 'mail.mt_note';
             }
 
             // Partner_ids
@@ -266,7 +259,7 @@ var ChatterComposer = composer.BasicComposer.extend({
                     var parent = self.getParent();
                     chat_manager.get_messages({model: parent.model, res_id: parent.res_id});
                 },
-            });
+            }).then(self.trigger.bind(self, 'close_composer'));
         });
     }
 });
@@ -487,7 +480,6 @@ var Chatter = form_common.AbstractField.extend({
             input_min_height: 50,
             input_max_height: Number.MAX_VALUE, // no max_height limit for the chatter
             input_baseline: 14,
-            internal_subtypes: this.options.internal_subtypes,
             is_log: options && options.is_log,
             record_name: this.record_name,
             default_body: old_composer && old_composer.$input.val(),
@@ -506,12 +498,14 @@ var Chatter = form_common.AbstractField.extend({
             }
             self.composer.on('post_message', self, self.on_post_message);
             self.composer.on('need_refresh', self, self.refresh_followers);
+            self.composer.on('close_composer', null, self.close_composer.bind(self, true));
         });
         this.mute_new_message_button(true);
     },
-    close_composer: function () {
-        if (this.composer.is_empty()) {
+    close_composer: function (force) {
+        if (this.composer.is_empty() || force) {
             this.composer.do_hide();
+            this.composer.$input.val('');
             this.mute_new_message_button(false);
         }
     },
