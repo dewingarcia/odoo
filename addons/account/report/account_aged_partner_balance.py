@@ -43,13 +43,12 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         arg_list += (date_from, user_company)
         query = '''
             SELECT DISTINCT l.partner_id, UPPER(res_partner.name)
-            FROM res_partner,account_move_line AS l, account_account, account_move am
+            FROM res_partner,account_move_line AS l left join res_partner on l.partner_id = res_partner.id, account_account, account_move am
             WHERE (l.account_id = account_account.id)
                 AND (l.move_id = am.id)
                 AND (am.state IN %s)
                 AND (account_account.internal_type IN %s)
                 AND ''' + reconciliation_clause + '''
-                AND (l.partner_id = res_partner.id)
                 AND (l.date <= %s)
                 AND l.company_id = %s
             ORDER BY UPPER(res_partner.name)'''
@@ -73,7 +72,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                     AND (am.state IN %s)
                     AND (account_account.internal_type IN %s)
                     AND (COALESCE(l.date_maturity,l.date) > %s)\
-                    AND (l.partner_id IN %s)
+                    AND ((l.partner_id IN %s) OR (l.partner_id IS NULL))
                 AND (l.date <= %s)
                 AND l.company_id = %s'''
         cr.execute(query, (tuple(move_state), tuple(account_type), date_from, tuple(partner_ids), date_from, user_company))
@@ -116,7 +115,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                     WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)
                         AND (am.state IN %s)
                         AND (account_account.internal_type IN %s)
-                        AND (l.partner_id IN %s)
+                        AND ((l.partner_id IN %s) OR (l.partner_id IS NULL))
                         AND ''' + dates_query + '''
                     AND (l.date <= %s)
                     AND l.company_id = %s'''
@@ -141,6 +140,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             history.append(partners_amount)
 
         for partner in partners:
+            at_least_one_amount = False
             values = {}
             # Query here is replaced by one query which gets the all the partners their 'after' value
             after = False
