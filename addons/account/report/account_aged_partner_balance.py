@@ -43,7 +43,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         arg_list += (date_from, user_company)
         query = '''
             SELECT DISTINCT l.partner_id, UPPER(res_partner.name)
-            FROM res_partner,account_move_line AS l left join res_partner on l.partner_id = res_partner.id, account_account, account_move am
+            FROM account_move_line AS l left join res_partner on l.partner_id = res_partner.id, account_account, account_move am
             WHERE (l.account_id = account_account.id)
                 AND (l.move_id = am.id)
                 AND (am.state IN %s)
@@ -60,12 +60,12 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             total.append(0)
 
         # Build a string like (1,2,3) for easy use in SQL query
-        partner_ids = [partner['partner_id'] for partner in partners]
+        partner_ids = [partner['partner_id'] for partner in partners if partner['partner_id']]
         if not partner_ids:
             return [], []
 
         # This dictionary will store the not due amount of all partners
-        future_past = {}
+        undue_amounts = {}
         query = '''SELECT l.id
                 FROM account_move_line AS l, account_account, account_move am
                 WHERE (l.account_id = account_account.id) AND (l.move_id = am.id)
@@ -79,8 +79,9 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         aml_ids = cr.fetchall()
         aml_ids = aml_ids and [x[0] for x in aml_ids] or []
         for line in self.env['account.move.line'].browse(aml_ids):
-            if line.partner_id.id not in future_past:
-                future_past[line.partner_id.id] = 0.0
+            partner_id = line.partner_id.id or None
+            if partner_id not in undue_amounts:
+                undue_amounts[partner_id] = 0.0
             line_amount = line.balance
             if line.balance == 0:
                 continue
@@ -90,7 +91,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             for partial_line in line.matched_credit_ids:
                 if partial_line.create_date[:10] <= date_from:
                     line_amount -= partial_line.amount
-            future_past[line.partner_id.id] += line_amount
+            undue_amounts[partner_id] += line_amount
 
         # Use one query per period and store results in history (a list variable)
         # Each history will contain: history[1] = {'<partner_id>': <partner_debit-credit>}
@@ -124,8 +125,9 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             aml_ids = cr.fetchall()
             aml_ids = aml_ids and [x[0] for x in aml_ids] or []
             for line in self.env['account.move.line'].browse(aml_ids):
-                if line.partner_id.id not in partners_amount:
-                    partners_amount[line.partner_id.id] = 0.0
+                partner_id = line.partner_id.id or None
+                if partner_id not in partners_amount:
+                    partners_amount[partner_id] = 0.0
                 line_amount = line.balance
                 if line.balance == 0:
                     continue
@@ -136,19 +138,18 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                     if partial_line.create_date[:10] <= date_from:
                         line_amount -= partial_line.amount
 
-                partners_amount[line.partner_id.id] += line_amount
+                partners_amount[partner_id] += line_amount
             history.append(partners_amount)
 
         for partner in partners:
             at_least_one_amount = False
             values = {}
-            # Query here is replaced by one query which gets the all the partners their 'after' value
-            after = False
-            if partner['partner_id'] in future_past:  # Making sure this partner actually was found by the query
-                after = [future_past[partner['partner_id']]]
+            undue_amt = 0.0
+            if partner['partner_id'] in undue_amounts:  # Making sure this partner actually was found by the query
+                undue_amt = undue_amounts[partner['partner_id']]
 
-            total[6] = total[6] + (after and after[0] or 0.0)
-            values['direction'] = after and after[0] or 0.0
+            total[6] = total[6] + undue_amt
+            values['direction'] = undue_amt
             if not float_is_zero(values['direction'], precision_rounding=self.env.user.company_id.currency_id.rounding):
                 at_least_one_amount = True
 
@@ -164,9 +165,12 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             values['total'] = sum([values['direction']] + [values[str(i)] for i in range(5)])
             ## Add for total
             total[(i + 1)] += values['total']
-            browsed_partner = self.env['res.partner'].browse(partner['partner_id'])
-            values['name'] = browsed_partner.name and len(browsed_partner.name) >= 45 and browsed_partner.name[0:40] + '...' or browsed_partner.name
             values['partner_id'] = partner['partner_id']
+            if partner['partner_id']:
+                browsed_partner = self.env['res.partner'].browse(partner['partner_id'])
+                values['name'] = browsed_partner.name and len(browsed_partner.name) >= 45 and browsed_partner.name[0:40] + '...' or browsed_partner.name
+            else:
+                values['name'] = _('Unknown Partner')
 
             if at_least_one_amount:
                 res.append(values)
