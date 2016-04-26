@@ -261,10 +261,8 @@ function make_channel (data, options) {
             messages: [],
         }},
     };
-    if (channel.type === "channel" && data.public !== "private") {
-        channel.type = "public";
-    } else if (data.public === "private") {
-        channel.type = "private";
+    if (channel.type === "channel") {
+        channel.type = data.public !== "private" ? "public" : "private";
     }
     if (_.size(data.direct_partner) > 0) {
         channel.type = "dm";
@@ -689,8 +687,6 @@ var chat_manager = {
         }
     },
     toggle_star_status: function (message_id) {
-        var msg = _.findWhere(messages, { id: message_id });
-
         return MessageModel.call('toggle_message_starred', [[message_id]]);
     },
     unstar_all: function () {
