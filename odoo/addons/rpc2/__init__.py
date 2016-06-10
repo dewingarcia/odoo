@@ -18,6 +18,7 @@ from openerp.modules.registry import RegistryManager
 from openerp.service import security
 
 from . import global_, database, model
+from . import models
 
 logger = logging.getLogger(__name__)
 
@@ -79,14 +80,6 @@ class Rpc2(http.Controller):
         return werkzeug.wrappers.Response(response, mimetype=req.mimetype)
 
     def dispatch(self, db, method, params):
-        if method.startswith(('system.', 'rpc.')):
-            raise NameError("System methods not supported")
-        # FIXME: introspection ("system") methods
-        #   - system.listMethods()
-        #   - system.methodHelp(method)
-        #   - system.methodSignature(method)
-        #   - system.multicall(callspecs)
-
         path = method.split('.')
         if not db:
             if len(path) != 1:
@@ -97,6 +90,13 @@ class Rpc2(http.Controller):
         uid = None
         auth = http.request.httprequest.authorization
         if auth and auth.type == 'basic':
+            # FIXME: cache for this (either here or inside of login or res_users)
+            #
+            # check(db, uid, password) has a __uid_cache which makes it
+            # roughly instantaneous (after initial auth' to get the uid) but
+            # login always goes through the entire auth flow (fetching
+            # password & rehashing it & al) which makes requests much more
+            # expensive than they ought be
             uid = security.login(db, auth.username, auth.password)
 
         if not uid:
