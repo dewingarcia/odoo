@@ -403,12 +403,19 @@ class AccountChartTemplate(models.Model):
         for account_reconcile_model in account_reconcile_models:
             vals = {
                 'name': account_reconcile_model.name,
+                'sequence': account_reconcile_model.sequence,
+                'has_second_line': account_reconcile_model.has_second_line,
+                'company_id': company.id,
                 'account_id': acc_template_ref[account_reconcile_model.account_id.id],
+                'label': account_reconcile_model.label,
                 'amount_type': account_reconcile_model.amount_type,
                 'amount': account_reconcile_model.amount,
-                'label': account_reconcile_model.label,
                 'tax_id': account_reconcile_model.tax_id and tax_template_ref[account_reconcile_model.tax_id.id] or False,
-                'company_id': company.id,
+                'second_account_id': account_reconcile_model.second_account_id and acc_template_ref[account_reconcile_model.second_account_id.id] or False,
+                'second_label': account_reconcile_model.second_label,
+                'second_amount_type': account_reconcile_model.second_amount_type,
+                'second_amount': account_reconcile_model.second_amount,
+                'second_tax_id': account_reconcile_model.second_tax_id and tax_template_ref[account_reconcile_model.second_tax_id.id] or False,
             }
             self.create_record_with_xmlid(company, account_reconcile_model, 'account.reconcile.model', vals)
         return True
@@ -848,8 +855,9 @@ class AccountReconcileModelTemplate(models.Model):
     _name = "account.reconcile.model.template"
 
     name = fields.Char(string='Button Label', required=True)
+    sequence = fields.Integer(required=True, default=10)
+    has_second_line = fields.Boolean(string='Add a second line', default=False)
     account_id = fields.Many2one('account.account.template', string='Account', ondelete='cascade', domain=[('deprecated', '=', False)])
-    journal_id = fields.Many2one('account.journal', string='Journal', ondelete='cascade', help="This field is ignored in a bank statement reconciliation.")
     label = fields.Char(string='Journal Item Label')
     amount_type = fields.Selection([
         ('fixed', 'Fixed'),
@@ -857,3 +865,11 @@ class AccountReconcileModelTemplate(models.Model):
         ], required=True, default='percentage')
     amount = fields.Float(digits=0, required=True, default=100.0, help="Fixed amount will count as a debit if it is negative, as a credit if it is positive.")
     tax_id = fields.Many2one('account.tax.template', string='Tax', ondelete='restrict', domain=[('type_tax_use', '=', 'purchase')])
+    second_account_id = fields.Many2one('account.account.template', string='Second Account', ondelete='cascade', domain=[('deprecated', '=', False)])
+    second_label = fields.Char(string='Second Journal Item Label')
+    second_amount_type = fields.Selection([
+        ('fixed', 'Fixed'),
+        ('percentage', 'Percentage of amount')
+        ], string="Second Amount type",required=True, default='percentage')
+    second_amount = fields.Float(string='Second Amount', digits=0, required=True, default=100.0, help="Fixed amount will count as a debit if it is negative, as a credit if it is positive.")
+    second_tax_id = fields.Many2one('account.tax.template', string='Second Tax', ondelete='restrict', domain=[('type_tax_use', '=', 'purchase')])
