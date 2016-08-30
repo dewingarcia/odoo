@@ -859,7 +859,7 @@ function transform_qweb_template (node, fvg, many2manys) {
     }
 }
 
-core.view_registry.add('kanban', KanbanView);
+// core.view_registry.add('kanban', KanbanView);
 
 return KanbanView;
 
