@@ -149,7 +149,7 @@
         <li class="divider"/>
         <t t-if="view.type === 'form'">
             <li><a href="#" data-action="set_defaults">Set Defaults</a></li>
-            <t t-if="view.controller.get_selected_ids().length === 1">
+            <t t-if="view.controller.db_id">
                 <li><a href="#" data-action="get_metadata">View Metadata</a></li>
                 <li><a href="#" data-action="print_workflow">Print Workflow</a></li>
             </t>
