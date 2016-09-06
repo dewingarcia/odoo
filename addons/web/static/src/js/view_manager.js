@@ -275,7 +275,7 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
     create_view: function(view, view_options) {
         var self = this;
         var View = this.registry.get(view.type);
-        var options = _.clone(view.options);
+        var options = _.extend({}, view_options, view.options);
         if (view.type === "form" && ((this.action.target === 'new' || this.action.target === 'inline') ||
             (view_options && view_options.mode === 'edit'))) {
             options.initial_mode = options.initial_mode || 'edit';
