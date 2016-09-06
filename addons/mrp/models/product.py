@@ -8,6 +8,7 @@ class ProductTemplate(models.Model):
     _inherit = "product.template"
 
     bom_ids = fields.One2many('mrp.bom', 'product_tmpl_id', 'Bill of Materials')
+    normal_bom_ids = fields.One2many('mrp.bom', 'product_tmpl_id', 'Normal Bill of Materials', domain=[('type', '=', 'normal')])
     bom_count = fields.Integer('# Bill of Material', compute='_compute_bom_count')
     mo_count = fields.Integer('# Manufacturing Orders', compute='_compute_mo_count')
     produce_delay = fields.Float(
