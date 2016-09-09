@@ -437,6 +437,13 @@ class MrpWorkorder(models.Model):
         }
 
     @api.multi
+    def button_block(self):
+        self.ensure_one()
+        action = self.env.ref('mrp.act_mrp_block_workcenter_wo').read()[0]
+        action['context'] = {'default_workcenter_id': self.workcenter_id.id}
+        return action
+
+    @api.multi
     def action_see_move_scrap(self):
         self.ensure_one()
         action = self.env.ref('stock.action_stock_scrap').read()[0]
