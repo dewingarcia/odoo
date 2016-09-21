@@ -352,7 +352,7 @@ class QWeb(object):
             else:
                 element = etree.parse(document).getroot()
             for node in element:
-                if node.get('t-name') == template or template in node.get('inheriting_xmlids').split(','):
+                if node.get('t-name') == template:
                     return (node, document)
             return (element, document)
 

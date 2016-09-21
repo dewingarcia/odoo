@@ -571,14 +571,6 @@ actual arch.
                 tag = "<%s%s>" % (spec.tag, attrs)
                 self.raise_view_error(_("Element '%s' cannot be located in parent view") % tag, inherit_id)
 
-        # not good at all
-        inheriting_xmlid = self.env['ir.ui.view'].browse(inherit_id).xml_id
-        inheriting_xmlids = source.get('inheriting_xmlids')
-        if inheriting_xmlids:
-            inheriting_xmlids = inheriting_xmlids.split(',') + [inheriting_xmlid]
-        else:
-            inheriting_xmlids = [inheriting_xmlid]
-        source.set('inheriting_xmlids', ','.join(inheriting_xmlids))
         return source
 
     @api.model
