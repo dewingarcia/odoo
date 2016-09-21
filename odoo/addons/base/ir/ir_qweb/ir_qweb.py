@@ -50,7 +50,13 @@ class IrQWeb(models.AbstractModel, QWeb):
         context = dict(self.env.context, dev_mode='qweb' in tools.config['dev_mode'])
         context.update(options)
 
-        return super(IrQWeb, self).render(id_or_xml_id, values=values, **context)
+        view_id = self.env['ir.ui.view'].get_view_id(id_or_xml_id)
+        view = self.env['ir.ui.view'].browse(view_id)
+
+        while view.inherit_id:
+            view = view.inherit_id
+
+        return super(IrQWeb, self).render(view.xml_id, values=values, **context)
 
     def default_values(self):
         """ attributes add to the values for each computed template
