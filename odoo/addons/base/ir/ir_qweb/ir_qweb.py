@@ -80,15 +80,14 @@ class IrQWeb(models.AbstractModel, QWeb):
         template = env['ir.ui.view'].read_template(name)
 
         res_id = isinstance(name, (int, long)) and name or None
-        if res_id:
-            for node in etree.fromstring(template):
-                if node.get('t-name'):
-                    return node
-                elif res_id and node.tag == "t":
-                    node.set('t-name', str(res_id))
-                    return node
+        for node in etree.fromstring(template):
+            if node.get('t-name'):
+                return node
+            elif res_id and node.tag == "t":
+                node.set('t-name', str(res_id))
+                return node
 
-        return template
+        raise ValueError("Unable to parse template %r" % name)
 
     # order
 

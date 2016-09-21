@@ -23,4 +23,18 @@
     <template id="test_assetsbundle.bundle3">
         <link rel="stylesheet" href="/test_assetsbundle/static/src/less/test_lessfile1.less"/>
     </template>
+
+    <template id="test_assetsbundle.bundle_to_inherit">
+        <script type="text/javascript">
+            console.log("inherit me!");
+        </script>
+    </template>
+
+    <template id="test_assetsbundle.bundle_inherited" inherit_id="test_assetsbundle.bundle_to_inherit">
+        <xpath expr="//script" position="after">
+            <script type="text/javascript">
+                console.log("ok!");
+            </script>
+        </xpath>
+    </template>
 </odoo>

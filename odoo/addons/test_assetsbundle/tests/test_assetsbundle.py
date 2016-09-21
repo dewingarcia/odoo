@@ -17,6 +17,8 @@ class TestJavascriptAssetsBundle(TransactionCase):
         super(TestJavascriptAssetsBundle, self).setUp()
         self.jsbundle_xmlid = 'test_assetsbundle.bundle1'
         self.cssbundle_xmlid = 'test_assetsbundle.bundle2'
+        self.jsbundletoinherit_xmlid = 'test_assetsbundle.bundle_to_inherit'
+        self.jsbundleinheriting_xmlid = 'test_assetsbundle.bundle_inherited'
 
     def _get_asset(self, xmlid, env=None):
         env = (env or self.env)
@@ -300,6 +302,14 @@ class TestJavascriptAssetsBundle(TransactionCase):
         # the ir.attachment records should be deduplicated in the bundle's content
         content = bundle0.to_html()
         self.assertEqual(content.count('test_assetsbundle.bundle2.0.css'), 1)
+
+    def test_15_render_inherited(self):
+        bundle0 = self._get_asset(self.jsbundletoinherit_xmlid)
+        content0 = bundle0.to_html()
+
+        bundle1 = self._get_asset(self.jsbundleinheriting_xmlid)
+        content1 = bundle1.to_html()
+        self.assertEqual(content0, content1)
 
 
 class TestAssetsBundleInBrowser(HttpCase):
