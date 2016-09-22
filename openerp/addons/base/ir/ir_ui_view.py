@@ -909,8 +909,8 @@ actual arch.
         return arch
 
     @api.model
-    def read_template(self, xml_id):
-        return self._read_template(self.get_view_id(xml_id))
+    def read_template(self, id_or_xml_id):
+        return self._read_template(self.get_view_id(id_or_xml_id))
 
     @api.model
     def get_view_id(self, template):

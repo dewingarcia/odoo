@@ -177,7 +177,7 @@ class TestViewSaving(common.TransactionCase):
     def test_save_escaped_text(self):
         """ Test saving html special chars in text nodes """
         view_id = self.registry('ir.ui.view').create(self.cr, self.uid, {
-            'arch':'<t><p><h1>hello world</h1></p></t>',
+            'arch':'<t t-name="test_save_escaped_text"><p><h1>hello world</h1></p></t>',
             'type':'qweb'
         })
         view = self.registry('ir.ui.view').browse(self.cr, self.uid, view_id)

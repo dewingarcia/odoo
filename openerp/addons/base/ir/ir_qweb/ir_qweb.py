@@ -31,12 +31,12 @@ class IrQWeb(models.AbstractModel, QWeb):
     _name = 'ir.qweb'
 
     @api.model
-    def render(self, id_or_xml_id, values=None, **options):
-        """ render(id_or_xml_id, values, **options)
+    def render(self, id_or_xml_id_or_etree, values=None, **options):
+        """ render(id_or_xml_id_or_etree, values, **options)
 
         Render the template specified by the given name.
 
-        :param id_or_xml_id: name or etree (see get_template)
+        :param id_or_xml_id_or_etree: id or name or etree (see get_template)
         :param dict values: template values to be used for rendering
         :param options: used to compile the template (the dict available for the rendering is frozen)
             * ``load`` (function) overrides the load method
@@ -50,7 +50,7 @@ class IrQWeb(models.AbstractModel, QWeb):
         context = dict(self.env.context, dev_mode='qweb' in tools.config['dev_mode'])
         context.update(options)
 
-        return super(IrQWeb, self).render(id_or_xml_id, values=values, **context)
+        return super(IrQWeb, self).render(id_or_xml_id_or_etree, values=values, **context)
 
     def default_values(self):
         """ attributes add to the values for each computed template
@@ -77,17 +77,25 @@ class IrQWeb(models.AbstractModel, QWeb):
         env = self.env
         if lang != env.context.get('lang'):
             env = env(context=dict(env.context, lang=lang))
-        template = env['ir.ui.view'].read_template(name)
+        try:
+            template = env['ir.ui.view'].read_template(name)
+        except ValueError:
+            return None  # QWeb expects to receive None for a not found template
 
+        # `name` could be an id or an xmlid, but the external library QWeb will
+        # check that a `t-name` attribute in one of the first children of the
+        # document passed is equal to `name`. However, `read_template` used here
+        # as a custom loader for the external library Qweb will always set the
+        # `t-name` attribute to the name of the template, not its id. That's why
+        # we have to parse the output of `read_template` here to modify that
+        # `t-name` attribute to the id of the template.
         res_id = isinstance(name, (int, long)) and name or None
         if res_id:
-            for node in etree.fromstring(template):
+            root = etree.fromstring(template)
+            for node in root:
                 if node.get('t-name'):
-                    return node
-                elif res_id and node.tag == "t":
                     node.set('t-name', str(res_id))
-                    return node
-
+                    return root
         return template
 
     # order
