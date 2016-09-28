@@ -9,8 +9,8 @@
                 <field name="payment_environment"/>
                 <field name="payment_acquirer_id"/>
                 <field name="icon_image"/>
-                <field name="name"/>
-                <field name="description"/>
+                <field name="shortdesc"/>
+                <field name="description_html"/>
                 <field name="state"/>
                 <templates>
                     <t t-name="kanban-box">
@@ -24,8 +24,8 @@
                                 </t>
                             </div>
                             <div class="o_payment_acquirer_desc">
-                                <h3 class="mt4"><t t-esc="record.name.value"/></h3>
-                                <t t-if="record.description.raw_value" t-raw="record.description.raw_value"/>
+                                <h3 class="mt4"><t t-esc="record.shortdesc.value"/></h3>
+                                <t t-if="record.description_html.raw_value" t-raw="record.description_html.raw_value"/>
                             </div>
                             <div class="o_payment_acquirer_bottom">
                                 <t t-if="record.state.raw_value == 'installed'">
