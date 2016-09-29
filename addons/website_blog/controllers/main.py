@@ -250,10 +250,10 @@ class WebsiteBlog(http.Controller):
         request.session[request.session.sid] = request.session.get(request.session.sid, [])
         if not (blog_post.id in request.session[request.session.sid]):
             request.session[request.session.sid].append(blog_post.id)
-            # Increase counter
-            blog_post.sudo().write({
-                'visits': blog_post.visits+1,
-            })
+            # Increase visits counter outside of the current transaction for better concurrency handling
+            with request.env.registry.cursor() as cr:
+                cr.autocommit(True)
+                cr.execute("""UPDATE blog_post SET visits=visits+1 WHERE id = %s""", (blog_post.id,))
         return response
 
     def _blog_post_message(self, blog_post_id, message_content, **post):
