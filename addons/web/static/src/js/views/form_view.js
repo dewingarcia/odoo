@@ -1183,7 +1183,7 @@ var FormView = View.extend(common.FieldManagerMixin, {
     },
 });
 
-core.view_registry.add('form', FormView);
+// core.view_registry.add('form', FormView);
 
 return FormView;
 

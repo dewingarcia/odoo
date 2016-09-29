@@ -882,7 +882,7 @@ var ListView = View.extend({
         );
     }
 });
-core.view_registry.add('list', ListView);
+// core.view_registry.add('list', ListView);
 
 ListView.List = Class.extend({
     /**
