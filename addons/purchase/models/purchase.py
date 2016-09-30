@@ -539,10 +539,10 @@ class PurchaseOrderLine(models.Model):
             total = 0.0
             for move in line.move_ids:
                 if move.state == 'done':
-                    if move.product_uom != line.product_uom:
+                    if move.location_dest_id.usage == "internal":
                         total += move.product_uom._compute_quantity(move.product_uom_qty, line.product_uom)
-                    else:
-                        total += move.product_uom_qty
+                    elif move.location_dest_id.usage == "supplier" and move.to_refund_so:
+                        total -= move.product_uom._compute_quantity(move.product_uom_qty, line.product_uom)
             line.qty_received = total
 
     @api.model
@@ -613,7 +613,7 @@ class PurchaseOrderLine(models.Model):
                 continue
             qty = 0.0
             price_unit = line._get_stock_move_price_unit()
-            for move in line.move_ids.filtered(lambda x: x.state != 'cancel'):
+            for move in line.move_ids.filtered(lambda x: x.state != 'cancel' and not x.origin_returned_move_id):
                 qty += move.product_qty
             template = {
                 'name': line.name or '',

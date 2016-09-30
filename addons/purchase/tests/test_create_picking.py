@@ -89,3 +89,4 @@ class TestCreatePicking(common.TestProductCommon):
         # PO approved by manager
         self.po.button_approve()
         self.assertEqual(self.po.state, 'purchase', 'PO state should be "Purchase".')
+

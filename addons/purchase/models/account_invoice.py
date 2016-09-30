@@ -35,7 +35,7 @@ class AccountInvoice(models.Model):
             qty = line.product_qty - line.qty_invoiced
         else:
             qty = line.qty_received - line.qty_invoiced
-        if float_compare(qty, 0.0, precision_rounding=line.product_uom.rounding) <= 0:
+        if float_compare(qty, 0.0, precision_rounding=line.product_uom.rounding) == 0:
             qty = 0.0
         taxes = line.taxes_id
         invoice_line_tax_ids = line.order_id.fiscal_position_id.map_tax(taxes)

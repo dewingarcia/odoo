@@ -20,6 +20,7 @@
                         <tree editable="top" create="0">
                             <field name="product_id" readonly="1"/>
                             <field name="quantity"/>
+                            <field name="to_refund_so"/>
                         </tree>
                     </field>
                 </group>
