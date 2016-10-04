@@ -76,32 +76,16 @@ var TimeCounter = common.AbstractField.extend(common.ReinitializeFieldMixin, {
 
 var FieldPdfViewer = FieldBinaryFile.extend({
     template: 'FieldPdfViewer',
-    init: function(){
-        this._super.apply(this, arguments);
-        this.PDFViewerApplication = false;
-    },
-    get_uri: function(){
+    get_uri: function(url){
         var query_obj = {
             model: this.view.dataset.model,
             field: this.name,
             id: this.view.datarecord.id
         };
         var query_string = $.param(query_obj);
-        var url = encodeURIComponent('/web/image?' + query_string);
+        url = url || encodeURIComponent('/web/image?' + query_string);
         var viewer_url = '/web/static/lib/pdfjs/web/viewer.html?file=';
         return viewer_url + url;
-    },
-    on_file_change: function(ev) {
-        this._super.apply(this, arguments);
-        if(this.PDFViewerApplication){
-            var files = ev.target.files;
-            if (!files || files.length === 0) {
-              return;
-            }
-            var file = files[0];
-            // TOCheck: is there requirement to fallback on FileReader if browser don't support URL
-            this.PDFViewerApplication.open(URL.createObjectURL(file), 0);
-        }
     },
     render_value: function() {
         var $pdf_viewer = this.$('.o_form_pdf_controls').children().add(this.$('.o_pdfview_iframe')),
@@ -112,7 +96,6 @@ var FieldPdfViewer = FieldBinaryFile.extend({
 
         var bin_size = utils.is_bin_size(value);
         $iFrame.on('load', function(){
-            self.PDFViewerApplication = this.contentWindow.window.PDFViewerApplication;
             self.disable_buttons(this);
         });
         if (this.get("effective_readonly")) {
@@ -126,6 +109,19 @@ var FieldPdfViewer = FieldBinaryFile.extend({
                 $select_upload_el.addClass('o_hidden');
                 if(bin_size){
                     $iFrame.attr('src', this.get_uri());
+                }else{
+                    var _base64ToArrayBuffer =  function(base64) {
+                        var binary_string =  window.atob(base64);
+                        var len = binary_string.length;
+                        var bytes = new Uint8Array( len );
+                        for (var i = 0; i < len; i++)        {
+                            bytes[i] = binary_string.charCodeAt(i);
+                        }
+                        return bytes.buffer;
+                    };
+                    var blob = new Blob([_base64ToArrayBuffer(value)], {type: "application/pdf"});
+                    var blob_url = URL.createObjectURL(blob);
+                    $iFrame.attr('src', this.get_uri(blob_url));
                 }
             } else {
                 $pdf_viewer.addClass('o_hidden');
