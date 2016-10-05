@@ -12,8 +12,9 @@
             <field name="auto_delete" eval="True"/>
             <field name="scheduled_date">${(datetime.datetime.now() + relativedelta(days=3)).strftime('%Y-%m-%d %H:%M')}</field>
             <field name="body_html" ><![CDATA[
+<meta charset="utf-8">
             <div style="margin: 10px auto;">
-		    <t t-set="last_created_project" t-value="user.env['project.project'].search([('alias_id','!=',False)], order='create_date desc', limit=1)"/>
+            <t t-set="last_created_project" t-value="user.env['project.project'].search([('alias_id','!=',False)], order='create_date desc', limit=1)"/>
             <table cellspacing="0" cellpadding="0" style="width:100%;">
                 <tbody>
                     <tr>
@@ -56,11 +57,7 @@
                                 <span><a href="/web#view_type=kanban&model=project.project&action=project.open_view_project_all">
                                     <span style="font-weight:bold; text-decoration:underline;">project planner</span></a></span>
                                 <span> to activate extra features</span>
-<<<<<<< HEAD
-                                <span style="color:#875A7B;margin:0;font-weight:bold">(${user.env['web.planner'].get_planner_progress('planner_project')}% done)</span>
-=======
-                                <span style="color:#a24689;margin:0;font-weight:bold">(<t t-esc="user.env['web.planner'].get_planner_progress('planner_project')"/>% done)</span>
->>>>>>> [IMP]various: converted mail templates from jinja to qweb.
+                                <span style="color:#875A7B;margin:0;font-weight:bold">(<t t-esc="user.env['web.planner'].get_planner_progress('planner_project')"/>% done)</span>
                             </p>
                             <ul style="margin-top:0pt;margin-bottom:0pt;font-size:13px;list-style-type:disc;">
                                 <li dir="ltr">

@@ -66,6 +66,8 @@
             <field name="model_id" ref="mail.model_mail_message"/>
             <field name="auto_delete" eval="True"/>
             <field name="body_html"><![CDATA[
+<meta charset="utf-8">
+<div>
 <t t-if="ctx.get('button_access')">
     <div itemscope itemtype="http://schema.org/EmailMessage">
         <div itemprop="potentialAction" itemscope itemtype="http://schema.org/ViewAction">
@@ -79,24 +81,28 @@
 <t t-set="action_length" t-value="'actions' in ctx and ctx.get('actions') == 0"/>
 <t t-if="not is_discussion or not action_length or ctx.get('is_accessible')">
     <div summary="o_mail_notification" style="padding: 0px; width:600px;">
-        <table cellspacing="0" cellpadding="0" border="0" style="width:100px; margin-top: 5px;">
+        <table cellspacing="0" cellpadding="0" border="0" style="width: 600px; margin-top: 5px;">
             <tbody><tr>
             <td valign="center">
-                <a t-if="ctx.get('has_button_access')" t-att-href="ctx.get('button_access')['url']" style="padding: 8px 12px; font-size: 12px; text-decoration: none; color: #FFFFFF; text-decoration:none !important; font-weight: 400; background-color: #875A7B; border: 0px solid #875A7B; border-radius:3px" t-esc="ctx.get('button_access')['title']"/>
+                <a t-if="ctx.get('has_button_access')" t-att-href="ctx['button_access']['url']" style="padding: 8px 12px; font-size: 12px; color: #FFFFFF; text-decoration: none !important; font-weight: 400; background-color: #875A7B; border: 0px solid #875A7B; border-radius:3px" t-esc="ctx['button_access']['title']"/>
                 <t t-if="ctx.get('has_button_follow')">
-                    <t t-esc="'|' if ctx.get('has_button_access') else ''"/>
-                    <a t-att-href="ctx.get('button_follow')['url']" style="text-decoration:none; color: #875A7B;  text-decoration:none !important;" t-esc="ctx.get('button_follow')['title']"/>
+                    <t t-if="ctx.get('has_button_access')">
+                       |
+                    </t>
+                    <a t-att-href="ctx['button_follow']['url']" style="color: #875A7B; text-decoration: none !important;" t-esc="ctx['button_follow']['title']"/>
                 </t>
                 <t t-if="ctx.get('has_button_unfollow')">
-                    <t t-esc="'|' if ctx.get('has_button_access') else ''"/>
-                    <a t-att-href="ctx.get('button_unfollow')['url']" style="text-decoration:none; color: #875A7B; text-decoration:none !important;" t-esc="ctx.get('button_unfollow')['title']"/>
+                    <t t-if="ctx.get('has_button_access')">
+                       |
+                    </t>
+                    <a t-att-href="ctx['button_unfollow']['url']" style="color: #875A7B; text-decoration: none !important;" t-esc="ctx['button_unfollow']['title']"/>
                 </t>
                 <t t-if="ctx.get('actions')">
-                <t t-foreach="ctx['actions']" t-as="action">
-                     |
-                     <a t-att-href="action['url']" style="text-decoration:none; color: #875A7B; text-decoration:none !important;" t-esc="action['title']"/>
+                    <t t-foreach="ctx['actions']" t-as="action">
+                    |
+                    <a t-att-href="action['url']" style="color: #875A7B; text-decoration:none !important;" t-esc="action['title']"/>
                 </t>
-                </t>
+            </t>
             </td>
             <td valign="center" align="right">
                 <img src="/logo.png" style="padding: 0px; margin: 0px; height: auto; width: 80px;" t-att-alt="user.company_id.name">

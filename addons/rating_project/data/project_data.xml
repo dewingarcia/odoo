@@ -93,19 +93,9 @@
     <table style="width:600px;margin:auto;text-align:center;font-size:12px;">
         <tbody>
             <tr><td style="padding-top:10px;color:#afafaf;">
-<<<<<<< HEAD
-                % if object.project_id.rating_status == 'stage':
-                    <p>This customer survey has been sent because your task has been moved to the stage <b>${object.stage_id.name}</b></p>
-                % endif
-                % if object.project_id.rating_status == 'periodic':
-                    <p>This customer survey is sent <b>${object.project_id.rating_status_period}</b> as long as the task is in the <b>${object.stage_id.name}</b> stage.
-                % endif
-                <p>Email automatically sent by <a href="https://www.odoo.com/page/project-management" style="color:#875A7B;text-decoration:none;">Odoo Project</a> for <a href="${object.project_id.company_id.website}" style="color:#875A7B;text-decoration:none;">${object.project_id.company_id.name}</a></p>
-=======
                 <p t-if="record.project_id.rating_status == 'stage'">This customer survey has been sent because your task has been moved to the stage <b t-esc="record.stage_id.name"/></p>
                 <p t-if="record.project_id.rating_status == 'periodic'">This customer survey is send <b t-esc="record.project_id.rating_status_period"/> as long as the task is in the <b t-esc="record.stage_id.name"/> stage.</p>
-                <p>Email automatically sent by <a href="https://www.odoo.com/page/project-management" style="color:#a24689;text-decoration:none;">Odoo Project</a> for <a t-att-href="record.project_id.company_id.website" style="color:#a24689;text-decoration:none;" t-esc="record.project_id.company_id.name"/></p>
->>>>>>> [IMP]various: converted mail templates from jinja to qweb.
+                <p>Email automatically sent by <a href="https://www.odoo.com/page/project-management" style="color:#875A7B;text-decoration:none;">Odoo Project</a> for <a t-att-href="record.project_id.company_id.website" style="color:#875A7B;text-decoration:none;" t-esc="record.project_id.company_id.name"/></p>
             </td></tr>
         </tbody>
     </table>

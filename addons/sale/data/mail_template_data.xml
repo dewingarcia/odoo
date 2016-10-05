@@ -14,28 +14,15 @@
             <field name="report_name">${(object.name or '').replace('/','_')}${object.state == 'draft' and '_draft' or ''}</field>
             <field name="lang">${object.partner_id.lang}</field>
             <field name="body_html"><![CDATA[
-<<<<<<< HEAD
-<p>Dear ${object.partner_id.name}
-% set access_action = object.get_access_action()
-% set doc_name = 'quotation' if object.state in ('draft', 'sent') else 'order confirmation'
-% set is_online = access_action and access_action['type'] == 'ir.actions.act_url'
-% set access_name = is_online and object.template_id and 'Accept and pay %s online' % doc_name or 'View %s' % doc_name
-% set access_url = is_online and access_action['url'] or ''
-
-% if object.partner_id.parent_id:
-    (<i>${object.partner_id.parent_id.name}</i>)
-% endif
-=======
 <p>Dear <t t-esc="record.partner_id.name"/>
 <t t-set="access_action" t-value="record.get_access_action()"/>
 <t t-set="doc_name" t-value="'quotation' if record.state in ('draft', 'sent') else 'order confirmation'"/>
 <t t-set="is_online"  t-value="access_action and access_action['type'] == 'ir.actions.act_url'"/>
 <t t-set="access_name" t-value="is_online and record.template_id and 'Accept and pay %s online' % doc_name or 'View %s' % doc_name"/>
-<t t-set="access_url" t-value="is_online and access_action['url'] or record.get_signup_url()"/>
+<t t-set="access_url" t-value="is_online and access_action['url'] or ''"/>
 <t t-if="record.partner_id.parent_id">
     (<i t-esc="record.partner_id.parent_id.name"/>) 
 </t>
->>>>>>> [IMP]various: converted mail templates from jinja to qweb.
 ,</p>
 <p>
 Here is your <t t-esc="doc_name"/> <strong t t-esc="record.name"/>

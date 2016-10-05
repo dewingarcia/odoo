@@ -17,7 +17,7 @@
 <p>Dear
     <t t-esc="record.partner_id.child_ids[0].name if (record and record.partner_id.is_company and record.partner_id.child_ids) else record.partner_id.name"/>
 ,</p><p>
-Here is a <t t-esc="record.state in ('draft', 'sent') and 'request for quotation' or 'purchase order confirmation'"/> <strong t-esc-"record.name"/>
+Here is a <t t-esc="record.state in ('draft', 'sent') and 'request for quotation' or 'purchase order confirmation'"/> <strong t-esc="record.name"/>
 <t t-if="record.partner_ref">
     with reference: <t t-esc="record.partner_ref"/>
 </t>
@@ -52,7 +52,7 @@ from <t t-esc="record.company_id.name"/>.
         (<i t-esc="record.partner_id.parent_id.name"/>)
     </t>
 ,</p><p>
-Please find in attachment a <strong> <t t-esc="record.state in ('draft', 'sent') and 'request for quotation' or 'purchase order confirmation'"/><t t-esc="record.name"/></strong>
+Please find in attachment a <strong> <t t-esc="record.state in ('draft', 'sent') and 'request for quotation' or 'purchase order confirmation'"/> <t t-esc="record.name"/></strong>
 <t t-if="record.partner_ref">
     with reference: <t t-esc="record.partner_ref"/>
 </t>

@@ -132,6 +132,7 @@
                             <li t-if="record.event_id.description">Description: <t t-esc="record.event_id.description"/></li>
                             <li t-if="not record.event_id.allday and record.event_id.duration">Duration: <t t-esc="('%dH%02d' % (record.event_id.duration,(record.event_id.duration*60)%60))"/></li>
                         <li>Attendees
+                        <ul>
                             <li t-foreach="record.event_id.attendee_ids" t-as="attendee">
                                 <div t-attf-style="display:inline-block; border-radius: 50%; width:10px; height:10px;background:#{colors[attendee.state] or 'white'};"></div>
                                 <span style="margin-left:5px"><t t-esc="attendee.common_name if attendee.common_name != record.common_name else 'You'"/></span>
