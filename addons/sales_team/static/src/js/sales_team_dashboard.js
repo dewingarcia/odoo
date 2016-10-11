@@ -5,6 +5,7 @@ var core = require('web.core');
 var formats = require('web.formats');
 var Model = require('web.Model');
 var session = require('web.session');
+var view_registry = require('web.view_registry');
 var KanbanView = require('web_kanban.KanbanView');
 
 var QWeb = core.qweb;
@@ -137,7 +138,7 @@ var SalesTeamDashboardView = KanbanView.extend({
     },
 });
 
-core.view_registry.add('sales_team_dashboard', SalesTeamDashboardView);
+view_registry.add('sales_team_dashboard', SalesTeamDashboardView);
 
 return SalesTeamDashboardView;
 

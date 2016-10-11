@@ -4,6 +4,7 @@ odoo.define('web_kanban.Many2ManyKanbanView', function (require) {
 var common = require('web.form_common');
 var core = require('web.core');
 var data = require('web.data');
+var view_registry = require('web.view_registry');
 var KanbanView = require('web_kanban.KanbanView');
 
 var _t = core._t;
@@ -82,8 +83,8 @@ var Many2ManyKanbanView = X2ManyKanbanView.extend({
     },
 });
 
-core.view_registry.add('one2many_kanban', One2ManyKanbanView);
-core.view_registry.add('many2many_kanban', Many2ManyKanbanView);
+view_registry.add('one2many_kanban', One2ManyKanbanView);
+view_registry.add('many2many_kanban', Many2ManyKanbanView);
 
 });
 
