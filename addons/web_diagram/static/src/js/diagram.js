@@ -390,8 +390,6 @@ var DiagramView = View.extend({
     }
 });
 
-core.view_registry.add('diagram', DiagramView);
-
 return DiagramView;
 
 });

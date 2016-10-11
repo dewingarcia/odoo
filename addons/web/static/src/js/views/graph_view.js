@@ -8,6 +8,7 @@ var core = require('web.core');
 var data_manager = require('web.data_manager');
 var GraphWidget = require('web.GraphWidget');
 var View = require('web.View');
+var view_registry = require('web.view_registry');
 
 var _lt = core._lt;
 var _t = core._t;
@@ -137,7 +138,7 @@ var GraphView = View.extend({
     },
 });
 
-core.view_registry.add('graph', GraphView);
+view_registry.add('graph', GraphView);
 
 return GraphView;
 

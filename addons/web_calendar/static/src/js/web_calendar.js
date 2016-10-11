@@ -12,6 +12,7 @@ var Model = require('web.DataModel');
 var time = require('web.time');
 var utils = require('web.utils');
 var View = require('web.View');
+var view_registry = require('web.view_registry');
 var widgets = require('web_calendar.widgets');
 var local_storage = require('web.local_storage');
 
@@ -1000,8 +1001,7 @@ var CalendarView = View.extend({
     },
 });
 
-
-core.view_registry.add('calendar', CalendarView);
+view_registry.add('calendar', CalendarView);
 
 return CalendarView;
 });

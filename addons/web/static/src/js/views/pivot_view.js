@@ -14,6 +14,7 @@ var session = require('web.session');
 var Sidebar = require('web.Sidebar');
 var utils = require('web.utils');
 var View = require('web.View');
+var view_registry = require('web.view_registry');
 
 var _lt = core._lt;
 var _t = core._t;
@@ -880,7 +881,7 @@ function find_path_in_tree(root, path) {
     return null;
 }
 
-core.view_registry.add('pivot', PivotView);
+view_registry.add('pivot', PivotView);
 
 return PivotView;
 

@@ -8,6 +8,7 @@ var framework = require('web.framework');
 var Model = require('web.DataModel');
 var pyeval = require('web.pyeval');
 var SearchView = require('web.SearchView');
+var view_registry = require('web.view_registry');
 var Widget = require('web.Widget');
 
 var QWeb = core.qweb;
@@ -50,7 +51,7 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
         this.views = {};
         this.view_stack = []; // used for breadcrumbs
         this.active_view = null;
-        this.registry = core.view_registry;
+        this.registry = view_registry;
         this.title = this.action.name;
         _.each(views, function (view) {
             var view_type = view[1] || view.view_type;

@@ -10,6 +10,7 @@ var formats = require('web.formats');
 var pyeval = require('web.pyeval');
 var session = require('web.session');
 var View = require('web.View');
+var view_registry = require('web.view_registry');
 
 var _lt = core._lt;
 var QWeb = core.qweb;
@@ -241,7 +242,7 @@ var TreeView = View.extend({
     },
 });
 
-core.view_registry.add('tree', TreeView);
+view_registry.add('tree', TreeView);
 
 return TreeView;
 
