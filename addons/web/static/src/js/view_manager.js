@@ -362,7 +362,9 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
             }
             view_controller.render_buttons($buttons ? $buttons.empty() : elements.$buttons);
             view_controller.render_sidebar(elements.$sidebar);
-            view_controller.render_pager(elements.$pager);
+            if (this.flags.pager) {
+                view_controller.render_pager(elements.$pager);
+            }
             // Remove the unnecessary outer div
             elements = _.mapObject(elements, function($node) {
                 return $node && $node.contents();
