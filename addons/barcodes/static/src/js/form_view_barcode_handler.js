@@ -7,6 +7,7 @@ var common = require('web.form_common');
 var BarcodeEvents = require('barcodes.BarcodeEvents');
 var BarcodeHandlerMixin = require('barcodes.BarcodeHandlerMixin');
 var KanbanRecord = require('web_kanban.Record');
+var KanbanView = require('web_kanban.KanbanView');
 var Dialog = require('web.Dialog');
 
 var _t = core._t;
@@ -21,6 +22,34 @@ KanbanRecord.include({
     get: function (key) {
         return this.values[key] && this.values[key].value;
     },
+});
+var should_scroll = false;
+var last_scanned_barcode;
+KanbanView.include({
+    reload_record: function (record) {
+        $(window).scrollTop(record.$el.offset().top)
+        return this._super.apply(this,arguments);
+    },
+    do_search: function () {
+        self = this;
+        return this._super.apply(this,arguments).then(function(){
+            if (should_scroll){
+                var record_to_scroll = _.find(self.widgets, function (record) {
+                    return record.get('product_barcode') === last_scanned_barcode;
+                });
+                if (! record_to_scroll){
+                    record_to_scroll = _.find(self.widgets, function (record) {
+                    return record.get('product_barcode').substring(0,7) === last_scanned_barcode.substring(0,7);
+                });
+                }
+                if (record_to_scroll){
+                    $(window).scrollTop(record_to_scroll.$el.offset().top)
+                }
+                should_scroll = false;
+                last_scanned_barcode = undefined;
+            }
+        });
+    }
 });
 
 var FormViewBarcodeHandler = common.AbstractField.extend(BarcodeHandlerMixin, {
@@ -166,6 +195,8 @@ var FormViewBarcodeHandler = common.AbstractField.extend(BarcodeHandlerMixin, {
                             mutex_commit_value.exec(_.bind(field.commit_value, field));
                         });
                         return mutex_commit_value.def.then(function(){
+                            should_scroll = true;
+                            last_scanned_barcode = barcode;
                             // Trigger the barcode onchange
                             self.set_value(barcode);
                         });
