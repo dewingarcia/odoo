@@ -310,7 +310,7 @@
                        <button string="Routes" type="object"
                             name="action_view_routes"
                             attrs="{'invisible':[('type', '!=', 'product')]}"
-                            class="oe_stat_button" icon="fa-cogs" groups="stock.group_adv_location"/>
+                            class="oe_stat_button" icon="fa-cogs" groups="base.group_no_one"/>
                     </button>
                 </data>
             </field>
@@ -375,7 +375,7 @@
                             name="action_view_routes"
                             attrs="{'invisible':[('type', '!=', 'product')]}"
                             class="oe_stat_button" icon="fa-cogs"
-                            groups="stock.group_adv_location"/>
+                            groups="base.group_no_one"/>
                     </button>
                 </data>
             </field>
