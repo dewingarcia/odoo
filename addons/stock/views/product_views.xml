@@ -150,6 +150,12 @@
                                 <field name="property_stock_inventory" domain="[('usage','=','inventory')]"/>
                             </group>
                         </group>
+                        <group name="packaging" string="Packaging"
+                            colspan="4"
+                            attrs="{'invisible':[('type', 'not in', ['product', 'consu'])]}"
+                            groups="product.group_stock_packaging">
+                            <field name="packaging_ids" nolabel="1"/>
+                        </group>
                     </page>
                 </page>
                 <field name="description_sale" position="after">
