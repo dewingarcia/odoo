@@ -154,7 +154,7 @@
                             colspan="4"
                             attrs="{'invisible':[('type', 'not in', ['product', 'consu'])]}"
                             groups="product.group_stock_packaging">
-                            <field name="packaging_ids" nolabel="1"/>
+                            <field name="packaging_ids" nolabel="1" context="{'tree_view_ref':'product.product_vendor_packaging_tree_view', 'form_view_ref':'product.product_vendor_packaging_form_view'}"/>
                         </group>
                     </page>
                 </page>
@@ -190,6 +190,7 @@
                 </ul>
             </field>
         </record>
+
 
         <!-- Product Variant -->
 
