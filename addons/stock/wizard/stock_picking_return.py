@@ -14,7 +14,7 @@ class ReturnPickingLine(models.TransientModel):
     quantity = fields.Float("Quantity", digits=dp.get_precision('Product Unit of Measure'), required=True)
     wizard_id = fields.Many2one('stock.return.picking', string="Wizard")
     move_id = fields.Many2one('stock.move', "Move")
-    to_refund_so = fields.Boolean(string="To Refund", help='Trigger a decrease of the delivered/received quantity in the associated Sale Order/Purchase Order')
+    to_refund = fields.Boolean(string="To Refund", help='Trigger a decrease of the delivered/received quantity in the associated Sale Order/Purchase Order')
 
 
 class ReturnPicking(models.TransientModel):
@@ -140,8 +140,8 @@ class ReturnPicking(models.TransientModel):
             raise UserError(_("Please specify at least one non-zero quantity."))
         for move in new_picking.move_lines:
             return_picking_line = self.product_return_moves.filtered(lambda r: r.move_id == move.origin_returned_move_id)
-            if return_picking_line and return_picking_line.to_refund_so:
-                move.to_refund_so = True
+            if return_picking_line and return_picking_line.to_refund:
+                move.to_refund = True
 
         new_picking.action_confirm()
         new_picking.action_assign()

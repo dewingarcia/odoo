@@ -541,7 +541,7 @@ class PurchaseOrderLine(models.Model):
                 if move.state == 'done':
                     if move.location_dest_id.usage == "internal":
                         total += move.product_uom._compute_quantity(move.product_uom_qty, line.product_uom)
-                    elif move.location_dest_id.usage == "supplier" and move.to_refund_so:
+                    elif move.location_dest_id.usage == "supplier" and move.to_refund:
                         total -= move.product_uom._compute_quantity(move.product_uom_qty, line.product_uom)
             line.qty_received = total
 
