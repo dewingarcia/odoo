@@ -116,6 +116,8 @@
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/form_view_extra.less"/>
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/form_view_layout_extra.less"/>
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/search_view_extra.less"/>
+        <link rel="stylesheet" type="text/less" href="/web/static/src/less/kanban_dashboard.less"/>
+        <link rel="stylesheet" type="text/less" href="/web/static/src/less/kanban_view.less"/>
 
         <script type="text/javascript" src="/web/static/lib/jquery.scrollTo/jquery.scrollTo.js"></script>
         <script type="text/javascript" src="/web/static/lib/nvd3/d3.v3.js"></script>
