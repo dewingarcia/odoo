@@ -1,13 +1,13 @@
-odoo.define('web_kanban.Column', function (require) {
+odoo.define('web.KanbanColumn', function (require) {
 "use strict";
 
 var config = require('web.config');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var form_common = require('web.form_common');
+var quick_create = require('web.kanban_quick_create');
+var KanbanRecord = require('web.KanbanRecord');
 var Widget = require('web.Widget');
-var quick_create = require('web_kanban.quick_create');
-var KanbanRecord = require('web_kanban.Record');
 
 var _t = core._t;
 var QWeb = core.qweb;
@@ -17,18 +17,13 @@ var KanbanColumn = Widget.extend({
     template: "KanbanView.Group",
 
     events: {
-        'click .o_kanban_toggle_fold': function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.folded = true;
-            this.update_column();
-        },
         'click .o_column_edit': 'edit_column',
         'click .o_column_delete': 'delete_column',
         'click .o_column_archive': 'archive_records',
         'click .o_column_unarchive': 'unarchive_records',
         'click .o_kanban_quick_add': 'add_quick_create',
         'click .o_kanban_load_more': 'load_more',
+        'click .o_kanban_toggle_fold': 'toggle_fold',
     },
 
     custom_events: {
@@ -37,16 +32,24 @@ var KanbanColumn = Widget.extend({
         'quick_create_add_record': 'quick_create_add_record',
     },
 
-    init: function(parent, group_data, options, record_options) {
+    init: function(parent, data, options, record_options) {
         this._super(parent);
-        this.data_records = group_data.records;
-        this.dataset = group_data.dataset;
+        this.db_id = data.id;
+        this.data_records = data.data;
+
+        var value = data.value;
+        this.id = data.res_id || value;
+        var field = data.fields[data.grouped_by[0]]; // fixme: grouped by field might not be in the fvg
+        if (field && field.type === "selection") {
+            value = _.find(field.selection, function (s) { return s[0] === data.value; })[1]; // fixme: same process done in list_renderer
+        }
+        // todo: handle group_by_m2o (nameget)
+        this.title = value || _t('Undefined');
+        this.folded = !data.is_open;
+        this.size = data.count;
+        this.values = data.values;
+        this.fields = data.fields;
         this.records = [];
-        this.title = group_data.title;
-        this.id = group_data.id;
-        this.folded = group_data.attributes.folded;
-        this.fields = options.fields;
-        this.values = group_data.values;
 
         this.quick_create = options.quick_create;
         this.grouped_by_m2o = options.grouped_by_m2o;
@@ -58,15 +61,15 @@ var KanbanColumn = Widget.extend({
         this.records_deletable = options.records_deletable;
         this.relation = options.relation;
         this.offset = 0;
-        this.remaining = this.dataset.size() - this.data_records.length;
+        this.remaining = this.size - this.data_records.length;
 
         this.record_options = _.extend(_.clone(record_options), {
             group_info: this.values,
         });
 
-        var self = this;
-        if (group_data.options && group_data.options.group_by_tooltip) {
-            this.tooltip_info = _.map(group_data.options.group_by_tooltip, function (key, value, list) {
+        if (data.options && data.options.group_by_tooltip) {
+            var self = this;
+            this.tooltip_info = _.map(data.options.group_by_tooltip, function (key, value) {
                 return (self.values && self.values[value] && "<div>" +key + "<br>" + self.values[value] + "</div>") || '';
             }).join('');
         } else {
@@ -104,35 +107,26 @@ var KanbanColumn = Widget.extend({
                 update: function (event, ui) {
                     var record = ui.item.data('record');
                     var index = self.records.indexOf(record);
-                    var test2 = $.contains(self.$el[0], record.$el[0]);
                     record.$el.removeAttr('style');  // jqueryui sortable add display:block inline
-                    if (index >= 0 && test2) {
-                        // resequencing records
-                        self.trigger_up('kanban_column_resequence');
-                    } else if (index >= 0 && !test2) {
-                        // removing record from this column
-                        self.records.splice(self.records.indexOf(record), 1);
-                        self.dataset.remove_ids([record.id]);
+                    ui.item.addClass('o_updating');
+                    if (index >= 0) {
+                        if ($.contains(self.$el[0], record.$el[0])) {
+                            // resequencing records
+                            self.trigger_up('kanban_column_resequence', {ids: self.get_ids()});
+                        }
                     } else {
                         // adding record to this column
-                        self.records.push(record);
-                        self.dataset.add_ids([record.id]);
-                        record.setParent(self);
-                        ui.item.addClass('o_updating');
-                        self.trigger_up('kanban_column_add_record', {record: record});
+                        self.trigger_up('kanban_column_add_record', {record: record, ids: self.get_ids()});
                     }
-                    self.update_column();
                 }
             });
         }
-        this.update_column();
         this.$el.click(function (event) {
-            if (self.$el.hasClass('o_column_folded')) {
-                event.preventDefault();
-                self.folded = false;
-                self.update_column();
+            if (self.folded) {
+                self.toggle_fold(event);
             }
         });
+        this.update_column();
     },
 
     is_empty: function () {
@@ -142,7 +136,6 @@ var KanbanColumn = Widget.extend({
     add_record: function (data, options) {
         var record = new KanbanRecord(this, data, this.record_options);
         this.records.push(record);
-        this.dataset.ids = _.uniq(this.dataset.ids.concat(record.id));
         if (options.position === 'before') {
             record.insertAfter(this.quick_create_widget ? this.quick_create_widget.$el : this.$header);
         } else {
@@ -167,7 +160,7 @@ var KanbanColumn = Widget.extend({
     },
 
     update_column: function () {
-        var title = this.folded ? this.title + ' (' + this.dataset.size() + ')' : this.title;
+        var title = this.folded ? this.title + ' (' + this.size + ')' : this.title;
         this.$header.find('.o_column_title').text(title);
         this.$header.find('.o-kanban-count').text(this.records.length);
 
@@ -178,18 +171,23 @@ var KanbanColumn = Widget.extend({
         if (!this.remaining) {
             this.$('.o_kanban_load_more').remove();
         } else {
-            this.$('.o_kanban_load_more').html(QWeb.render('KanbanView.LoadMore', {widget:this}))
+            this.$('.o_kanban_load_more').html(QWeb.render('KanbanView.LoadMore', {widget: this}));
         }
     },
 
-    archive_records: function(event) {
+    archive_records: function (event) {
         event.preventDefault();
         this.trigger_up('kanban_column_archive_records', {archive: true});
     },
 
-    unarchive_records: function(event) {
+    unarchive_records: function (event) {
         event.preventDefault();
         this.trigger_up('kanban_column_archive_records', {archive: false});
+    },
+
+    toggle_fold: function (event) {
+        event.preventDefault();
+        this.trigger_up('column_toggle_fold');
     },
 
     delete_column: function (event) {
@@ -220,14 +218,13 @@ var KanbanColumn = Widget.extend({
             title: _t("Edit Column"),
         }).open();
 
-        dialog.on('record_saved', this, function () {
-            this.trigger_up('kanban_reload');
-        });
+        dialog.on('record_saved', null, this.trigger_up.bind(this, 'reload'));
     },
 
     delete_record: function (event) {
         event.stopped = false;
         var self = this;
+        event.data.parent_id = this.db_id;
         event.data.after = function cleanup () {
             var index = self.records.indexOf(event.data.record);
             self.records.splice(index, 1);
@@ -249,7 +246,6 @@ var KanbanColumn = Widget.extend({
                 self.cancel_quick_create();
             }
         });
-
     },
 
     cancel_quick_create: function () {
@@ -258,7 +254,7 @@ var KanbanColumn = Widget.extend({
     },
 
     quick_create_add_record: function (event) {
-        this.trigger_up('column_add_record', event.data);
+        this.trigger_up('quick_create_record', event.data);
     },
 
     load_more: function (event) {

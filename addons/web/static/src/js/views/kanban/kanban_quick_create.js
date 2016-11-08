@@ -1,4 +1,4 @@
-odoo.define('web_kanban.quick_create', function (require) {
+odoo.define('web.kanban_quick_create', function (require) {
 "use strict";
 
 var Widget = require('web.Widget');
@@ -7,10 +7,10 @@ var RecordQuickCreate = Widget.extend({
     template: "KanbanView.QuickCreate",
 
     events: {
-        'click .o_kanban_cancel': function (event) {
+        'click .o_kanban_cancel': function () {
             this.cancel();
         },
-        'click .o_kanban_add': function (event) {
+        'click .o_kanban_add': function () {
             this.add_record();
         },
         'keypress input': function (event) {
@@ -28,7 +28,7 @@ var RecordQuickCreate = Widget.extend({
     },
 
     init: function (parent, width) {
-        this._super(parent);
+        this._super.apply(this, arguments);
         this.width = width;
     },
 
@@ -36,6 +36,7 @@ var RecordQuickCreate = Widget.extend({
         this.$el.css({width: this.width});
         this.$input = this.$('input');
         this.$input.focus();
+        return this._super.apply(this, arguments);
     },
 
     cancel: function () {
@@ -63,7 +64,7 @@ var ColumnQuickCreate = Widget.extend({
             event.stopPropagation();
             this.add_column();
         },
-        'click .o_kanban_cancel': function (event) {
+        'click .o_kanban_cancel': function () {
             this.folded = true;
             this.update();
         },
@@ -93,8 +94,8 @@ var ColumnQuickCreate = Widget.extend({
         'mousedown .o_kanban_cancel': 'suppress',
     },
 
-    init: function (parent) {
-        this._super(parent);
+    init: function () {
+        this._super.apply(this, arguments);
         this.folded = true;
     },
 
@@ -102,6 +103,7 @@ var ColumnQuickCreate = Widget.extend({
         this.$header = this.$('.o_column_header');
         this.$quick_create = this.$('.o_kanban_quick_create');
         this.$input = this.$('input');
+        return this._super.apply(this, arguments);
     },
 
     toggle: function () {

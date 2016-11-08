@@ -1,124 +1,77 @@
-odoo.define('web.GraphWidget', function (require) {
+odoo.define('web.GraphRenderer', function (require) {
 "use strict";
 
+var AbstractRenderer = require('web.AbstractRenderer');
 var config = require('web.config');
 var core = require('web.core');
-var Model = require('web.DataModel');
 var formats = require('web.formats');
-var Widget = require('web.Widget');
 
 var _t = core._t;
-var QWeb = core.qweb;
+var qweb = core.qweb;
 
-// hide top legend when too many item for device size
+var CHART_TYPES = ['pie', 'bar', 'line'];
+
+// hide top legend when too many items for device size
 var MAX_LEGEND_LENGTH = 25 * (1 + config.device.size_class);
 
-return Widget.extend({
+return AbstractRenderer.extend({
     className: "o_graph_svg_container",
-    init: function (parent, model, options) {
-        this._super(parent);
-        this.context = options.context;
-        this.fields = options.fields;
-        this.fields.__count__ = {string: _t("Count"), type: "integer"};
-        this.model = new Model(model, {group_by_no_leaf: true});
-
-        this.domain = options.domain || [];
-        this.groupbys = options.groupbys || [];
-        this.mode = options.mode || "bar";
-        this.measure = options.measure || "__count__";
-        this.stacked = options.stacked;
+    init: function(parent, arch) {
+        this._super.apply(this, arguments);
+        this.stacked = arch.attrs.stacked !== "False";
+        this.mode = arch.attrs.type || 'bar';
     },
-    start: function () {
-        return this.load_data().then(this.proxy('display_graph'));
-    },
-    update_data: function (domain, groupbys) {
-        this.domain = domain;
-        this.groupbys = groupbys;
-        return this.load_data().then(this.proxy('display_graph'));
-    },
-    set_mode: function (mode) {
+    set_mode: function(mode) {
         this.mode = mode;
-        this.display_graph();
+        return this;
     },
-    set_measure: function (measure) {
-        this.measure = measure;
-        return this.load_data().then(this.proxy('display_graph'));        
-    },
-    load_data: function () {
-        var fields = this.groupbys.slice(0);
-        if (this.measure !== '__count__'.slice(0))
-            fields = fields.concat(this.measure);
-        return this.model
-                    .query(fields)
-                    .filter(this.domain)
-                    .context(this.context)
-                    .lazy(false)
-                    .group_by(this.groupbys.slice(0,2))
-                    .then(this.proxy('prepare_data'));
-    },
-    prepare_data: function () {
-        var raw_data = arguments[0],
-            is_count = this.measure === '__count__';
-        var data_pt, j, values, value;
-
-        this.data = [];
-        for (var i = 0; i < raw_data.length; i++) {
-            data_pt = raw_data[i].attributes;
-            values = [];
-            if (this.groupbys.length === 1) data_pt.value = [data_pt.value];
-            for (j = 0; j < data_pt.value.length; j++) {
-                values[j] = this.sanitize_value(data_pt.value[j], data_pt.grouped_on[j]);
-            }
-            value = is_count ? data_pt.length : data_pt.aggregates[this.measure];
-            this.data.push({
-                labels: values,
-                value: value
-            });
-        }
-    },
-    sanitize_value: function (value, field) {
-        if (value === false) return _t("Undefined");
-        if (value instanceof Array) return value[1];
-        if (field && this.fields[field] && (this.fields[field].type === 'selection')) {
-            var selected = _.where(this.fields[field].selection, {0: value})[0];
-            return selected ? selected[1] : value;
-        }
-        return value;
-    },
-    display_graph: function () {
+    _render: function() {
         if (this.to_remove) {
             nv.utils.offWindowResize(this.to_remove);
         }
-        this.$el.empty();
-        if (!this.data.length) {
-            this.$el.append(QWeb.render('GraphView.error', {
+        if (!_.contains(CHART_TYPES, this.mode)) {
+            this.$el.empty();
+            this.trigger_up('warning', {
+                title: _t('Invalid mode for chart'),
+                message: _t('Cannot render chart with mode : ') + this.mode
+            });
+        } else if (!this.state.data.length) {
+            this.$el.empty();
+            this.$el.append(qweb.render('GraphView.error', {
                 title: _t("No data to display"),
                 description: _t("No data available for this chart. " +
                     "Try to add some records, or make sure that " +
                     "there is no active filter in the search bar."),
             }));
         } else {
-            var chart = this['display_' + this.mode]();
-            chart.tooltip.chartContainer(this.$el[0]);
+            var self = this;
+            setTimeout(function() {
+                self.$el.empty();
+                var chart = self['_render_' + self.mode + '_chart']();
+                self.to_remove = chart.update;
+                nv.utils.onWindowResize(chart.update);
+                chart.tooltip.chartContainer(self.el);
+            }, 0);
         }
     },
-    display_bar: function () {
+
+    _render_bar_chart: function () {
         // prepare data for bar chart
-        var data, values,
-            measure = this.fields[this.measure].string;
+        var data, values;
+        var measure = this.state.fields[this.state.measure].string;
 
         // zero groupbys
-        if (this.groupbys.length === 0) {
+        if (this.state.grouped_by.length === 0) {
             data = [{
                 values: [{
                     x: measure,
-                    y: this.data[0].value}],
+                    y: this.state.data[0].value}],
                 key: measure
             }];
-        } 
+        }
         // one groupby
-        if (this.groupbys.length === 1) {
-            values = this.data.map(function (datapt) {
+        if (this.state.grouped_by.length === 1) {
+            values = this.state.data.map(function (datapt) {
                 return {x: datapt.labels, y: datapt.value};
             });
             data = [
@@ -128,21 +81,21 @@ return Widget.extend({
                 }
             ];
         }
-        if (this.groupbys.length > 1) {
+        if (this.state.grouped_by.length > 1) {
             var xlabels = [],
                 series = [],
                 label, serie, value;
             values = {};
-            for (var i = 0; i < this.data.length; i++) {
-                label = this.data[i].labels[0];
-                serie = this.data[i].labels[1];
-                value = this.data[i].value;
+            for (var i = 0; i < this.state.data.length; i++) {
+                label = this.state.data[i].labels[0];
+                serie = this.state.data[i].labels[1];
+                value = this.state.data[i].value;
                 if ((!xlabels.length) || (xlabels[xlabels.length-1] !== label)) {
                     xlabels.push(label);
                 }
-                series.push(this.data[i].labels[1]);
+                series.push(this.state.data[i].labels[1]);
                 if (!(serie in values)) {values[serie] = {};}
-                values[serie][label] = this.data[i].value;
+                values[serie][label] = this.state.data[i].value;
             }
             series = _.uniq(series);
             data = [];
@@ -176,43 +129,40 @@ return Widget.extend({
           stacked: this.stacked,
           reduceXTicks: false,
           // rotateLabels: 40,
-          showControls: (this.groupbys.length > 1)
+          showControls: (this.state.grouped_by.length > 1)
         });
         chart.yAxis.tickFormat(function(d) { return formats.format_value(d, { type : 'float' });});
 
         chart(svg);
-        this.to_remove = chart.update;
-        nv.utils.onWindowResize(chart.update);
-
         return chart;
     },
-    display_pie: function () {
-        var data = [],
-            all_negative = true,
-            some_negative = false,
-            all_zero = true;
-        
-        this.data.forEach(function (datapt) {
+    _render_pie_chart: function () {
+        var data = [];
+        var all_negative = true;
+        var some_negative = false;
+        var all_zero = true;
+
+        this.state.data.forEach(function (datapt) {
             all_negative = all_negative && (datapt.value < 0);
             some_negative = some_negative || (datapt.value < 0);
             all_zero = all_zero && (datapt.value === 0);
         });
         if (some_negative && !all_negative) {
-            return this.$el.append(QWeb.render('GraphView.error', {
+            return this.$el.append(qweb.render('GraphView.error', {
                 title: _t("Invalid data"),
                 description: _t("Pie chart cannot mix positive and negative numbers. " +
                     "Try to change your domain to only display positive results"),
             }));
         }
         if (all_zero) {
-            return this.$el.append(QWeb.render('GraphView.error', {
+            return this.$el.append(qweb.render('GraphView.error', {
                 title: _t("Invalid data"),
                 description: _t("Pie chart cannot display all zero numbers.. " +
                     "Try to change your domain to display positive results"),
             }));
         }
-        if (this.groupbys.length) {
-            data = this.data.map(function (datapt) {
+        if (this.state.grouped_by.length) {
+            data = this.state.data.map(function (datapt) {
                 return {x:datapt.labels.join("/"), y: datapt.value};
             });
         }
@@ -233,26 +183,24 @@ return Widget.extend({
         });
 
         chart(svg);
-        this.to_remove = chart.update;
-        nv.utils.onWindowResize(chart.update);
-
         return chart;
     },
-    display_line: function () {
-        if (this.data.length < 2) {
-            this.$el.append(QWeb.render('GraphView.error', {
+    _render_line_chart: function () {
+        if (this.state.data.length < 2) {
+            this.$el.append(qweb.render('GraphView.error', {
                 title: _t("Not enough data points"),
                 description: "You need at least two data points to display a line chart."
             }));
             return;
         }
-        var self = this,
-            data = [],
-            tickValues,
-            tickFormat,
-            measure = this.fields[this.measure].string;
-        if (this.groupbys.length === 1) {
-            var values = this.data.map(function (datapt, index) {
+        var self = this;
+        var data = [];
+        var tickValues;
+        var tickFormat;
+        var measure = this.state.fields[this.state.measure].string;
+
+        if (this.state.grouped_by.length === 1) {
+            var values = this.state.data.map(function (datapt, index) {
                 return {x: index, y: datapt.value};
             });
             data = [
@@ -261,25 +209,25 @@ return Widget.extend({
                     key: measure,
                 }
             ];
-            tickValues = this.data.map(function (d, i) { return i;});
-            tickFormat = function (d) {return self.data[d].labels;};
+            tickValues = this.state.data.map(function (d, i) { return i;});
+            tickFormat = function (d) {return self.state.data[d].labels;};
         }
-        if (this.groupbys.length > 1) {
+        if (this.state.grouped_by.length > 1) {
             data = [];
-            var data_dict = {},
-                tick = 0,
-                tickLabels = [],
-                serie, tickLabel,
-                identity = function (p) {return p;};
+            var data_dict = {};
+            var tick = 0;
+            var tickLabels = [];
+            var serie, tickLabel;
+            var identity = function (p) {return p;};
             tickValues = [];
-            for (var i = 0; i < this.data.length; i++) {
-                if (this.data[i].labels[0] !== tickLabel) {
-                    tickLabel = this.data[i].labels[0];
+            for (var i = 0; i < this.state.data.length; i++) {
+                if (this.state.data[i].labels[0] !== tickLabel) {
+                    tickLabel = this.state.data[i].labels[0];
                     tickValues.push(tick);
                     tickLabels.push(tickLabel);
                     tick++;
                 }
-                serie = this.data[i].labels[1];
+                serie = this.state.data[i].labels[1];
                 if (!data_dict[serie]) {
                     data_dict[serie] = {
                         values: [],
@@ -287,7 +235,7 @@ return Widget.extend({
                     };
                 }
                 data_dict[serie].values.push({
-                    x: tick, y: this.data[i].value,
+                    x: tick, y: this.state.data[i].value,
                 });
                 data = _.map(data_dict, identity);
             }
@@ -313,15 +261,12 @@ return Widget.extend({
         chart.yAxis.tickFormat(function(d) { return formats.format_value(d, { type : 'float' });});
 
         chart(svg);
-        this.to_remove = chart.update;
-        nv.utils.onWindowResize(chart.update);
-
         return chart;
     },
     destroy: function () {
         nv.utils.offWindowResize(this.to_remove);
         return this._super();
-    }
+    },
 });
 
 });

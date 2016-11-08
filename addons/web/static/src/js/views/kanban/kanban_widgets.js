@@ -1,13 +1,13 @@
-odoo.define('web_kanban.widgets', function (require) {
+odoo.define('web.kanban_widgets', function (require) {
 "use strict";
 
 var core = require('web.core');
+var field_utils = require('web.field_utils');
 var formats = require('web.formats');
 var Priority = require('web.Priority');
 var ProgressBar = require('web.ProgressBar');
 var pyeval = require('web.pyeval');
 var Registry = require('web.Registry');
-var session = require('web.session');
 var Widget = require('web.Widget');
 var QWeb = core.qweb;
 var _t = core._t;
@@ -134,7 +134,6 @@ var KanbanSelection = AbstractField.extend({
     },
     renderElement: function() {
         var self = this;
-        var state;
         self.states = this.prepare_dropdown_selection();
 
         var current_state = _.find(this.states, function(state) {
@@ -232,14 +231,10 @@ var KanbanProgressBar = AbstractField.extend({
                     if(!isNaN(value)) {
                         var data = {
                             method: this.on_change,
-                            params: [parent.id, value],
-                            callback: self.proxy('toggle_progressbar'),
+                            args: [parent.id, value],
+                            on_success: self.proxy('toggle_progressbar'),
                         };
                         self.trigger_up('kanban_call_method', data);
-
-                        // parent.view.dataset.call(this.on_change, [parent.id, value]).then(function() {
-                        //     self.toggle_progressbar();
-                        // });
                     } 
                 });
             }
@@ -256,22 +251,26 @@ var KanbanProgressBar = AbstractField.extend({
 
 var KanbanMonetary = AbstractField.extend({
     tagName: 'span',
+    init: function(parent, field, $node, data) {
+        this._super.apply(this, arguments);
+        this.record_data = data;
+    },
     renderElement: function() {
-        var kanban_view = this.getParent();
-        var currency_field = (this.options && this.options.currency_field) || 'currency_id';
-        var currency_id = kanban_view.values[currency_field].value[0];
-        var currency = session.get_currency(currency_id);
-        var digits_precision = this.options.digits || (currency && currency.digits);
-        var value = formats.format_value(this.field.raw_value || 0, {type: this.field.type, digits: digits_precision});
-        if (currency) {
-            if (currency.position === "after") {
-                value += currency.symbol;
-            } else {
-                value = currency.symbol + value;
-            }
-        }
-        this.$el.text(value);
+        this.$el.html(field_utils.format_monetary(this.field.raw_value, this.field, this.record_data, this.options));
     }
+});
+
+var KanbanMany2One = AbstractField.extend({
+    tagName: 'span',
+    init: function(parent, field, $node, relational_data) {
+        this._super.apply(this, arguments);
+        this.m2o_value = field_utils.format_many2one(this.get('value'), this.field, undefined, {
+            relational_data: relational_data,
+        });
+    },
+    renderElement: function() {
+        this.$el.text(this.m2o_value);
+    },
 });
 
 var fields_registry = new Registry();
@@ -284,7 +283,7 @@ fields_registry
     .add('float_time', FormatChar)
     .add('monetary', KanbanMonetary)
     .add('kanban_label_selection', KanbanLabelSelection)
-    ;
+    .add('many2one', KanbanMany2One);
 
 return {
     AbstractField: AbstractField,

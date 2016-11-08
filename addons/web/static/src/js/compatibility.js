@@ -18,8 +18,8 @@ var FavoriteMenu = require('web.FavoriteMenu');
 var form_common = require('web.form_common');
 var formats = require('web.formats');
 var FormView = require('web.FormView');
-var form_relational = require('web.form_relational'); // necessary
-var form_widgets = require('web.form_widgets'); // necessary
+require('web.relational_fields'); // necessary
+require('web.basic_fields'); // necessary
 var framework = require('web.framework');
 var ListView = require('web.ListView');
 var Model = require('web.DataModel');

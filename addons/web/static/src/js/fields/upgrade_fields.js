@@ -1,27 +1,27 @@
-odoo.define('web.form_upgrade_widgets', function (require) {
+odoo.define('web.upgrade_widgets', function (require) {
 "use strict";
 
+var basic_fields = require('web.basic_fields');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
-var form_widgets = require('web.form_widgets');
+var field_registry = require('web.field_registry');
 var framework = require('web.framework');
 var Model = require('web.DataModel');
 
 var _t = core._t;
 var QWeb = core.qweb;
 
+var FieldBoolean = basic_fields.FieldBoolean;
+var FieldRadio = basic_fields.FieldRadio;
+
 /**
  *  This widget is intended to be used in config settings.
  *  When checked, an upgrade popup is showed to the user.
  */
 var AbstractFieldUpgrade = {
-    events: {
-        'click input': 'on_click_input',
-    },
-
-    start: function() {
+    render: function() {
         this._super.apply(this, arguments);
-        this.get_enterprise_label().after($("<span>", {
+        this.insert_enterprise_label($("<span>", {
             text: "Enterprise",
             'class': "label label-primary oe_inline"
         }));
@@ -59,42 +59,47 @@ var AbstractFieldUpgrade = {
         });
     },
 
-    get_enterprise_label: function() {},
-    on_click_input: function() {},
+    on_click_input: function(event) {
+        if ($(event.currentTarget).prop("checked")) {
+            this.open_dialog().on('closed', this, this.reset_value);
+        }
+    },
+
+    reset_value: function() {},
+    insert_enterprise_label: function($enterprise_label) {},
 };
 
-var UpgradeBoolean = form_widgets.FieldBoolean.extend(AbstractFieldUpgrade, {
-    template: "FieldUpgradeBoolean",
+var UpgradeBoolean = FieldBoolean.extend(AbstractFieldUpgrade, {
+    events: _.extend({}, FieldBoolean.prototype.events, {
+        'click input': 'on_click_input',
+    }),
 
-    get_enterprise_label: function() {
-        return this.$label;
+    insert_enterprise_label: function($enterprise_label) {
+        this.$el.append('&nbsp;').append($enterprise_label);
     },
-
-    on_click_input: function() {
-        if(this.$checkbox.prop("checked")) {
-            this.open_dialog().on('closed', this, function() {
-                this.$checkbox.prop("checked", false);
-            });
-        }
+    reset_value: function() {
+        this.$input.prop("checked", false).change();
     },
 });
 
-var UpgradeRadio = form_widgets.FieldRadio.extend(AbstractFieldUpgrade, {
-    get_enterprise_label: function() {
-        // override the margin:0px
-        this.$('label').addClass('mr4');
-        return this.$('label').last();
+var UpgradeRadio = FieldRadio.extend(AbstractFieldUpgrade, {
+    events: _.extend({}, FieldRadio.prototype.events, {
+        'click input:last': 'on_click_input',
+    }),
+
+    insert_enterprise_label: function($enterprise_label) {
+        this.$('label').last().append('&nbsp;').append($enterprise_label);
     },
-    on_click_input: function(event) {
-        if($(event.target).val() === "1") {
-            this.open_dialog().on('closed', this, function() {
-                this.$('input').first().prop("checked", true);
-            });
-        }
+    reset_value: function() {
+        this.$('input').first().prop("checked", true).click();
+    },
+    is_set: function() {
+        return true;
     },
 });
 
-core.form_widget_registry
+
+field_registry
     .add('upgrade_boolean', UpgradeBoolean)
     .add('upgrade_radio', UpgradeRadio);
 

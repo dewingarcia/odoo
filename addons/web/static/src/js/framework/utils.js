@@ -496,6 +496,16 @@ function async_when() {
     return def;
 }
 
+function traverse_records(data, f) {
+    if (data.is_record) {
+        f(data);
+    } else {
+        for (var i = 0; i < data.data.length; i++) {
+            traverse_records(data.data[i], f);
+        }
+    }
+}
+
 return {
     divmod: divmod,
     modf: modf,
@@ -527,6 +537,7 @@ return {
     swap: swap,
     toBoolElse: toBoolElse,
     async_when: async_when,
+    traverse_records: traverse_records,
 };
 
 });

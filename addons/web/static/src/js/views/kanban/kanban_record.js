@@ -1,15 +1,15 @@
-odoo.define('web_kanban.Record', function (require) {
+odoo.define('web.KanbanRecord', function (require) {
 "use strict";
 
 var core = require('web.core');
 var data = require('web.data');
 var formats = require('web.formats');
 var framework = require('web.framework');
+var kanban_widgets = require('web.kanban_widgets');
 var session = require('web.session');
 var time = require('web.time');
 var utils = require('web.utils');
 var Widget = require('web.Widget');
-var kanban_widgets = require('web_kanban.widgets');
 
 var QWeb = core.qweb;
 var fields_registry = kanban_widgets.registry;
@@ -26,10 +26,12 @@ var KanbanRecord = Widget.extend({
         'kanban_update_record': 'update_record',
     },
 
-    init: function (parent, record, options) {
+    init: function (parent, state, options) {
         this._super(parent);
 
-        this.fields = options.fields;
+        this.fields = state.fields;
+        this.record_data = state.data;
+        this.relational_data = state.relational_data;
         this.editable = options.editable;
         this.deletable = options.deletable;
         this.draggable = options.draggable;
@@ -39,19 +41,37 @@ var KanbanRecord = Widget.extend({
         this.qweb = options.qweb;
         this.sub_widgets = [];
 
-        this.init_content(record);
+        this.init_content(state);
     },
 
-    init_content: function (record) {
+    renderElement: function () {
+        this._super();
+        this.setup_color_picker();
+        this.$el.addClass('o_kanban_record');
+        this.$el.data('record', this);
+        if (this.$el.hasClass('oe_kanban_global_click') || this.$el.hasClass('oe_kanban_global_click_edit')) {
+            this.$el.on('click', this.proxy('on_global_click'));
+        }
+    },
+
+    start: function() {
+        this.add_widgets();
+        this.render_m2m_tags();
+        this.attach_tooltip();
+        return this._super.apply(this, arguments);
+    },
+
+    init_content: function (state) {
         var self = this;
-        this.id = record.id;
+        this.id = state.res_id;
+        this.db_id = state.id;
         this.values = {};
-        _.each(record, function(v, k) {
+        _.each(state.data, function(v, k) {
             self.values[k] = {
                 value: v
             };
         });
-        this.record = this.transform_record(record);
+        this.record = this.transform_record(state.data);
         var qweb_context = {
             record: this.record,
             widget: this,
@@ -75,36 +95,32 @@ var KanbanRecord = Widget.extend({
             var field = self.record[$field.attr("name")];
             var type = $field.attr("widget") || field.type;
             var Widget = fields_registry.get(type);
-            var widget = new Widget(self, field, $field);
+            var widget = new Widget(self, field, $field, self.record_data, self.relational_data);
             widget.replace($field);
             self.sub_widgets.push(widget);
         });
     },
 
-    start: function() {
+    render_m2m_tags: function () {
         var self = this;
-        this.add_widgets();
-        this.$('[tooltip]').each(function () {
-            var $el = $(this);
-            var tooltip = $el.attr('tooltip');
-            if (tooltip) {
-                $el.tooltip({
-                    'html': true,
-                    'title': self.qweb.render(tooltip, self.qweb_context)
-                });
-            }
+        _.each(this.relational_data, function (values, field_name) {
+            if (self.fields[field_name].type !== 'many2many') { return; }
+            var rel_ids = self.record[field_name].raw_value;
+            var $m2m_tags = self.$('.o_form_field_many2manytags[name=' + field_name + ']');
+            _.each(rel_ids, function (id) {
+                var m2m = _.findWhere(values, {id: id});
+                if (typeof m2m.color !== 'undefined' && m2m.color !== 10) { // 10th color is invisible
+                    $('<span>')
+                        .addClass('o_tag o_tag_color_' + m2m.color)
+                        .attr('title', _.str.escapeHTML(m2m.name))
+                        .appendTo($m2m_tags);
+                }
+            });
         });
+        // We use boostrap tooltips for better and faster display
+        this.$('span.o_tag').tooltip({delay: {'show': 50}});
     },
 
-    renderElement: function () {
-        this._super();
-        this.setup_color_picker();
-        this.$el.addClass('o_kanban_record');
-        this.$el.data('record', this);
-        if (this.$el.hasClass('oe_kanban_global_click') || this.$el.hasClass('oe_kanban_global_click_edit')) {
-            this.$el.on('click', this.proxy('on_global_click'));
-        }
-    },
     transform_record: function(record) {
         var self = this;
         var new_record = {};
@@ -123,10 +139,26 @@ var KanbanRecord = Widget.extend({
 
     update: function (record) {
         _.invoke(this.sub_widgets, 'destroy');
-         this.sub_widgets = [];
+        this.sub_widgets = [];
         this.init_content(record);
         this.renderElement();
         this.add_widgets();
+        this.render_m2m_tags();
+        this.attach_tooltip();
+    },
+
+    attach_tooltip: function () {
+        var self = this;
+        this.$('[tooltip]').each(function () {
+            var $el = $(this);
+            var tooltip = $el.attr('tooltip');
+            if (tooltip) {
+                $el.tooltip({
+                    'html': true,
+                    'title': self.qweb.render(tooltip, self.qweb_context)
+                });
+            }
+        });
     },
 
     kanban_image: function(model, field, id, cache, options) {
@@ -181,7 +213,7 @@ var KanbanRecord = Widget.extend({
             var children = [];
             while (elem) {
                 var events = $._data(elem, 'events');
-                if (elem == ev.currentTarget) {
+                if (elem === ev.currentTarget) {
                     ischild = false;
                 }
                 var test_event = events && events.click && (events.click.length > 1 || events.click[0].namespace !== "tooltip");
@@ -221,9 +253,9 @@ var KanbanRecord = Widget.extend({
         if (this.$el.hasClass('oe_kanban_global_click_edit') && this.$el.data('routing')) {
             framework.redirect(this.$el.data('routing') + "/" + this.id);
         } else if (this.$el.hasClass('oe_kanban_global_click_edit')) {
-            this.trigger_up('kanban_record_edit', {id: this.id});
+            this.trigger_up('edit_record', {id: this.db_id});
         } else {
-            this.trigger_up('kanban_record_open', {id: this.id});
+            this.trigger_up('open_record', {id: this.db_id});
         }
     },
 
@@ -242,10 +274,10 @@ var KanbanRecord = Widget.extend({
 
         switch (type) {
             case 'edit':
-                this.trigger_up('kanban_record_edit', {id: this.id});
+                this.trigger_up('edit_record', {id: this.db_id});
                 break;
             case 'open':
-                this.trigger_up('kanban_record_open', {id: this.id});
+                this.trigger_up('open_record', {id: this.db_id});
                 break;
             case 'delete':
                 this.trigger_up('kanban_record_delete', {record: this});
