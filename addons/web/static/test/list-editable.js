@@ -1,4 +1,5 @@
 odoo.define_section('editor', ['web.ListEditor'], function (test, mock) {
+    return;
 
     function setup() {
         mock.add('test.model:create', function () {
@@ -172,6 +173,7 @@ odoo.define_section('editor', ['web.ListEditor'], function (test, mock) {
 });
 
 odoo.define_section('list.edition', ['web.data', 'web.ListView', 'web.data_manager'], function (test, mock) {
+    return;
 
     function setup () {
         var records = {};
@@ -255,6 +257,7 @@ odoo.define_section('list.edition', ['web.data', 'web.ListView', 'web.data_manag
 });
 
 odoo.define_section('list.edition.events', ['web.data', 'web.ListView', 'web.data_manager'], function (test, mock) {
+    return;
     function fields_view_get () {
         return {
             type: 'tree',
@@ -335,6 +338,7 @@ odoo.define_section('list.edition.events', ['web.data', 'web.ListView', 'web.dat
 });
 
 odoo.define_section('list.edition.onwrite', ['web.data', 'web.ListView', 'web.data_manager'], function (test, mock) {
+    return;
 
     test('record-to-read', function (assert, data, ListView, data_manager) {
         assert.expect(4);

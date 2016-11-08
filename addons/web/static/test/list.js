@@ -1,4 +1,5 @@
 odoo.define_section('list.buttons', ['web.ListView', 'web.data', 'web.data_manager'], function (test, mock) {
+    return;
 
     test('record-deletion', function (assert, ListView, data, data_manager) {
         assert.expect(2);
