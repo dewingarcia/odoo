@@ -2,7 +2,7 @@ odoo.define('web_kanban_gauge.widget', function (require) {
 "use strict";
 
 var core = require('web.core');
-var kanban_widgets = require('web_kanban.widgets');
+var kanban_widgets = require('web.kanban_widgets');
 var utils = require('web.utils');
 
 var AbstractField = kanban_widgets.AbstractField;

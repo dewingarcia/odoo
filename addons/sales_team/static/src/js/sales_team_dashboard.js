@@ -6,7 +6,7 @@ var formats = require('web.formats');
 var Model = require('web.Model');
 var session = require('web.session');
 var view_registry = require('web.view_registry');
-var KanbanView = require('web_kanban.KanbanView');
+var KanbanView = require('web.KanbanView');
 var data = require('web.data');
 
 

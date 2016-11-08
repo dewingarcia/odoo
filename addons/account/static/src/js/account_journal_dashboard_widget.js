@@ -1,7 +1,7 @@
 odoo.define('journal_dashboard', function (require) {
 'use strict';
 
-var kanban_widgets = require('web_kanban.widgets');
+var kanban_widgets = require('web.kanban_widgets');
 
 var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
     start: function() {

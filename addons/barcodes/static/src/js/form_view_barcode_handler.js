@@ -6,12 +6,12 @@ var utils = require('web.utils');
 var common = require('web.form_common');
 var BarcodeEvents = require('barcodes.BarcodeEvents');
 var BarcodeHandlerMixin = require('barcodes.BarcodeHandlerMixin');
-var KanbanRecord = require('web_kanban.Record');
+var KanbanRecord = require('web.KanbanRecord');
 var Dialog = require('web.Dialog');
 
 var _t = core._t;
 
-// web_kanban.Record and web.list_common.Record do not implement the
+// web.KanbanRecord and web.list_common.Record do not implement the
 // same interface and are thus inherently incompatible with each
 // other. Luckily barcodes keeps things pretty simple when it comes to
 // the records it wants to use. So if we give the KanbanRecord a get()

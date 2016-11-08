@@ -6,17 +6,20 @@ var core = require('web.core');
 var CalendarView = require('web_calendar.CalendarView');
 var data = require('web.data');
 var Dialog = require('web.Dialog');
+var field_registry = require('web.field_registry');
 var form_common = require('web.form_common');
 var Model = require('web.DataModel');
 var Notification = require('web.notification').Notification;
+var relational_fields = require('web.relational_fields');
 var session = require('web.session');
 var WebClient = require('web.WebClient');
 var widgets = require('web_calendar.widgets');
 
-var FieldMany2ManyTags = core.form_widget_registry.get('many2many_tags');
+
+var FieldMany2One = relational_fields.FieldMany2One;
+var FieldMany2ManyTags = relational_fields.FieldMany2ManyTags;
 var _t = core._t;
 var _lt = core._lt;
-var QWeb = core.qweb;
 
 CalendarView.include({
     extraSideBar: function() {
@@ -37,7 +40,6 @@ CalendarView.include({
     }
 });
 
-var FieldMany2One = core.form_widget_registry.get('many2one');
 var SidebarFilterM2O = FieldMany2One.extend({
     get_search_blacklist: function () {
         return this._super.apply(this, arguments).concat(this.filter_ids);
@@ -255,19 +257,13 @@ WebClient.include({
 
 var Many2ManyAttendee = FieldMany2ManyTags.extend({
     tag_template: "Many2ManyAttendeeTag",
-    get_render_data: function (ids) {
-        return this.dataset.call('get_attendee_detail', [ids, this.getParent().datarecord.id || false])
-                           .then(process_data);
-
-        function process_data(data) {
-            return _.map(data, function (d) {
-                return _.object(['id', 'display_name', 'status', 'color'], d);
-            });
-        }
-    },
+    // FIXME: This widget used to refetch the relational data fields needed to
+    //        its rendering. Basically, all usual fields for tags plus "status".
+    //        This can't currently be done with the current implementation of
+    //        the new view. For now, the attendee tags will be missing the
+    //        status indicator in studio mode.
 });
 
-core.form_widget_registry.add('many2manyattendee', Many2ManyAttendee);
-
+field_registry.add('many2manyattendee', Many2ManyAttendee);
 
 });
