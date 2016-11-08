@@ -42,7 +42,6 @@ git clone -b 8.0 --no-checkout --depth 1 https://github.com/odoo/odoo.git "${CLO
 cd "${CLONE_DIR}"
 git config core.sparsecheckout true
 echo "addons/web
-addons/web_kanban
 addons/hw_*
 addons/point_of_sale/tools/posbox/configuration
 openerp/
