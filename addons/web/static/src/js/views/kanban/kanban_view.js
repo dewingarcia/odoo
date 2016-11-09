@@ -55,11 +55,6 @@ var KanbanView = AbstractView.extend({
         this.arch = this.fields_view.arch;
         this.fields = this.fields_view.fields;
 
-        // Retrieve many2manys stored in the fields_view if it has already been processed
-        this.many2manys = this.fields_view.many2manys || [];
-        this.m2m_context = {};
-        this.process_many2manys();
-
         this.no_content_help = this.options.action.help;
         this.on_create = this.fields_view.arch.attrs.on_create;
         this.default_group_by = this.fields_view.arch.attrs.default_group_by;
@@ -143,36 +138,6 @@ var KanbanView = AbstractView.extend({
             this.$buttons.find('.o-kanban-button-new')
                 .toggleClass('btn-primary', !create_muted)
                 .toggleClass('btn-default', create_muted);
-        }
-    },
-    process_many2manys: function () {
-        function find_many2manys (node, fvg, many2manys) {
-            if (node.tag === 'field') {
-                var ftype = node.attrs.widget ? node.attrs.widget : fvg.fields[node.attrs.name].type;
-                if (ftype === 'many2many' && !_.contains(many2manys, node.attrs.name)) {
-                    many2manys.push(node.attrs.name);
-                }
-            }
-            if (node.children) {
-                for (var i = 0, ii = node.children.length; i < ii; i++) {
-                    find_many2manys(node.children[i], fvg, many2manys);
-                }
-            }
-        }
-        for (var i=0, ii=this.fields_view.arch.children.length; i < ii; i++) {
-            var child = this.fields_view.arch.children[i];
-            if (child.tag === "templates") {
-                // Find many2manys in templates
-                find_many2manys(child, this.fields_view, this.many2manys);
-                this.fields_view.many2manys = this.many2manys;
-                break;
-            } else if (child.tag === 'field') {
-                // Get many2manys context
-                var ftype = child.attrs.widget || this.fields_view.fields[child.attrs.name].type;
-                if(ftype === "many2many" && "context" in child.attrs) {
-                    this.m2m_context[child.attrs.name] = child.attrs.context;
-                }
-            }
         }
     },
     add_record: function() {
