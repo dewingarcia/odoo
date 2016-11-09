@@ -20,7 +20,10 @@ var FormView = AbstractView.extend({
     icon: 'fa-edit',
     multi_record: false,
     searchable: false,
-    PAGE_SIZE: 1,
+    config: _.extend({}, AbstractView.prototype.config, {
+        page_size: 1,
+        Renderer: FormRenderer,
+    }),
 
     custom_events: _.extend({}, AbstractView.prototype.custom_events, {
         open_record: function(event) {
@@ -367,9 +370,6 @@ var FormView = AbstractView.extend({
     update_renderer: function() {
         var state = this.datamodel.get(this.db_id);
         this.renderer.update(state, {mode: this.mode});
-    },
-    getRenderer: function() {
-        return FormRenderer;
     },
 });
 

@@ -22,23 +22,24 @@ var AbstractView = View.extend(FieldManagerMixin, {
         reload: 'reload',
         // TODO: add open_action, ...
     }),
-    PAGE_SIZE: 40,
-    OPEN_GROUPS_BY_DEFAUlT: false,
+    config: {
+        Model: BasicModel,
+        Renderer: undefined, // to be set
+        open_groups_by_default: false,
+        page_size: 40,
+    },
+
     init: function(parent, dataset, fields_view, options) {
         this._super.apply(this, arguments);
         this.fields = fields_view.fields;
         this.arch = fields_view.arch;
-        var Model = this.getModel();
+        var Model = this.config.Model;
         FieldManagerMixin.init.call(this, new Model(this));
         if (this.multi_record) {
-            this.PAGE_SIZE = this.options.limit || parseInt(this.arch.attrs.limit, 10) || this.PAGE_SIZE;
+            this.config.page_size = this.options.limit ||
+                                    parseInt(this.arch.attrs.limit, 10) ||
+                                    this.config.page_size;
         }
-    },
-    getModel: function() {
-        return BasicModel;
-    },
-    getRenderer: function() {
-        // TO BE IMPLEMENTED
     },
     get_renderer_options: function() {
         return {};
@@ -104,7 +105,7 @@ var AbstractView = View.extend(FieldManagerMixin, {
             this.update_renderer();
             this.renderer.do_show();
         } else {
-            var Renderer = this.getRenderer();
+            var Renderer = this.config.Renderer;
             var options = this.get_renderer_options();
             this.renderer = new Renderer(this, this.arch, state, options);
             this.renderer.appendTo(this.$el);
@@ -123,14 +124,14 @@ var AbstractView = View.extend(FieldManagerMixin, {
 
     render_pager: function($node, options) {
         var data = this.datamodel.get(this.db_id);
-        this.pager = new Pager(this, data.count || 1, data.offset + 1, this.PAGE_SIZE, options);
+        this.pager = new Pager(this, data.count || 1, data.offset + 1, this.config.page_size, options);
 
         this.pager.on('pager_changed', this, function (new_state) {
             var self = this;
             var data = this.datamodel.get(this.db_id);
             this.pager.disable();
-            var limit_changed = (this.PAGE_SIZE !== new_state.limit);
-            this.PAGE_SIZE = new_state.limit;
+            var limit_changed = (this.config.page_size !== new_state.limit);
+            this.config.page_size = new_state.limit;
             this.datamodel
                 .set_limit(data.id, new_state.limit)
                 .set_offset(data.id, new_state.current_min - 1)
@@ -170,10 +171,10 @@ var AbstractView = View.extend(FieldManagerMixin, {
                 domain: domain,
                 grouped_by: group_by,
                 context: context,
-                limit: this.PAGE_SIZE,
+                limit: this.config.page_size,
                 many2manys: this.many2manys,
                 m2m_context: this.m2m_context,
-                open_group_by_default: this.OPEN_GROUPS_BY_DEFAUlT,
+                open_group_by_default: this.config.open_groups_by_default,
             });
     },
     _reload_data: function(domain, context, group_by) {

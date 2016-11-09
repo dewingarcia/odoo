@@ -9,7 +9,8 @@ var _t = core._t;
 return BasicModel.extend({
     load: function(model, params) {
         var record = this._make_list(model, params);
-        record.measure = params.measure;
+        record.measure = params.measure || '__count__';
+        record.fields.__count__ = {string: _t("Count"), type: "integer"};
         return this._load_graph(record.id);
     },
     reload: function(id) {

@@ -44,7 +44,11 @@ var KanbanView = AbstractView.extend({
     display_name: _lt("Kanban"),
     icon: 'fa-th-large',
     mobile_friendly: true,
-    OPEN_GROUPS_BY_DEFAUlT: true,
+    config: _.extend({}, AbstractView.prototype.config, {
+        open_groups_by_default: true,
+        Renderer: KanbanRenderer,
+    }),
+
     init: function () {
         this._super.apply(this, arguments);
 
@@ -342,9 +346,6 @@ var KanbanView = AbstractView.extend({
     update_renderer: function() {
         var state = this.datamodel.get(this.db_id);
         this.renderer.update(state, this.fields);
-    },
-    getRenderer: function() {
-        return KanbanRenderer;
     },
 });
 

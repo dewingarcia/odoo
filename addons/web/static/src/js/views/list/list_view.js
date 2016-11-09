@@ -16,6 +16,11 @@ var ListView = AbstractView.extend({
     accesskey: "l",
     display_name: _lt('List'),
     icon: 'fa-list-ul',
+    config: _.extend({}, AbstractView.prototype.config, {
+        page_size: 80,
+        Renderer: ListRenderer,
+    }),
+
     custom_events: _.extend({}, AbstractView.prototype.custom_events, {
         toggle_column_order: function(event) {
             var data = this.datamodel.get(this.db_id);
@@ -153,9 +158,6 @@ var ListView = AbstractView.extend({
         var state = this.datamodel.get(this.db_id);
         this.renderer.update(state, this.selected_records);
     },
-    getRenderer: function() {
-        return ListRenderer;
-    }, 
 });
 
 return ListView;

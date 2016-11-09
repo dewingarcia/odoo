@@ -19,6 +19,11 @@ var GraphView = AbstractView.extend({
     display_name: _lt('Graph'),
     icon: 'fa-bar-chart',
     require_fields: true,
+    config: _.extend({}, AbstractView.prototype.config, {
+        Model: GraphModel,
+        Renderer: GraphRenderer,
+    }),
+
     init: function(parent, dataset, fields_view) {
         var self = this;
         this.measures = [];
@@ -49,7 +54,6 @@ var GraphView = AbstractView.extend({
                 }
             });
             self.measures.__count__ = {string: _t("Count"), type: "integer"};
-            self.fields.__count__ = {string: _t("Count"), type: "integer"};
         });
         return $.when(this._super(), fields_def);
     },
@@ -132,14 +136,8 @@ var GraphView = AbstractView.extend({
         }
         return this._super.apply(this, arguments);
     },
-    getModel: function() {
-        return GraphModel;
-    },
     get_renderer_options: function() {
         return {mode: this.mode};
-    },
-    getRenderer: function() {
-        return GraphRenderer;
     },
 });
 
