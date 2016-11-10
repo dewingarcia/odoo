@@ -55,7 +55,9 @@ return BasicModel.extend({
     _load_graph: function(id) {
         var self = this;
         var element = this.local_data[id];
-        var fields = element.grouped_by;
+        var fields = _.map(element.grouped_by, function(grouped_by) {
+            return grouped_by.split(':')[0];
+        });
         if (element.measure !== '__count__') {
             fields = fields.concat(element.measure);
         }
