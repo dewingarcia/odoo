@@ -106,7 +106,9 @@ return core.Class.extend({
             }, this._invalidate.bind(this, this._cache.views, key));
         }
 
-        return this._cache.views[key];
+        return this._cache.views[key].then(function (views) {
+            return $.extend(true, {}, views);
+        });
     },
 
     /**
@@ -128,7 +130,9 @@ return core.Class.extend({
                 context: dataset.get_context(),
             }).then(this._postprocess_fvg.bind(this), this._invalidate.bind(this, this._cache.fields_views, key));
         }
-        return this._cache.fields_views[key];
+        return this._cache.fields_views[key].then(function (fields_view) {
+            return $.extend(true, {}, fields_view);
+        });
     },
 
     /**
