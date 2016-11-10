@@ -30,7 +30,6 @@ var PivotView = View.extend({
     },
     display_name: _lt('Pivot'),
     icon: 'fa-table',
-    require_fields: true,
     template: 'PivotView',
 
     init: function() {
@@ -70,7 +69,6 @@ var PivotView = View.extend({
     willStart: function () {
         var self = this;
 
-        var fields_def = data_manager.load_fields(this.dataset);
         var xlwt_def = session.rpc('/web/pivot/check_xlwt').then(function(result) {
             self.xlwt_installed = result;
         });
@@ -102,20 +100,20 @@ var PivotView = View.extend({
             this.active_measures.push('__count__');
         }
 
-        return $.when(fields_def, xlwt_def, this._super()).then(function (fields) {
-            self.prepare_fields(fields);
-            // add active measures to the measure list.  This is very rarely necessary, but it
-            // can be useful if one is working with a functional field non stored, but in a
-            // model with an overrided read_group method.  In this case, the pivot view could
-            // work, and the measure should be allowed.  However, be careful if you define a
-            // measure in your pivot view: non stored functional fields will probably not work
-            // (their aggregate will always be 0).
-            _.each(self.active_measures, function (m) {
-                if (!(m in self.measures)) {
-                    self.measures[m] = self.fields[m];
-                }
-            });
+        this.prepare_fields();
+        // add active measures to the measure list.  This is very rarely necessary, but it
+        // can be useful if one is working with a functional field non stored, but in a
+        // model with an overrided read_group method.  In this case, the pivot view could
+        // work, and the measure should be allowed.  However, be careful if you define a
+        // measure in your pivot view: non stored functional fields will probably not work
+        // (their aggregate will always be 0).
+        _.each(self.active_measures, function (m) {
+            if (!(m in self.measures)) {
+                self.measures[m] = self.fields[m];
+            }
         });
+
+        return $.when(xlwt_def, this._super());
     },
     start: function () {
         this.$el.toggleClass('o_enable_linking', this.enable_linking);
@@ -178,12 +176,10 @@ var PivotView = View.extend({
             this.sidebar.appendTo($node);
         }
     },
-    prepare_fields: function (fields) {
-        var self = this,
-            groupable_types = ['many2one', 'char', 'boolean', 
-                               'selection', 'date', 'datetime'];
-        this.fields = fields;
-        _.each(fields, function (field, name) {
+    prepare_fields: function () {
+        var self = this;
+        var groupable_types = ['many2one', 'char', 'boolean', 'selection', 'date', 'datetime'];
+        _.each(this.fields, function (field, name) {
             if ((name !== 'id') && (field.store === true)) {
                 if (field.type === 'integer' || field.type === 'float' || field.type === 'monetary') {
                     self.measures[name] = field;

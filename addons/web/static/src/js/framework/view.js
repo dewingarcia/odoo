@@ -31,14 +31,13 @@ var View = Widget.extend({
     mobile_friendly: false,
     // icon is the font-awesome icon to display in the view switcher
     icon: 'fa-question',
-    // whether or not the view requires the model's fields to render itself
-    require_fields: false,
     init: function(parent, dataset, fields_view, options) {
         this._super(parent);
         this.ViewManager = parent;
         this.dataset = dataset;
         this.model = dataset.model;
         this.fields_view = fields_view;
+        this.fields = fields_view.fields;
         this.options = _.defaults({}, options, this.defaults);
     },
     /**

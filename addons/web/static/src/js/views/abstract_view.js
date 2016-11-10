@@ -34,7 +34,7 @@ var AbstractView = View.extend(FieldManagerMixin, {
         this.fields = fields_view.fields;
         this.arch = fields_view.arch;
         var Model = this.config.Model;
-        FieldManagerMixin.init.call(this, new Model(this));
+        FieldManagerMixin.init.call(this, new Model(fields_view));
         if (this.multi_record) {
             this.config.page_size = this.options.limit ||
                                     parseInt(this.arch.attrs.limit, 10) ||
@@ -167,7 +167,6 @@ var AbstractView = View.extend(FieldManagerMixin, {
     _load_data: function(domain, context, group_by) {
         return this.datamodel
             .load(this.model, {
-                fields: this.fields_view.fields,
                 domain: domain,
                 grouped_by: group_by,
                 context: context,

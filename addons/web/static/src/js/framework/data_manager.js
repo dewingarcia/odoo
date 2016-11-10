@@ -6,12 +6,6 @@ var Model = require('web.DataModel');
 var session = require('web.session');
 var utils = require('web.utils');
 
-function traverse(tree, f) {
-    if (f(tree)) {
-        _.each(tree.children, function(c) { traverse(c, f); });
-    }
-}
-
 return core.Class.extend({
     init: function () {
         this.Filters = new Model('ir.filters');
@@ -22,7 +16,6 @@ return core.Class.extend({
         this._cache = {
             actions: {},
             fields_views: {},
-            fields: {},
             filters: {},
             views: {},
         };
@@ -56,7 +49,7 @@ return core.Class.extend({
                 return action;
             }, this._invalidate.bind(this, this._cache.actions, key));
         }
- 
+
         return this._cache.actions[key].then(function (action) {
             return $.extend(true, {}, action);
         });
@@ -64,14 +57,13 @@ return core.Class.extend({
 
     /**
      * Loads various information concerning views: fields_view for each view,
-     * and optionally filters and fields.
+     * the fields of the corresponding model, and optionally the filters.
      *
      * @param {Object} [dataset] the dataset for which the views are loaded
      * @param {Array} [views_descr] array of [view_id, view_type]
      * @param {Object} [options] dictionnary of various options:
      *     - options.load_filters: whether or not to load the filters,
      *     - options.action_id: the action_id (required to load filters),
-     *     - options.load_fields: whether or not to load the fields,
      *     - options.toolbar: whether or not a toolbar will be displayed,
      * @return {Deferred} resolved with the requested views information
      */
@@ -82,8 +74,7 @@ return core.Class.extend({
         var key = this._gen_key(model, views_descr, options || {}, context);
 
         if (!this._cache.views[key]) {
-            // Don't load fields or filters if already in cache
-            options.load_fields = options.load_fields && !this._cache.fields[model];
+            // Don't load filters if already in cache
             var filters_key;
             if (options.load_filters) {
                 filters_key = this._gen_key(model, options.action_id);
@@ -96,7 +87,10 @@ return core.Class.extend({
                 context: context,
             }).then(function (result) {
                 // Postprocess fields_views and insert them into the fields_views cache
-                result.fields_views = _.mapObject(result.fields_views, self._postprocess_fvg.bind(self)); // FIXME: lazy postprocess?
+                result.fields_views = _.mapObject(result.fields_views, self._postprocess_fvg.bind(self));
+                _.each(result.fields_views, function (fields_view) {
+                    _.defaults(fields_view.fields, result.fields);
+                });
                 _.each(views_descr, function (view_descr) {
                     var toolbar = options.toolbar && view_descr[1] !== 'search';
                     var fv_key = self._gen_key(model, view_descr[0], view_descr[1], toolbar, context);
@@ -106,11 +100,6 @@ return core.Class.extend({
                 // Insert filters, if any, into the filters cache
                 if (result.filters) {
                     self._cache.filters[filters_key] = $.when(result.filters);
-                }
-
-                // Insert fields, if any, into the fields cache
-                if (result.fields) {
-                    self._cache.fields[model] = $.when(result.fields);
                 }
 
                 return result.fields_views;
@@ -140,21 +129,6 @@ return core.Class.extend({
             }).then(this._postprocess_fvg.bind(this), this._invalidate.bind(this, this._cache.fields_views, key));
         }
         return this._cache.fields_views[key];
-    },
-
-    /**
-     * Loads the fields of a given model.
-     *
-     * @param {Object} [dataset] the dataset for which the fields are loaded
-     * @return {Deferred} resolved with the requested fields
-     */
-    load_fields: function (dataset) {
-        if (!this._cache.fields[dataset.model]) {
-            this._cache.fields[dataset.model] = dataset.call('fields_get', {
-                context: dataset.get_context(),
-            }).fail(this._invalidate.bind(this, this._cache.fields, dataset.model));
-        }
-        return this._cache.fields[dataset.model];
     },
 
     /**
@@ -215,30 +189,9 @@ return core.Class.extend({
     _postprocess_fvg: function (fields_view) {
         var self = this;
 
-        // Parse and process arch
+        // Parse arch
         var doc = $.parseXML(fields_view.arch).documentElement;
-        var fields = fields_view.fields;
         fields_view.arch = utils.xml_to_json(doc, (doc.nodeName.toLowerCase() !== 'kanban'));
-        traverse(fields_view.arch, function(node) {
-            if (typeof node === 'string') {
-                return false;
-            }
-            if (node.tag === 'field') {
-                fields[node.attrs.name].__attrs = node.attrs;
-                if (fields[node.attrs.name].type === 'many2one') { // FIXME: this shouldn't be done here
-                    if (node.attrs.widget === 'statusbar' || node.attrs.widget === 'radio') {
-                        fields[node.attrs.name].__fetch_status = true;
-                    } else if (node.attrs.widget === 'selection') {
-                        fields[node.attrs.name].__fetch_selection = true;
-                    }
-                }
-                if (node.attrs.widget === 'many2many_checkboxes') {
-                    fields[node.attrs.name].__fetch_many2manys = true;
-                }
-                return false;
-            }
-            return node.tag !== 'arch';
-        });
 
         // Special case for id's
         if ('id' in fields_view.fields) {

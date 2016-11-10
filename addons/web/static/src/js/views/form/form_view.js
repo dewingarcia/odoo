@@ -111,7 +111,6 @@ var FormView = AbstractView.extend({
     }),
     init: function () {
         this._super.apply(this, arguments);
-        this.fields = this.fields_view.fields;
         this.fields.display_name = this.fields.display_name || {type: "char"};
         this.mode = 'readonly'; // can be: readonly, edit
         this.dataset_ids = this.options.dataset ? this.options.dataset.res_ids : this.dataset.ids;
@@ -131,7 +130,6 @@ var FormView = AbstractView.extend({
         var index = _.indexOf(this.dataset_ids, this.current_id);
         return this.datamodel.load(this.model, {
             id: id,
-            fields: this.fields,
             context: this.options.action.context,
             res_ids: this.dataset_ids,
             offset: index
@@ -288,7 +286,7 @@ var FormView = AbstractView.extend({
     create_record: function() {
         var self = this;
         var action_context = this.options.action.context;
-        return this.datamodel.make_record_with_defaults(this.model, this.fields, action_context).then(function (id) {
+        return this.datamodel.make_record_with_defaults(this.model, action_context).then(function (id) {
             self.db_id = id;
             self.current_id = undefined;
             self.to_edit_mode();

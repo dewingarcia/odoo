@@ -5,7 +5,6 @@ odoo.define('web.GraphView', function (require) {
  *---------------------------------------------------------*/
 
 var core = require('web.core');
-var data_manager = require('web.data_manager');
 var GraphModel = require('web.GraphModel');
 var GraphRenderer = require('web.GraphRenderer');
 var AbstractView = require('web.AbstractView');
@@ -18,44 +17,23 @@ var GraphView = AbstractView.extend({
     className: 'o_graph',
     display_name: _lt('Graph'),
     icon: 'fa-bar-chart',
-    require_fields: true,
     config: _.extend({}, AbstractView.prototype.config, {
         Model: GraphModel,
         Renderer: GraphRenderer,
     }),
 
-    init: function(parent, dataset, fields_view) {
+    init: function() {
         var self = this;
-        this.measures = [];
-        this.initial_measure = '__count__';
-        this.initial_groupbys = [];
-        fields_view.arch.children.forEach(function (field) {
-            var name = field.attrs.name;
-            if (field.attrs.interval) {
-                name += ':' + field.attrs.interval;
-            }
-            if (field.attrs.type === 'measure') {
-                self.initial_measure = name;
-            } else {
-                self.initial_groupbys.push(name);
-            }
-        });
         this._super.apply(this, arguments);
-    },
-    willStart: function () {
-        var self = this;
-        var fields_def = data_manager.load_fields(this.dataset).then(function(fields) {
-            self.fields = fields;
-            _.each(fields, function (field, name) {
-                if ((name !== 'id') && (field.store === true)) {
-                    if (field.type === 'integer' || field.type === 'float' || field.type === 'monetary') {
-                        self.measures[name] = field;
-                    }
+        this.measures = [];
+        _.each(this.fields, function (field, name) {
+            if (name !== 'id' && field.store === true) {
+                if (field.type === 'integer' || field.type === 'float' || field.type === 'monetary') {
+                    self.measures[name] = field;
                 }
-            });
-            self.measures.__count__ = {string: _t("Count"), type: "integer"};
+            }
         });
-        return $.when(this._super(), fields_def);
+        self.measures.__count__ = {string: _t("Count"), type: "integer"};
     },
     /**
      * Render the buttons according to the GraphView.buttons and
@@ -83,15 +61,6 @@ var GraphView = AbstractView.extend({
             $(li).toggleClass('selected', $(li).data('field') === state.measure);
         });
     },
-    do_search: function (domain, context, group_by) {
-        if (!this.renderer) {
-            this.initial_groupbys = context.graph_groupbys || (group_by.length ? group_by : this.initial_groupbys);
-        }
-        if (!group_by.length) {
-            group_by = this.initial_groupbys.slice(0);
-        }
-        return this._super.call(this, domain, context, group_by);
-    },
     set_mode: function(mode) {
         this.mode = mode;
         this.renderer.set_mode(mode);
@@ -99,10 +68,8 @@ var GraphView = AbstractView.extend({
     _load_data: function(domain, context, group_by) {
         return this.datamodel
             .load(this.model, {
-                fields: this.fields,
                 domain: domain,
                 grouped_by: group_by,
-                measure: this.initial_measure,
                 context: context,
             });
     },

@@ -8,18 +8,49 @@ var _t = core._t;
 
 return BasicModel.extend({
     load: function(model, params) {
+        if (!params.grouped_by.length) {
+            var grouped_by = params.context.graph_groupbys ||
+                             (params.grouped_by.length && params.grouped_by) ||
+                             this.initial_grouped_by;
+            params.grouped_by = grouped_by.slice(0);
+        }
+        params.fields = this.fields;
         var record = this._make_list(model, params);
-        record.measure = params.measure || '__count__';
-        record.fields.__count__ = {string: _t("Count"), type: "integer"};
+        record.measure = this.measure;
         return this._load_graph(record.id);
     },
     reload: function(id) {
         return this._load_graph(id);
     },
+    set_group_by: function(list_id, group_by) {
+        if (!group_by.length) {
+            group_by = this.initial_grouped_by;
+        }
+        return this._super(list_id, group_by);
+    },
     set_measure: function(id, measure) {
         var element = this.local_data[id];
         element.measure = measure;
         return this;
+    },
+    _process_fields_view: function(fields_view) {
+        var self = this;
+        var fields = fields_view.fields;
+        fields.__count__ = {string: _t("Count"), type: "integer"};
+        this.measure = '__count__';
+        this.initial_grouped_by = [];
+        fields_view.arch.children.forEach(function(field) {
+            var name = field.attrs.name;
+            if (field.attrs.interval) {
+                name += ':' + field.attrs.interval;
+            }
+            if (field.attrs.type === 'measure') {
+                self.measure = name;
+            } else {
+                self.initial_grouped_by.push(name);
+            }
+        });
+        return fields;
     },
     _load_graph: function(id) {
         var self = this;

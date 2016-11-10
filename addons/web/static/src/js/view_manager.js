@@ -71,7 +71,6 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
                 mobile_friendly: View.prototype.mobile_friendly,
                 multi_record: View.prototype.multi_record,
                 options: view.options || {},
-                require_fields: View.prototype.require_fields,
                 title: self.title,
                 type: view_type,
                 view_id: view[0] || view.view_id,
@@ -86,7 +85,7 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
         var views_def;
         var first_view_to_display = this.first_view || this.default_view;
         if (!first_view_to_display.fields_view || (this.flags.search_view && !this.search_fields_view)) {
-            views_def = this.load_views(first_view_to_display.require_fields);
+            views_def = this.load_views();
         }
         return $.when(this._super(), views_def);
     },
@@ -122,10 +121,9 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
     /**
      * Loads all missing field_views of views in this.views and the search view.
      *
-     * @param {Boolean} [load_fields] whether or not to load the fields as well
      * @return {Deferred}
      */
-    load_views: function (load_fields) {
+    load_views: function () {
         var self = this;
         var views = [];
         _.each(this.views, function (view) {
@@ -135,7 +133,6 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
         });
         var options = {
             action_id: this.action.id,
-            load_fields: load_fields,
             toolbar: this.flags.sidebar,
         };
         if (this.flags.search_view && !this.search_fields_view) {
@@ -177,7 +174,7 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
         // Ensure that the fields_view has been loaded
         var views_def;
         if (!view.fields_view) {
-            views_def = this.load_views(view.require_fields);
+            views_def = this.load_views();
         }
 
         return $.when(views_def).then(function () {

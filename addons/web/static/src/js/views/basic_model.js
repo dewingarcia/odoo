@@ -26,6 +26,12 @@ function find_direct_parent(parent, record) {
     }
 }
 
+function traverse(tree, f) { // FIXME: move to web.utils
+    if (f(tree)) {
+        _.each(tree.children, function(c) { traverse(c, f); });
+    }
+}
+
 function get_value(field_name, value, fields) {
     if (fields[field_name] && fields[field_name].type === 'many2one') {
         return value instanceof Array && value[0];
@@ -78,13 +84,29 @@ var x2many_commands = {
 };
 
 var Model = Class.extend({
-    init: function() {
+    init: function(fields_view) {
         this.local_data = Object.create(null);
 
         // this mutex is necessary to make sure some operations are done
         // sequentially, for example, an onchange needs to be completed before a
         // save is performed.
         this.mutex = new utils.Mutex();
+
+        if (fields_view) {
+            // find all fields appearing in the view, copy their attrs and
+            // flag them if they require a particular handling.
+            // do the same for inner fields_views
+            this.fields = this._process_fields_view(fields_view);
+            var self = this;
+            // don't use _ to iterate on fields in case there is a 'length' field,
+            // as _ doesn't behave correctly when there is a length key in the object
+            for (var field_name in this.fields) {
+                var field = this.fields[field_name];
+                _.each(field.views, function (inner_fields_view) {
+                    inner_fields_view.fields = self._process_fields_view(inner_fields_view);
+                });
+            }
+        }
     },
     // synchronous method, it assumes that the resource has already been loaded.
     get: function(id) {
@@ -142,17 +164,11 @@ var Model = Class.extend({
     // parameters necessary to relaod it.
     load: function(model, params) {
         var self = this;
-        var fields = params.fields;
         var def;
-        _.each(fields, function(field) {
-            if (field.__attrs && field.__attrs.options) {
-                var options = pyeval.py_eval(field.__attrs.options || '{}');
-                if (options.always_reload) {
-                    field.__always_reload = true;
-                }
-            }
-        });
-        if ('id' in params && 'fields' in params) {
+        if (!('fields' in params)) {
+            params.fields = this.fields;
+        }
+        if ('id' in params) {
             if (params.id) {
                 var record = this._make_record(model, params);
                 def = this._fetch_record(record);
@@ -161,8 +177,7 @@ var Model = Class.extend({
                     return self.local_data[id];
                 });
             }
-        }
-        if ('domain' in params && 'fields' in params) {
+        } else if ('domain' in params) {
             var list = this._make_list(model, params);
             if (list.grouped_by.length) {
                 def = this._fetch_grouped_list(list);
@@ -257,6 +272,39 @@ var Model = Class.extend({
                 return result.id;
             });
         });
+    },
+    _process_fields_view: function(fields_view) {
+        var view_fields = Object.create(null);
+        traverse(fields_view.arch, function(node) {
+            if (typeof node === 'string') {
+                return false;
+            }
+            if (node.tag === 'field') {
+                var field = _.extend({}, fields_view.fields[node.attrs.name], {
+                    __attrs: node.attrs || {},
+                });
+                if (field.__attrs.options) {
+                    var options = pyeval.py_eval(field.__attrs.options || '{}');
+                    if (options.always_reload) {
+                        field.__always_reload = true;
+                    }
+                }
+                if (field.type === 'many2one') {
+                    if (node.attrs.widget === 'statusbar' || node.attrs.widget === 'radio') {
+                        field.__fetch_status = true;
+                    } else if (node.attrs.widget === 'selection') {
+                        field.__fetch_selection = true;
+                    }
+                }
+                if (node.attrs.widget === 'many2many_checkboxes') {
+                    field.__fetch_many2manys = true;
+                }
+                view_fields[node.attrs.name] = field;
+                return false;
+            }
+            return node.tag !== 'arch';
+        });
+        return view_fields;
     },
     _generate_x2many_commands: function(fields, data, changes) {
         var commands = {};

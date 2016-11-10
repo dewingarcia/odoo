@@ -318,11 +318,11 @@ var SearchView = View.extend({
         this.prepare_search_inputs();
         if (this.$buttons) {
             if (!this.options.disable_filters) {
-                this.filter_menu = new FilterMenu(this, this.filters);
+                this.filter_menu = new FilterMenu(this, this.filters, this.fields);
                 menu_defs.push(this.filter_menu.appendTo(this.$buttons));
             }
             if (!this.options.disable_groupby) {
-                this.groupby_menu = new GroupByMenu(this, this.groupbys);
+                this.groupby_menu = new GroupByMenu(this, this.groupbys, this.fields);
                 menu_defs.push(this.groupby_menu.appendTo(this.$buttons));
             }
             if (!this.options.disable_favorites) {

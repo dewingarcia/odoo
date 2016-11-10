@@ -57,7 +57,7 @@ var ListView = AbstractView.extend({
     init: function () {
         this._super.apply(this, arguments);
         this.no_content_help = this.options.action.help;
-        this.is_editable = this.fields_view.arch.attrs.editable;
+        this.is_editable = this.arch.attrs.editable;
     },
     do_search: function () {
         this.selected_records = []; // there is no selected record by default

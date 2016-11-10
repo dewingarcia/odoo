@@ -3,7 +3,6 @@ odoo.define('web.KanbanView', function (require) {
 
 var core = require('web.core');
 var data = require('web.data');
-var data_manager = require('web.data_manager');
 var form_common = require('web.form_common');
 var KanbanRenderer = require('web.KanbanRenderer');
 var AbstractView = require('web.AbstractView');
@@ -52,12 +51,9 @@ var KanbanView = AbstractView.extend({
     init: function () {
         this._super.apply(this, arguments);
 
-        this.arch = this.fields_view.arch;
-        this.fields = this.fields_view.fields;
-
         this.no_content_help = this.options.action.help;
-        this.on_create = this.fields_view.arch.attrs.on_create;
-        this.default_group_by = this.fields_view.arch.attrs.default_group_by;
+        this.on_create = this.arch.attrs.on_create;
+        this.default_group_by = this.arch.attrs.default_group_by;
         this.create_column_enabled = false; // true iff grouped by an m2o field and group_create action enabled
 
         this.column_options = {
@@ -75,22 +71,10 @@ var KanbanView = AbstractView.extend({
         };
     },
     do_search: function (domain, context, group_by) {
-        var self = this;
-        var fields_def;
         if (group_by.length === 0 && this.default_group_by) {
             group_by = [this.default_group_by];
         }
-        // FIXME: should be done by the model
-        if (group_by.length > 0 && this.fields[group_by[0]] === undefined) {
-            // load fields if the group_by field isn't in the field_view's fields
-            fields_def = data_manager.load_fields(this.dataset).then(function (fields) {
-                self.fields = fields;
-            });
-        }
-        var _super = this._super.bind(this);
-        return $.when(fields_def).then(function() {
-            return _super(domain, context, group_by);
-        });
+        return this._super(domain, context, group_by);
     },
     has_content: function() {
         return this._super.apply(this, arguments) || this.create_column_enabled;
@@ -252,8 +236,8 @@ var KanbanView = AbstractView.extend({
         if (!this.options.quick_creatable || !this.is_action_enabled('create')) {
             return false;
         }
-        if (this.fields_view.arch.attrs.quick_create !== undefined) {
-            return JSON.parse(this.fields_view.arch.attrs.quick_create);
+        if (this.arch.attrs.quick_create !== undefined) {
+            return JSON.parse(this.arch.attrs.quick_create);
         }
         return true;
     },

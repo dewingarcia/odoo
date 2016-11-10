@@ -264,7 +264,6 @@ return Widget.extend({
 odoo.define('web.FilterMenu', function (require) {
 "use strict";
 
-var data_manager = require('web.data_manager');
 var search_filters = require('web.search_filters');
 var search_inputs = require('web.search_inputs');
 var Widget = require('web.Widget');
@@ -291,12 +290,16 @@ return Widget.extend({
             }
         },
     },
-    init: function (parent, filters) {
+    init: function (parent, filters, fields) {
         this._super(parent);
         this.filters = filters || [];
         this.searchview = parent;
         this.propositions = [];
         this.custom_filters_open = false;
+        this.fields = _.pick(fields, function (field, name) {
+            return field.selectable !== false && name !== 'id';
+        });
+        this.fields.id = { string: 'ID', type: 'id', searchable: true };
     },
     start: function () {
         var self = this;
@@ -310,22 +313,6 @@ return Widget.extend({
                 $('<li class="divider">').insertBefore(self.$add_filter);
             }
         });
-    },
-    get_fields: function () {
-        if (!this._fields_def) {
-            this._fields_def = data_manager.load_fields(this.searchview.dataset).then(function (data) {
-                var fields = {
-                    id: { string: 'ID', type: 'id', searchable: true }
-                };
-                _.each(data, function(field_def, field_name) {
-                    if (field_def.selectable !== false && field_name !== 'id') {
-                        fields[field_name] = field_def;
-                    }
-                });
-                return fields;
-            });
-        }
-        return this._fields_def;
     },
     toggle_custom_filter_menu: function (is_open) {
         var self = this;
@@ -343,14 +330,10 @@ return Widget.extend({
         });
     },
     append_proposition: function () {
-        var self = this;
-        return this.get_fields().then(function (fields) {
-            var prop = new search_filters.ExtendedSearchProposition(self, fields);
-            self.propositions.push(prop);
-            prop.insertBefore(self.$add_filter_menu);
-            self.$apply_filter.prop('disabled', false);
-            return prop;
-        });
+        var prop = new search_filters.ExtendedSearchProposition(this, this.fields);
+        this.propositions.push(prop);
+        this.$apply_filter.prop('disabled', false);
+        return prop.insertBefore(this.$add_filter_menu);
     },
     remove_proposition: function (prop) {
         this.propositions = _.without(this.propositions, prop);
@@ -386,7 +369,6 @@ odoo.define('web.GroupByMenu', function (require) {
 "use strict";
 
 var core = require('web.core');
-var data_manager = require('web.data_manager');
 var search_inputs = require('web.search_inputs');
 var Widget = require('web.Widget');
 
@@ -406,13 +388,22 @@ return Widget.extend({
             this.toggle_add_menu();
         },
     },
-    init: function (parent, groups) {
+    init: function (parent, groups, fields) {
+        var self = this;
         this._super(parent);
+        this.searchview = parent;
         this.groups = groups || [];
         this.groupable_fields = [];
-        this.searchview = parent;
+        var groupable_types = ['many2one', 'char', 'boolean', 'selection', 'date', 'datetime'];
+        _.each(fields, function (field, name) {
+            if (field.store && _.contains(groupable_types, field.type)) {
+                self.groupable_fields.push(_.extend({}, field, {name: name}));
+            }
+        });
+        self.groupable_fields = _.sortBy(this.groupable_fields, 'string');
     },
     start: function () {
+        var self = this;
         this.$menu = this.$('.o_group_by_menu');
         var divider = this.$menu.find('.divider');
         _.invoke(this.groups, 'insertBefore', divider);
@@ -420,43 +411,23 @@ return Widget.extend({
             divider.show();
         }
         this.$add_group = this.$menu.find('.o_add_custom_group');
-    },
-    get_fields: function () {
-        var self = this;
-        if (!this._fields_def) {
-            this._fields_def = data_manager.load_fields(this.searchview.dataset).then(function (fields) {
-                var groupable_types = ['many2one', 'char', 'boolean', 'selection', 'date', 'datetime'];
-                var filter_group_field = _.filter(fields, function(field, name) {
-                    if (field.store && _.contains(groupable_types, field.type)) {
-                        field.name = name;
-                        return field;
-                    }
-                });
-                self.groupable_fields = _.sortBy(filter_group_field, 'string');
-
-                self.$menu.append(QWeb.render('GroupByMenuSelector', self));
-                self.$add_group_menu = self.$('.o_add_group');
-                self.$group_selector = self.$('.o_group_selector');
-                self.$('.o_select_group').click(function () {
-                    self.toggle_add_menu(false);
-                    var field = self.$group_selector.find(':selected').data('name');
-                    self.add_groupby_to_menu(field);
-                });
-            });
-        }
-        return this._fields_def;
+        this.$menu.append(QWeb.render('GroupByMenuSelector', this));
+        this.$add_group_menu = this.$('.o_add_group');
+        this.$group_selector = this.$('.o_group_selector');
+        this.$('.o_select_group').click(function () {
+            self.toggle_add_menu(false);
+            var field = self.$group_selector.find(':selected').data('name');
+            self.add_groupby_to_menu(field);
+        });
     },
     toggle_add_menu: function (is_open) {
-        var self = this;
-        this.get_fields().then(function () {
-            self.$add_group
-                .toggleClass('o_closed_menu', !(_.isUndefined(is_open)) ? !is_open : undefined)
-                .toggleClass('o_open_menu', is_open);
-            self.$add_group_menu.toggle(is_open);
-            if (self.$add_group.hasClass('o_open_menu')) {
-                self.$group_selector.focus();
-            }
-        });
+        this.$add_group
+            .toggleClass('o_closed_menu', !(_.isUndefined(is_open)) ? !is_open : undefined)
+            .toggleClass('o_open_menu', is_open);
+        this.$add_group_menu.toggle(is_open);
+        if (this.$add_group.hasClass('o_open_menu')) {
+            this.$group_selector.focus();
+        }
     },
     add_groupby_to_menu: function (field_name) {
         var filter = new search_inputs.Filter({attrs:{
