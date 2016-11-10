@@ -165,7 +165,7 @@ var KanbanColumn = Widget.extend({
         this.$header.find('.o-kanban-count').text(this.records.length);
 
         this.$el.toggleClass('o_column_folded', this.folded);
-        var tooltip = this.dataset.size() + _t(' records');
+        var tooltip = this.size + _t(' records');
         tooltip = '<p>' + tooltip + '</p>' + this.tooltip_info;
         this.$header.tooltip({html: true}).attr('data-original-title', tooltip);
         if (!this.remaining) {
