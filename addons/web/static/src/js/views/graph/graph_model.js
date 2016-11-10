@@ -16,7 +16,8 @@ return BasicModel.extend({
         }
         params.fields = this.fields;
         var record = this._make_list(model, params);
-        record.measure = this.measure;
+        record.measure = params.measure || this.measure;
+        record.mode = params.mode || this.mode;
         return this._load_graph(record.id);
     },
     reload: function(id) {
@@ -33,10 +34,16 @@ return BasicModel.extend({
         element.measure = measure;
         return this;
     },
+    set_mode : function(id, mode) {
+        var element = this.local_data[id];
+        element.mode = mode;
+        return this;
+    },
     _process_fields_view: function(fields_view) {
         var self = this;
         var fields = fields_view.fields;
         fields.__count__ = {string: _t("Count"), type: "integer"};
+        this.mode = fields_view.arch.attrs.type || 'bar';
         this.measure = '__count__';
         this.initial_grouped_by = [];
         fields_view.arch.children.forEach(function(field) {

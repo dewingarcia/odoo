@@ -56,14 +56,15 @@ var GraphView = AbstractView.extend({
     update_buttons: function () {
         var state = this.datamodel.get(this.db_id);
         this.$buttons.find('.o_graph_button').removeClass('active');
-        this.$buttons.find('.o_graph_button[data-mode="' + this.mode + '"]').addClass('active');
+        this.$buttons.find('.o_graph_button[data-mode="' + state.mode + '"]').addClass('active');
         this.$measure_list.find('li').each(function (index, li) {
             $(li).toggleClass('selected', $(li).data('field') === state.measure);
         });
     },
     set_mode: function(mode) {
-        this.mode = mode;
-        this.renderer.set_mode(mode);
+        this.datamodel.set_mode(this.db_id, mode);
+        var state = this.datamodel.get(this.db_id);
+        this.renderer.update(state);
     },
     _load_data: function(domain, context, group_by) {
         return this.datamodel
@@ -76,7 +77,7 @@ var GraphView = AbstractView.extend({
     get_context: function () {
         var state = this.db_id ? this.datamodel.get(this.db_id) : false;
         return !state ? {} : {
-            graph_mode: this.mode,
+            graph_mode: state.mode,
             graph_measure: state.measure,
             graph_groupbys: state.grouped_by
         };
@@ -104,7 +105,7 @@ var GraphView = AbstractView.extend({
         return this._super.apply(this, arguments);
     },
     get_renderer_options: function() {
-        return {mode: this.mode};
+        return {mode: this.datamodel.get(this.db_id).mode};
     },
 });
 

@@ -19,21 +19,16 @@ return AbstractRenderer.extend({
     init: function(parent, arch) {
         this._super.apply(this, arguments);
         this.stacked = arch.attrs.stacked !== "False";
-        this.mode = arch.attrs.type || 'bar';
-    },
-    set_mode: function(mode) {
-        this.mode = mode;
-        return this;
     },
     _render: function() {
         if (this.to_remove) {
             nv.utils.offWindowResize(this.to_remove);
         }
-        if (!_.contains(CHART_TYPES, this.mode)) {
+        if (!_.contains(CHART_TYPES, this.state.mode)) {
             this.$el.empty();
             this.trigger_up('warning', {
                 title: _t('Invalid mode for chart'),
-                message: _t('Cannot render chart with mode : ') + this.mode
+                message: _t('Cannot render chart with mode : ') + this.state.mode
             });
         } else if (!this.state.data.length) {
             this.$el.empty();
@@ -47,7 +42,7 @@ return AbstractRenderer.extend({
             var self = this;
             setTimeout(function() {
                 self.$el.empty();
-                var chart = self['_render_' + self.mode + '_chart']();
+                var chart = self['_render_' + self.state.mode + '_chart']();
                 self.to_remove = chart.update;
                 nv.utils.onWindowResize(chart.update);
                 chart.tooltip.chartContainer(self.el);
