@@ -1,7 +1,6 @@
 odoo.define('web.test_utils', function (require) {
 "use strict";
 
-var utils = require('web.utils');
 var test_model = require('web.test_model');
 
 // function parse_arch(str) {
@@ -35,7 +34,7 @@ function render_view(params) {
             fields_view.fields[name].__attrs.modifiers = JSON.stringify(modifier);
         });
     }
-    view.datamodel = test_model.get_model();
+    view.datamodel = test_model.get_model(fields_view);
     view.__widgetRenderAndInsert(function() {}).then(function () {
         view.$el.on('click a', view, function(ev) {
             ev.preventDefault();

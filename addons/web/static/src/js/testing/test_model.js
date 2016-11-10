@@ -207,15 +207,15 @@ function _get_fields_view(arch) {
         return true;
 
     });
-    var view_fields = {};
+    var view_fields = $.extend(true, {}, fields);
     _.each(field_nodes, function(node, name) {
-        view_fields[name] = $.extend(true, {views: {}}, fields[name]);
         var field = view_fields[name];
         field.__attrs = node.attrs;
         if (node.attrs.widget === 'statusbar' && fields[node.attrs.name].type === 'many2one') {
             field.__fetch_status = true;
         }
-        if (field.type === "one2many") {
+        if (field.type === "one2many" || field.type === "many2many") {
+            field.views = {};
             _.each(node.children, function(children) {
                 field.views[children.tag] = _get_fields_view(children);
             });
@@ -239,8 +239,8 @@ function get_fields_view(raw_arch) {
 
 
 return {
-    get_model: function() {
-        var model = new Model();
+    get_model: function(fields_view) {
+        var model = new Model(fields_view);
         model.perform_rpc = rpc;
         return model;
     },
