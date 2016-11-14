@@ -3,16 +3,16 @@ odoo.define('web.KanbanRecord', function (require) {
 
 var core = require('web.core');
 var data = require('web.data');
+var field_registry = require('web.field_registry');
+var field_utils = require('web.field_utils');
 var formats = require('web.formats');
 var framework = require('web.framework');
-var kanban_widgets = require('web.kanban_widgets');
 var session = require('web.session');
 var time = require('web.time');
 var utils = require('web.utils');
 var Widget = require('web.Widget');
 
 var QWeb = core.qweb;
-var fields_registry = kanban_widgets.registry;
 
 var KanbanRecord = Widget.extend({
     template: 'KanbanView.record',
@@ -32,6 +32,7 @@ var KanbanRecord = Widget.extend({
         this.fields = state.fields;
         this.record_data = state.data;
         this.relational_data = state.relational_data;
+        this.options = options;
         this.editable = options.editable;
         this.deletable = options.deletable;
         this.draggable = options.draggable;
@@ -63,6 +64,7 @@ var KanbanRecord = Widget.extend({
 
     init_content: function (state) {
         var self = this;
+        this.state = state;
         this.id = state.res_id;
         this.db_id = state.id;
         this.values = {};
@@ -92,10 +94,12 @@ var KanbanRecord = Widget.extend({
         var self = this;
         this.$("field").each(function() {
             var $field = $(this);
-            var field = self.record[$field.attr("name")];
-            var type = $field.attr("widget") || field.type;
-            var Widget = fields_registry.get(type);
-            var widget = new Widget(self, field, $field, self.record_data, self.relational_data);
+            var field_name = $field.attr("name");
+            var field = self.record[field_name];
+            var field_widget = $field.attr("widget");
+            var widget_keys = (field_widget ? [field_widget] : []).concat(['kanban.' + field.type, field.type]);
+            var Widget = field_registry.get_any(widget_keys);
+            var widget = new Widget(self, field_name, self.state, self.options);
             widget.replace($field);
             self.sub_widgets.push(widget);
         });
@@ -124,14 +128,23 @@ var KanbanRecord = Widget.extend({
     transform_record: function(record) {
         var self = this;
         var new_record = {};
-        _.each(_.extend(_.object(_.keys(this.fields), []), record), function(value, name) {
+        _.each(this.state.field_names, function(name) {
+            var value = record[name];
             var r = _.clone(self.fields[name] || {});
+
             if ((r.type === 'date' || r.type === 'datetime') && value) {
                 r.raw_value = time.auto_str_to_date(value);
             } else {
                 r.raw_value = value;
             }
-            r.value = formats.format_value(value, r);
+
+            if (r.type) {
+                var formatter = field_utils['format_' + r.type];
+                r.value = formatter(value, self.fields[name], record, self.state);
+            } else {
+                r.value = value;
+            }
+
             new_record[name] = r;
         });
         return new_record;

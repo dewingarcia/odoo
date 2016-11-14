@@ -3,16 +3,15 @@ odoo.define('web.KanbanRenderer', function (require) {
 
 var AbstractRenderer = require('web.AbstractRenderer');
 var core = require('web.core');
+var field_registry = require('web.field_registry');
 var KanbanColumn = require('web.KanbanColumn');
 var KanbanRecord = require('web.KanbanRecord');
 var quick_create = require('web.kanban_quick_create');
-var kanban_widgets = require('web.kanban_widgets');
 var QWeb = require('web.QWeb');
 var session = require('web.session');
 var utils = require('web.utils');
 
 var ColumnQuickCreate = quick_create.ColumnQuickCreate;
-var fields_registry = kanban_widgets.registry;
 
 var qweb = core.qweb;
 
@@ -52,7 +51,7 @@ function transform_qweb_template(node, fields) {
             if (ftype === 'many2many') {
                 node.tag = 'div';
                 node.attrs['class'] = (node.attrs['class'] || '') + ' oe_form_field o_form_field_many2manytags o_kanban_tags';
-            } else if (fields_registry.contains(ftype)) {
+            } else if (field_registry.contains(ftype)) {
                 // do nothing, the kanban record will handle it
             } else {
                 node.tag = qweb.prefix;
@@ -112,6 +111,24 @@ return AbstractRenderer.extend({
     update: function (state, fields) {
         this.fields = fields;
         return this._super(state);
+    },
+    update_record: function(record_state) {
+        var is_grouped = !!this.state.grouped_by.length;
+        var record;
+
+        if (is_grouped) {
+            // if grouped, this.widgets are kanban columns
+            // so we need to find the kanban record inside
+            _.each(this.widgets, function(widget) {
+                record = record || _.findWhere(widget.records, {db_id: record_state.id});
+            });
+        } else {
+            record = _.findWhere(this.widgets, {db_id: record_state.id});
+        }
+
+        if (record) {
+            record.update(record_state);
+        }
     },
     update_column: function (column_db_id, data, record_options) {
         var column = _.findWhere(this.widgets, {db_id: column_db_id});

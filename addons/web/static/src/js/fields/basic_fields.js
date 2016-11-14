@@ -11,7 +11,6 @@ var framework = require('web.framework');
 var session = require('web.session');
 var utils = require('web.utils');
 var dom_utils = require('web.dom_utils');
-var ProgressBar = require('web.ProgressBar');
 
 var qweb = core.qweb;
 var _t = core._t;
@@ -657,13 +656,17 @@ var PriorityWidget = AbstractField.extend({
     },
 });
 
-var KanbanStateWidget = AbstractField.extend({
+var AttachmentImage =  AbstractField.extend({
+    template: 'AttachmentImage',
+});
+
+var StateSelectionWidget = AbstractField.extend({
     template: 'FormSelection',
     events: {
         'click a': function(e) {
             e.preventDefault();
         },
-        'click li': 'set_kanban_selection'
+        'click li': 'set_selection'
     },
     prepare_dropdown_values: function() {
         var self = this;
@@ -683,10 +686,10 @@ var KanbanStateWidget = AbstractField.extend({
             if (selection_item[0] === 'normal') {
                 value.state_name = stage_data.legend_normal ? stage_data.legend_normal : selection_item[1];
             } else if (selection_item[0] === 'done') {
-                value.state_class = 'oe_kanban_status_green';
+                value.state_class = 'o_status_green';
                 value.state_name = stage_data.legend_done ? stage_data.legend_done : selection_item[1];
             } else {
-                value.state_class = 'oe_kanban_status_red';
+                value.state_class = 'o_status_red';
                 value.state_name = stage_data.legend_blocked ? stage_data.legend_blocked : selection_item[1];
             }
             _data.push(value);
@@ -700,8 +703,8 @@ var KanbanStateWidget = AbstractField.extend({
         var current_state = _.find(states, function(state) {
             return state.name === self.value;
         });
-        this.$('.oe_kanban_status')
-            .removeClass('oe_kanban_status_red oe_kanban_status_green')
+        this.$('.o_status')
+            .removeClass('o_status_red o_status_green')
             .addClass(current_state.state_class);
 
         // Render "FormSelection.Items" and move it into "FormSelection"
@@ -712,7 +715,7 @@ var KanbanStateWidget = AbstractField.extend({
         $dropdown.children().remove(); // remove old items
         $items.appendTo($dropdown);
     },
-    set_kanban_selection: function(ev) {
+    set_selection: function(ev) {
         var li = $(ev.target).closest('li');
         if (li.length) {
             var value = String(li.data('value'));
@@ -721,6 +724,14 @@ var KanbanStateWidget = AbstractField.extend({
                 this.render();
             }
         }
+    },
+});
+
+var LabelSelection = AbstractField.extend({
+    render: function() {
+        this.classes = this.node_options && this.node_options.classes || {};
+        var lbl_class = this.classes[this.value] || 'primary';
+        this.$el.addClass('label label-' + lbl_class).text(this.format_value(this.value));
     },
 });
 
@@ -856,27 +867,150 @@ var FieldPercentPie = AbstractField.extend({
     },
 });
 
+/**
+ * FieldProgressBar
+ * parameters
+ * - title: title of the bar, displayed on top of the bar
+ * options
+ * - editable: boolean if value is editable
+ * - current_value: get the current_value from the field that must be present in the view
+ * - max_value: get the max_value from the field that must be present in the view
+ * - edit_max_value: boolean if the max_value is editable
+ * - title: title of the bar, displayed on top of the bar --> not translated,  use parameter "title" instead
+ */
 var FieldProgressBar = AbstractField.extend({
-    start: function() {
-        if(this.progressbar) {
-            this.progressbar.destroy();
+    template: "ProgressBar",
+    events: {
+        'change input': 'on_change_input',
+        'input input': 'on_change_input',
+        'keyup input': function(e) {
+            if(e.which === $.ui.keyCode.ENTER) {
+                this.on_change_input(e);
+            }
+        },
+    },
+    init: function() {
+        this._super.apply(this, arguments);
+
+        // the progressbar needs the values and not the field name, passed in options
+        if (this.record_data[this.node_options.current_value]) {
+            this.value = this.record_data[this.node_options.current_value];
+        }
+        this.max_value = this.record_data[this.node_options.max_value] || 100;
+        this.readonly = this.node_options.readonly || !this.node_options.editable;
+        this.edit_max_value = this.node_options.edit_max_value || false;
+        this.title = _t(this.field.__attrs.title || this.node_options.title) || '';
+        this.edit_on_click = !this.node_options.edit_max_value || false;
+
+        this.write_mode = false;
+    },
+    render: function() {
+        var self = this;
+        this._render_value();
+
+        if(!this.readonly) {
+            if(this.edit_on_click) {
+                this.$el.on('click', '.o_progress', function(e) {
+                    var $target = $(e.currentTarget);
+                    self.value = Math.floor((e.pageX - $target.offset().left) / $target.outerWidth() * self.max_value);
+                    self._render_value();
+                    self.on_update(self.value);
+                });
+            } else {
+                this.$el.on('click', function() {
+                    if (!self.write_mode) {
+                        var $input = $('<input>', {type: 'text', class: 'o_progressbar_value'});
+                        $input.on('blur', _.bind(self.on_change_input, self));
+                        self.$('.o_progressbar_value').replaceWith($input);
+                        self.write_mode = true;
+                        self._render_value();
+                    }
+                });
+            }
+        }
+        return this._super();
+    },
+    on_update: function(value) {
+        if(!isNaN(value)) {
+            if (this.edit_max_value) {
+                try {
+                    this.max_value = this.parse_value(value);
+                    this._is_valid = true;
+                } catch(e) {
+                    this._is_valid = false;
+                }
+                var changes = {};
+                changes[this.node_options.max_value] = this.max_value;
+                this.trigger_up('field_changed', {
+                    local_id: this.local_id,
+                    changes: changes,
+                });
+            } else {
+                this.set_value(value);
+            }
+        }
+    },
+    on_change_input: function(e) {
+        var $input = $(e.target);
+        if(e.type === 'change' && !$input.is(':focus')) {
+            return;
+        }
+        if(isNaN($input.val())) {
+            this.do_warn(_t("Wrong value entered!"), _t("Only Integer Value should be valid."));
+        } else {
+            if(e.type === 'input') {
+                this._render_value($input.val());
+                if(parseFloat($input.val()) === 0) {
+                    $input.select();
+                }
+            } else {
+                if(this.edit_max_value) {
+                    this.max_value = $(e.target).val();
+                } else {
+                    this.value = $(e.target).val() || 0;
+                }
+                var $div = $('<div>', {class: 'o_progressbar_value'});
+                this.$('.o_progressbar_value').replaceWith($div);
+                this.write_mode = false;
+
+                this._render_value();
+                this.on_update(this.edit_max_value ? this.max_value : this.value);
+            }
+        }
+    },
+    _render_value: function(v) {
+        var value = this.value;
+        var max_value = this.max_value;
+        if(!isNaN(v)) {
+            if(this.edit_max_value) {
+                max_value = v;
+            } else {
+                value = v;
+            }
+        }
+        value = value || 0;
+        max_value = max_value || 0;
+
+        var widthComplete;
+        if(value <= max_value) {
+            widthComplete = value/max_value * 100;
+        } else {
+            widthComplete = 100;
         }
 
-        this.progressbar = new ProgressBar(this, {
-            readonly: this.mode === 'readonly',
-            edit_on_click: true,
-            value: this.value || 0,
-        });
+        this.$('.o_progress').toggleClass('o_progress_overflow', value > max_value);
+        this.$('.o_progressbar_complete').css('width', widthComplete + '%');
 
-        var self = this;
-        return this.progressbar.appendTo($('<div>')).then(function() {
-            self.progressbar.$el.addClass(self.$el.attr('class'));
-            self.replaceElement(self.progressbar.$el);
-
-            self.progressbar.on('update', self, function(update) {
-                self.set_value(update.changed_value);
-            });
-        });
+        if(!this.write_mode) {
+            if(max_value !== 100) {
+                this.$('.o_progressbar_value').html(utils.human_number(value) + " / " + utils.human_number(max_value));
+            } else {
+                this.$('.o_progressbar_value').html(utils.human_number(value) + "%");
+            }
+        } else if(isNaN(v)) {
+            this.$('.o_progressbar_value').val(this.edit_max_value ? max_value : value);
+            this.$('.o_progressbar_value').focus().select();
+        }
     },
     is_set: function() {
         return true;
@@ -932,7 +1066,9 @@ return {
     FieldToggleBoolean: FieldToggleBoolean,
     HandleWidget: HandleWidget,
     InputField: InputField,
-    KanbanStateWidget: KanbanStateWidget,
+    AttachmentImage: AttachmentImage,
+    LabelSelection: LabelSelection,
+    StateSelectionWidget: StateSelectionWidget,
     PriorityWidget: PriorityWidget,
     StatInfo: StatInfo,
     StatusBar: StatusBar,

@@ -301,7 +301,7 @@
             margin-right: 5px;
         }
 
-        .o_kanban_attachment_image {
+        .o_attachment_image {
             // The image should take the whole card
             margin: 0 -8px -8px;
             > img {
@@ -540,23 +540,5 @@
     .oe_kanban_color_10 {
         background-color: #46C265;
         color: #639B89;
-    }
-}
-
-// necessary outside kanban views (for example, edit column form in task kanban view)
-// ideally, it should be made generic (.o_status, .o_status_green, ...)
-.oe_kanban_status {
-    display: inline-block;
-    height: 12px;
-    width: 12px;
-    border-radius: 6px;
-
-    background-color: @odoo-brand-secondary;
-
-    &.oe_kanban_status_green {
-        background-color: @brand-success;
-    }
-    &.oe_kanban_status_red {
-        background-color: @brand-danger;
     }
 }

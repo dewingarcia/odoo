@@ -630,8 +630,8 @@
         t-att-maxlength="widget.field.size"/>
 </t>
 <t t-name="FormSelection">
-    <div class="btn-group o_kanban_selection">
-        <a href="#" data-toggle="dropdown"><span class="oe_kanban_status"/></a>
+    <div class="btn-group o_selection">
+        <a href="#" data-toggle="dropdown"><span class="o_status"/></a>
         <ul class="dropdown-menu state" role="menu">
         </ul>
     </div>
@@ -639,15 +639,11 @@
 <t t-name="FormSelection.items">
     <li t-foreach="states" t-as="rec" t-att-data-value="rec.name">
         <a href="#">
-            <span t-att-class="'oe_kanban_status ' + (rec.state_class &amp;&amp; rec.state_class || '')"/>
+            <span t-att-class="'o_status ' + (rec.state_class &amp;&amp; rec.state_class || '')"/>
             <t t-raw="rec.state_name"/>
         </a>
     </li>
 </t>
-<div t-name="Priority" class="o_priority">
-    <a t-if="!widget.readonly" t-foreach="widget.values.slice(1)" t-as="v" href="#" t-att-data-value="v[0]" t-att-title="v[1]" class="o_priority_star fa"/>
-    <span t-if="widget.readonly" t-foreach="widget.values.slice(1)" t-as="v" t-att-data-value="v[0]" t-att-title="v[1]" class="o_priority_star fa"/>
-</div>
 <t t-name="FieldEmail" t-extend="FieldChar">
     <t t-jquery="span" t-operation="replace">
         <t t-if="widget.get('effective_readonly')">
@@ -765,7 +761,7 @@
     <div class="o_progressbar">
         <div t-if="widget.title" class="o_progressbar_title"><t t-esc="widget.title"/></div><div class="o_progress">
             <div class="o_progressbar_complete"/>
-        </div><div t-if="widget.readonly" class="o_progressbar_value"/><input t-if="!widget.readonly" class="o_progressbar_value" type="text"/>
+        </div><div class="o_progressbar_value"/>
     </div>
 </t>
 <t t-name="FieldPercentPie">
@@ -828,6 +824,11 @@
         t-att-name="widget.name"
         t-att-width="widget.node.attrs.img_width || widget.node.attrs.width"
         t-att-height="widget.node.attrs.img_height || widget.node.attrs.height"/>
+</t>
+<t t-name="AttachmentImage">
+    <div class="o_attachment_image">
+        <img t-att-src="'/web/image/' + widget.value + '?unique=1'"/>
+    </div>
 </t>
 <t t-name="FieldBinaryFile">
     <a t-if="widget.mode === 'readonly'" href="javascript:void(0)" class="o_form_uri"/>

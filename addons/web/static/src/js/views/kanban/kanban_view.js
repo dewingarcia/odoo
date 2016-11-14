@@ -301,6 +301,14 @@ var KanbanView = AbstractView.extend({
         var state = this.datamodel.get(this.db_id);
         this.renderer.update(state, this.fields);
     },
+    on_field_changed: function (event) {
+        // there is no onchange for kanban: changing means saving
+        event.data.force_save = true;
+        this._super.apply(this, arguments);
+    },
+    confirm_save: function (id) {
+        this.renderer.update_record(this.datamodel.get(id));
+    },
 });
 
 return KanbanView;
