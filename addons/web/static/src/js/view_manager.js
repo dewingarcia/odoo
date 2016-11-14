@@ -3,6 +3,7 @@ odoo.define('web.ViewManager', function (require) {
 
 var ControlPanelMixin = require('web.ControlPanelMixin');
 var core = require('web.core');
+var data = require('web.data');
 var data_manager = require('web.data_manager');
 var framework = require('web.framework');
 var Model = require('web.DataModel');
@@ -16,6 +17,13 @@ var _t = core._t;
 
 var ViewManager = Widget.extend(ControlPanelMixin, {
     className: "o_view_manager_content",
+    custom_events: {
+        execute_action: function(event) {
+            var data = event.data;
+            this.do_execute_action(data.action_data, data.dataset, data.record_id, data.on_closed)
+                .then(data.on_success, data.on_fail);
+        },
+    },
     /**
      * Called each time the view manager is attached into the DOM
      */
@@ -463,6 +471,79 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
             this.switch_mode(state.view_type, true);
         }
         this.active_view.controller.do_load_state(state, warm);
+    },
+    /**
+     * Fetches and executes the action identified by ``action_data``.
+     *
+     * @param {Object} action_data the action descriptor data
+     * @param {String} action_data.name the action name, used to uniquely identify the action to find and execute it
+     * @param {String} [action_data.special=null] special action handlers (currently: only ``'cancel'``)
+     * @param {String} [action_data.type='workflow'] the action type, if present, one of ``'object'``, ``'action'`` or ``'workflow'``
+     * @param {Object} [action_data.context=null] additional action context, to add to the current context
+     * @param {DataSet} dataset a dataset object used to communicate with the server
+     * @param {Object} [record_id] the identifier of the object on which the action is to be applied
+     * @param {Function} on_closed callback to execute when dialog is closed or when the action does not generate any result (no new action)
+     */
+    do_execute_action: function (action_data, dataset, record_id, on_closed) {
+        var self = this;
+        var result_handler = on_closed || function () {};
+        var context = new data.CompoundContext(dataset.get_context(), action_data.context || {});
+
+        // response handler
+        var handler = function (action) {
+            if (action && action.constructor === Object) {
+                // filter out context keys that are specific to the current action.
+                // Wrong default_* and search_default_* values will no give the expected result
+                // Wrong group_by values will simply fail and forbid rendering of the destination view
+                var ncontext = new data.CompoundContext(
+                    _.object(_.reject(_.pairs(dataset.get_context().eval()), function(pair) {
+                      return pair[0].match('^(?:(?:default_|search_default_|show_).+|.+_view_ref|group_by|group_by_no_leaf|active_id|active_ids)$') !== null;
+                    }))
+                );
+                ncontext.add(action_data.context || {});
+                ncontext.add({active_model: dataset.model});
+                if (record_id) {
+                    ncontext.add({
+                        active_id: record_id,
+                        active_ids: [record_id],
+                    });
+                }
+                ncontext.add(action.context || {});
+                action.context = ncontext;
+                return self.do_action(action, {
+                    on_close: result_handler,
+                });
+            } else {
+                self.do_action({"type":"ir.actions.act_window_close"});
+                return result_handler();
+            }
+        };
+
+        if (action_data.special === 'cancel') {
+            return handler({"type":"ir.actions.act_window_close"});
+        } else if (action_data.type === "object") {
+            var args = record_id ? [[record_id]] : [dataset.ids];
+            if (action_data.args) {
+                try {
+                    // Warning: quotes and double quotes problem due to json and xml clash
+                    // Maybe we should force escaping in xml or do a better parse of the args array
+                    var additional_args = JSON.parse(action_data.args.replace(/'/g, '"'));
+                    args = args.concat(additional_args);
+                } catch(e) {
+                    console.error("Could not JSON.parse arguments", action_data.args);
+                }
+            }
+            args.push(context);
+            return dataset.call_button(action_data.name, args).then(handler).then(function () {
+                core.bus.trigger('do_reload_needaction');
+            });
+        } else if (action_data.type === "action") {
+            return data_manager.load_action(action_data.name, _.extend(pyeval.eval('context', context), {
+                active_model: dataset.model,
+                active_ids: dataset.ids,
+                active_id: record_id
+            })).then(handler);
+        }
     },
     destroy: function () {
         if (this.control_elements) {

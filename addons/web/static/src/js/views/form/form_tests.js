@@ -212,7 +212,9 @@ test.define_suite('Form view', function(define_case) {
                         "should have 1 invisible stat buttons");
 
         var count = 0;
-        form.do_execute_action = function () { count++; return $.Deferred().resolve();};
+        test_utils.intercept(form, "execute_action", function() {
+            count++;
+        });
         form.$('.oe_stat_button').first().click();
         assert.equal(count, 1, "should have triggered a execute action");
     });

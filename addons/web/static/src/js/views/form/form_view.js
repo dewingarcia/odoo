@@ -308,19 +308,27 @@ var FormView = AbstractView.extend({
     },
     call_button_action: function(attrs, record) {
         var self = this;
+        var def = $.Deferred();
         record = record || this.datamodel.get(this.db_id);
-        var id = record.data.id;
-        var context = data.build_context(record, attrs.context);
-        var action_data = _.extend({}, attrs, {context: context});
-        return this.do_execute_action(action_data, this.dataset, id, function (reason) {
-            if (!_.isObject(reason)) {
-                return self.load_record(id)
-                    .then(self.update_state.bind(self));
-            }
-        }).fail(function () {
-            return self.load_record(id)
-                .then(self.update_state.bind(self));
+        var record_id = record.data.id;
+        this.trigger_up('execute_action', {
+            action_data: _.extend({}, attrs, { context: data.build_context(record, attrs.context) }),
+            dataset: this.dataset,
+            record_id: record_id,
+            on_close: function(reason) {
+                if (!_.isObject(reason)) {
+                    return self.load_record(record_id).then(self.update_state.bind(self));
+                }
+            },
+            on_fail: function() {
+                self.load_record(record_id).then(function(db_id) {
+                    self.update_state(db_id);
+                    def.resolve();
+                });
+            },
+            on_success: def.resolve.bind(def),
         });
+        return def;
     },
     show_wow: function() {
         var others = ['o_wow_peace', 'o_wow_heart'];

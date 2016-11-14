@@ -279,11 +279,16 @@ var KanbanView = AbstractView.extend({
                     active_model: this.model,
                 });
         }
-        this.do_execute_action(event.data, this.dataset, event.target.id, function () { // fixme: use of this.dataset
-            self.datamodel.reload(record.db_id).then(function (db_id) {
-                var data = self.datamodel.get(db_id);
-                record.update(data);
-            });
+        this.trigger_up('execute_action', {
+            action_data: event.data,
+            dataset: this.dataset, // fixme: use of this.dataset
+            record_id: event.target.id,
+            on_close: function () {
+                self.datamodel.reload(record.db_id).then(function (db_id) {
+                    var data = self.datamodel.get(db_id);
+                    record.update(data);
+                });
+            },
         });
     },
     get_renderer_options: function() {
