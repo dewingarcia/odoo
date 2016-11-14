@@ -869,8 +869,7 @@ var FieldProgressBar = AbstractField.extend({
         });
 
         var self = this;
-        this.$el = $('<div>');
-        this.progressbar.appendTo(this.$el).done(function() {
+        return this.progressbar.appendTo($('<div>')).then(function() {
             self.progressbar.$el.addClass(self.$el.attr('class'));
             self.replaceElement(self.progressbar.$el);
 
