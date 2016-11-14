@@ -63,7 +63,10 @@ var AbstractView = View.extend(FieldManagerMixin, {
                 current_id: record.res_id,
             },
         });
-        this.do_switch_view('form', options);
+        this.trigger_up('switch_view', {
+            view_type: 'form',
+            options: options,
+        });
     },
     delete_records: function(ids) {
         var self = this;

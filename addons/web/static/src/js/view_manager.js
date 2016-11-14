@@ -23,6 +23,9 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
             this.do_execute_action(data.action_data, data.dataset, data.record_id, data.on_closed)
                 .then(data.on_success, data.on_fail);
         },
+        switch_view: function(event) {
+            this.switch_mode(event.data.view_type, event.data.options);
+        },
     },
     /**
      * Called each time the view manager is attached into the DOM
@@ -290,7 +293,6 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
 
         var controller = new View(this, this.dataset, view.fields_view, options);
 
-        controller.on('switch_mode', this, this.switch_mode.bind(this));
         controller.on('history_back', this, function () {
             if (self.action_manager) self.action_manager.trigger('history_back');
         });

@@ -256,7 +256,7 @@ var CalendarView = View.extend({
         this.$buttons = $(QWeb.render("CalendarView.buttons", {'widget': this}));
         this.$buttons.on('click', 'button.o_calendar_button_new', function () {
             self.dataset.index = null;
-            self.do_switch_view('form');
+            self.trigger_up('switch_view', {view_type: 'form'});
         });
 
         var bindCalendarButton = function(selector, arg1, arg2) {
@@ -915,9 +915,15 @@ var CalendarView = View.extend({
             var index = this.dataset.get_id_index(id);
             this.dataset.index = index;
             if (this.write_right) {
-                this.do_switch_view('form', { mode: "edit" });
+                this.trigger_up('switch_view', {
+                    view_type: 'form',
+                    options: { mode: "edit" },
+                });
             } else {
-                this.do_switch_view('form', { mode: "view" });
+                this.trigger_up('switch_view', {
+                    view_type: 'form',
+                    options: { mode: "view" },
+                });
             }
         }
         else {
@@ -931,7 +937,10 @@ var CalendarView = View.extend({
                 buttons: [
                     {text: _t("Edit"), classes: 'btn-primary', close: true, click: function() {
                         self.dataset.index = self.dataset.get_id_index(id);
-                        self.do_switch_view('form', { mode: "edit" });
+                        self.trigger_up('switch_view', {
+                            view_type: 'form',
+                            options: { mode: "edit" },
+                        });
                     }},
 
                     {text: _t("Delete"), close: true, click: function() {

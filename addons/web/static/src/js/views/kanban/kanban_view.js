@@ -126,7 +126,7 @@ var KanbanView = AbstractView.extend({
     },
     add_record: function() {
         this.dataset.index = null;
-        this.do_switch_view('form');
+        this.trigger_up('switch_view', {view_type: 'form'});
     },
     add_record_to_column: function (event) {
         var self = this;

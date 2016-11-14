@@ -82,12 +82,6 @@ var View = Widget.extend({
      */
     render_pager: function($node) {
     },
-    /**
-     * Switches to a specific view type
-     */
-    do_switch_view: function() {
-        this.trigger.apply(this, ['switch_mode'].concat(_.toArray(arguments)));
-    },
     do_search: function(domain, context, group_by) {
     },
     sidebar_eval_context: function () {

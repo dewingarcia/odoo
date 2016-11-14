@@ -102,7 +102,7 @@ var ListView = AbstractView.extend({
     },
     create_record: function() {
         this.dataset.index = null;
-        this.do_switch_view('form');
+        this.trigger_up('switch_view', {view_type: 'form'});
     },
     confirm_onchange: function(id, values) {
         this.renderer.confirm_onchange(id, values);
