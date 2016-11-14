@@ -343,7 +343,10 @@ return AbstractRenderer.extend({
         return result;
     },
     _render_group: function(group) {
-        var $cells = this._render_aggregate_cells(group.aggregate_values);
+        var aggregate_values = _.mapObject(group.aggregate_values, function (value) {
+            return { value: value };
+        });
+        var $cells = this._render_aggregate_cells(aggregate_values);
         if (this.has_selectors) {
             $cells.unshift($('<td>'));
         }
