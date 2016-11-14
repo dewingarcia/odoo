@@ -23,6 +23,12 @@ return BasicModel.extend({
     reload: function(id) {
         return this._load_graph(id);
     },
+    import: function(obj, params) {
+        return this._super(obj, _.extend({
+            mode: obj.mode || this.mode,
+            measure: obj.measure || this.measure,
+        }, params));
+    },
     set_group_by: function(list_id, group_by) {
         if (!group_by.length) {
             group_by = this.initial_grouped_by;

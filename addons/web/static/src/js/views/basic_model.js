@@ -121,9 +121,20 @@ var Model = Class.extend({
         }
         return element;
     },
-    import: function(obj) {
-        this.local_data[obj.id] = obj;
-        return $.when(obj);
+    import: function(obj, params) {
+        params = _.extend({context: obj.context}, params);
+        if (params.multi_record) {
+            _.extend(params, {
+                domain: obj.domain || [],
+                grouped_by: obj.grouped_by || [],
+                ordered_by: obj.ordered_by || [],
+            });
+        } else {
+            var res_ids = [];
+            utils.traverse_records(obj, function(d) { res_ids.push(d.res_id); });
+            _.extend(params, { id: res_ids.length ? res_ids[0] : 0 });
+        }
+        return this.load(obj.model, params);
     },
     // all rpcs to fetch data should go through this method
     // this will make testing easier

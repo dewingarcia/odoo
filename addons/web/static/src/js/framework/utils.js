@@ -499,7 +499,7 @@ function async_when() {
 function traverse_records(data, f) {
     if (data.is_record) {
         f(data);
-    } else {
+    } else if (data.data) {
         for (var i = 0; i < data.data.length; i++) {
             traverse_records(data.data[i], f);
         }
