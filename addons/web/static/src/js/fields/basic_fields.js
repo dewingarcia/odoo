@@ -610,12 +610,14 @@ var FieldBinaryFile = AbstractFieldBinary.extend({
 });
 
 var PriorityWidget = AbstractField.extend({
+    // the current implementation of this widget makes it
+    // only usable for fields of type selection
     className: "o_priority",
     events: {
         'mouseover > a': function(e) {
             clearTimeout(this.hover_timer);
             this.$('.o_priority_star').removeClass('fa-star-o').addClass('fa-star');
-            $(e.target).nextAll().removeClass('fa-star').addClass('fa-star-o');
+            $(e.currentTarget).nextAll().removeClass('fa-star').addClass('fa-star-o');
         },
         'mouseout > a': function() {
             clearTimeout(this.hover_timer);
@@ -628,11 +630,18 @@ var PriorityWidget = AbstractField.extend({
         'click > a': function(e) {
             e.preventDefault();
             e.stopPropagation();
+
+            var new_value = String($(e.currentTarget).data('value'));
+            if(new_value === this.value) {
+                new_value = this.empty_value;
+            }
+            this.set_value(new_value);
         },
     },
-    render_star: function(tag, is_full, tip) {
+    render_star: function(tag, is_full, value, tip) {
         return $(tag)
             .attr('title', tip)
+            .attr('data-value', value)
             .addClass('o_priority_star fa')
             .toggleClass('fa-star', is_full)
             .toggleClass('fa-star-o', !is_full);
@@ -641,8 +650,9 @@ var PriorityWidget = AbstractField.extend({
         var self = this;
         var value = parseInt(this.value, 10);
         this.$el.empty();
+        this.empty_value = this.field.selection[0][0];
         _.each(this.field.selection.slice(1), function(choice) {
-            self.$el.append(self.render_star('<a href="#">', value >= parseInt(choice[0]), choice[1]));
+            self.$el.append(self.render_star('<a href="#">', value >= parseInt(choice[0]), choice[0], choice[1]));
         });
     },
 });
