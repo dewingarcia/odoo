@@ -5,13 +5,42 @@ var BasicModel = require('web.BasicModel');
 var core = require('web.core');
 var Dialog = require('web.Dialog');
 var Pager = require('web.Pager');
-var View = require('web.View');
 var FieldManagerMixin = require('web.FieldManagerMixin');
+var Widget = require('web.Widget');
 
 var _t = core._t;
 
-// TODO: remove web.View and put its content in this file
-var AbstractView = View.extend(FieldManagerMixin, {
+var AbstractView = Widget.extend(FieldManagerMixin, {
+    config: {
+        Model: BasicModel,
+        Renderer: undefined, // to be set
+        open_groups_by_default: false,
+        page_size: 40,
+    },
+    defaults: {
+        action: {},
+    },
+    // name displayed in view switchers
+    display_name: '',
+    // used by views that need a searchview.
+    searchable: true,
+    // used by views that need a searchview but don't want it to be displayed.
+    searchview_hidden: false,
+    // multi_record is used to distinguish views displaying a single record
+    // (e.g. FormView) from those that display several records (e.g. ListView)
+    multi_record: true,
+    // indicates whether or not the view is mobile-friendly
+    mobile_friendly: false,
+    // icon is the font-awesome icon to display in the view switcher
+    icon: 'fa-question',
+
+    events: {
+        'click a[type=action]': function (ev) {
+            ev.preventDefault();
+            var action_data = $(ev.target).attr('name');
+            this.do_action(action_data);
+        }
+    },
     custom_events: _.extend({}, FieldManagerMixin.custom_events, {
         open_record: function(event) {
             this.open_record(event.data.id);
@@ -22,17 +51,16 @@ var AbstractView = View.extend(FieldManagerMixin, {
         reload: 'reload',
         // TODO: add open_action, ...
     }),
-    config: {
-        Model: BasicModel,
-        Renderer: undefined, // to be set
-        open_groups_by_default: false,
-        page_size: 40,
-    },
 
     init: function(parent, dataset, fields_view, options) {
         this._super.apply(this, arguments);
+        this.ViewManager = parent; // remove that
+        this.dataset = dataset;
+        this.model = dataset.model;
+        this.fields_view = fields_view;
         this.fields = fields_view.fields;
         this.arch = fields_view.arch;
+        this.options = _.defaults({}, options, this.defaults);
         var Model = this.config.Model;
         FieldManagerMixin.init.call(this, new Model(fields_view));
         if (this.multi_record) {
@@ -40,6 +68,33 @@ var AbstractView = View.extend(FieldManagerMixin, {
                                     parseInt(this.arch.attrs.limit, 10) ||
                                     this.config.page_size;
         }
+    },
+    start: function() {
+        this.$el.toggleClass('o_cannot_create', !this.is_action_enabled('create'));
+        return this._super.apply(this, arguments);
+    },
+    destroy: function () {
+        if (this.$buttons) {
+            this.$buttons.off();
+        }
+        return this._super.apply(this, arguments);
+    },
+    do_show: function() {
+        this._super.apply(this, arguments);
+        core.bus.trigger('view_shown', this);
+    },
+    do_push_state: function(state) {
+        if (this.getParent() && this.getParent().do_push_state) {
+            this.getParent().do_push_state(state);
+        }
+    },
+    do_load_state: function (state, warm) {
+    },
+    /**
+     * Switches to a specific view type
+     */
+    do_switch_view: function() {
+        this.trigger.apply(this, ['switch_mode'].concat(_.toArray(arguments)));
     },
     get_renderer_options: function() {
         return {};
@@ -124,7 +179,8 @@ var AbstractView = View.extend(FieldManagerMixin, {
         var state = this.datamodel.get(this.db_id);
         return this.renderer.update(state);
     },
-
+    render_buttons: function($node) {
+    },
     render_pager: function($node, options) {
         var data = this.datamodel.get(this.db_id);
         this.pager = new Pager(this, data.count || 1, data.offset + 1, this.config.page_size, options);
@@ -151,6 +207,10 @@ var AbstractView = View.extend(FieldManagerMixin, {
         this.pager.appendTo($node = $node || this.options.$pager);
         this.update_pager();  // to force proper visibility
     },
+    render_sidebar: function($node) {
+    },
+    update_buttons: function() {
+    },
     update_pager: function() {
         var data = this.datamodel.get(this.db_id);
         this.pager.update_state({
@@ -159,9 +219,6 @@ var AbstractView = View.extend(FieldManagerMixin, {
         });
         var is_pager_visible = data.is_record || (!!data.count && (data.grouped_by && !data.grouped_by.length));
         this.pager.do_toggle(is_pager_visible);
-    },
-    update_buttons: function() {
-
     },
     do_search: function (domain, context, group_by) {
         var load = this.db_id ? this._reload_data : this._load_data;
@@ -186,6 +243,27 @@ var AbstractView = View.extend(FieldManagerMixin, {
             .set_group_by(this.db_id, group_by)
             .reload(this.db_id);
     },
+    sidebar_eval_context: function () {
+        return $.when({});
+    },
+    /**
+     * Return whether the user can perform a given action (e.g. 'create', 'edit') in this view.
+     * An action is disabled by setting the corresponding attribute in the view's main element,
+     * like: <form string="" create="false" edit="false" delete="false">
+     */
+    is_action_enabled: function(action) {
+        var attrs = this.fields_view.arch.attrs;
+        return (action in attrs) ? JSON.parse(attrs[action]) : true;
+    },
+    get_context: function () {
+        return {};
+    },
+    set_scrollTop: function(scrollTop) {
+        this.scrollTop = scrollTop;
+    },
+    get_scrollTop: function() {
+        return this.scrollTop;
+    }
 });
 
 return AbstractView;

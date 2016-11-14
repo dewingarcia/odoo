@@ -4,23 +4,22 @@ odoo.define('web.PivotView', function (require) {
  * Odoo Pivot Table view
  *---------------------------------------------------------*/
 
+var AbstractView = require('web.AbstractView');
 var core = require('web.core');
 var crash_manager = require('web.crash_manager');
-var data_manager = require('web.data_manager');
 var formats = require('web.formats');
 var framework = require('web.framework');
 var Model = require('web.DataModel');
 var session = require('web.session');
 var Sidebar = require('web.Sidebar');
 var utils = require('web.utils');
-var View = require('web.View');
 var view_registry = require('web.view_registry');
 
 var _lt = core._lt;
 var _t = core._t;
 var QWeb = core.qweb;
 
-var PivotView = View.extend({
+var PivotView = AbstractView.extend({
     events: {
         'click .o_pivot_header_cell_opened': 'on_open_header_click',
         'click .o_pivot_header_cell_closed': 'on_closed_header_click',

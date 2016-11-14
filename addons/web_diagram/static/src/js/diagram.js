@@ -4,18 +4,18 @@ odoo.define('web_diagram.DiagramView', function (require) {
  *---------------------------------------------------------*/
 "use strict";
 
+var AbstractView = require('web.AbstractView');
 var core = require('web.core');
 var data = require('web.data');
 var form_common = require('web.form_common');
 var Pager = require('web.Pager');
-var View = require('web.View');
 var ajax = require('web.ajax');
 
 var _t = core._t;
 var _lt = core._lt;
 var QWeb = core.qweb;
 
-var DiagramView = View.extend({
+var DiagramView = AbstractView.extend({
     display_name: _lt('Diagram'),
     icon: 'fa-code-fork',
     multi_record: false,

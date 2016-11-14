@@ -4,6 +4,7 @@ odoo.define('web_calendar.CalendarView', function (require) {
  * OpenERP web_calendar
  *---------------------------------------------------------*/
 
+var AbstractView = require('web.AbstractView');
 var core = require('web.core');
 var data = require('web.data');
 var form_common = require('web.form_common');
@@ -11,7 +12,6 @@ var formats = require('web.formats');
 var Model = require('web.DataModel');
 var time = require('web.time');
 var utils = require('web.utils');
-var View = require('web.View');
 var view_registry = require('web.view_registry');
 var widgets = require('web_calendar.widgets');
 var local_storage = require('web.local_storage');
@@ -87,13 +87,13 @@ function isNullOrUndef(value) {
     return _.isUndefined(value) || _.isNull(value);
 }
 
-var CalendarView = View.extend({
+var CalendarView = AbstractView.extend({
     custom_events: {
         reload_events: function () {
             this.$calendar.fullCalendar('refetchEvents');
         },
     },
-    defaults: _.extend({}, View.prototype.defaults, {
+    defaults: _.extend({}, AbstractView.prototype.defaults, {
         confirm_on_delete: true,
     }),
     display_name: _lt('Calendar'),

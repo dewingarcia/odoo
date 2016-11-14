@@ -1,6 +1,7 @@
 odoo.define('web.SearchView', function (require) {
 "use strict";
 
+var AbstractView = require('web.AbstractView');
 var AutoComplete = require('web.AutoComplete');
 var config = require('web.config');
 var core = require('web.core');
@@ -10,7 +11,6 @@ var FilterMenu = require('web.FilterMenu');
 var GroupByMenu = require('web.GroupByMenu');
 var pyeval = require('web.pyeval');
 var search_inputs = require('web.search_inputs');
-var View = require('web.View');
 var Widget = require('web.Widget');
 var local_storage = require('web.local_storage');
 var _t = core._t;
@@ -230,7 +230,7 @@ var FacetValueView = Widget.extend({
     }
 });
 
-var SearchView = View.extend({
+var SearchView = AbstractView.extend({
     events: {
         'click .o_searchview_more': function (e) {
             $(e.target).toggleClass('fa-search-plus fa-search-minus');
@@ -253,7 +253,7 @@ var SearchView = View.extend({
             }
         },
     },
-    defaults: _.extend({}, View.prototype.defaults, {
+    defaults: _.extend({}, AbstractView.prototype.defaults, {
         hidden: false,
         disable_filters: false,
         disable_groupby: false,

@@ -4,18 +4,18 @@ odoo.define('web.TreeView', function (require) {
  * Odoo Tree view
  *---------------------------------------------------------*/
 
+var AbstractView = require('web.AbstractView');
 var core = require('web.core');
 var data = require('web.data');
 var formats = require('web.formats');
 var pyeval = require('web.pyeval');
 var session = require('web.session');
-var View = require('web.View');
 var view_registry = require('web.view_registry');
 
 var _lt = core._lt;
 var QWeb = core.qweb;
 
-var TreeView = View.extend({
+var TreeView = AbstractView.extend({
     display_name: _lt('Tree'),
     icon: 'fa-align-left',
     // Indicates that this view is not searchable, and thus that no search view should be displayed.
