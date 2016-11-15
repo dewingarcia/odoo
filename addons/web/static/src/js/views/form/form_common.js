@@ -9,66 +9,10 @@ var ListView = require('web.ListView');
 var pyeval = require('web.pyeval');
 var SearchView = require('web.SearchView');
 var session = require('web.session');
-var utils = require('web.utils');
 var Widget = require('web.Widget');
 
 var QWeb = core.qweb;
 var _t = core._t;
-
-/**
- * Interface implemented by the form view or any other object
- * able to provide the features necessary for the fields to work.
- *
- * Properties:
- *     - display_invalid_fields : if true, all fields where is_valid() return true should
- *     be displayed as invalid.
- *     - actual_mode : the current mode of the field manager. Can be "view", "edit" or "create".
- * Events:
- *     - view_content_has_changed : when the values of the fields have changed. When
- *     this event is triggered all fields should reprocess their modifiers.
- *     - field_changed:<field_name> : when the value of a field change, an event is triggered
- *     named "field_changed:<field_name>" with <field_name> replaced by the name of the field.
- *     This event is not related to the on_change mechanism of OpenERP and is always called
- *     when the value of a field is setted or changed. This event is only triggered when the
- *     value of the field is syntactically valid, but it can be triggered when the value
- *     is sematically invalid (ie, when a required field is false). It is possible that an event
- *     about a precise field is never triggered even if that field exists in the view, in that
- *     case the value of the field is assumed to be false.
- */
-var FieldManagerMixin = {
-    /**
-     * Must return the asked field as in fields_get.
-     */
-    get_field_desc: function(field_name) {},
-    /**
-     * Returns the current value of a field present in the view. See the get_value() method
-     * method in FieldInterface for further information.
-     */
-    get_field_value: function(field_name) {},
-    /**
-    Gives new values for the fields contained in the view. The new values could not be setted
-    right after the call to this method. Setting new values can trigger on_changes.
-
-    @param {Object} values A dictonary with key = field name and value = new value.
-    @return {$.Deferred} Is resolved after all the values are setted.
-    */
-    set_values: function(values) {},
-    /**
-    Computes an OpenERP domain.
-
-    @param {Array} expression An OpenERP domain.
-    @return {boolean} The computed value of the domain.
-    */
-    compute_domain: function(expression) {},
-    /**
-    Builds an evaluation context for the resolution of the fields' contexts. Please note
-    the field are only supposed to use this context to evualuate their own, they should not
-    extend it.
-
-    @return {CompoundContext} An OpenERP context.
-    */
-    build_eval_context: function() {},
-};
 
 /**
     Welcome.
@@ -149,162 +93,6 @@ var ReinitializeWidgetMixin =  {
 };
 
 /**
- * A mixin to apply on any field that has to completely re-render when its readonly state
- * switch.
- */
-var ReinitializeFieldMixin =  _.extend({}, ReinitializeWidgetMixin, {
-    reinitialize: function() {
-        ReinitializeWidgetMixin.reinitialize.call(this);
-        if (!this.no_rerender) {
-            var res = this.render_value();
-            if (this.view && this.view.render_value_defs){
-                this.view.render_value_defs.push(res);
-            }
-        }
-    },
-});
-
-/**
-    A mixin containing some useful methods to handle completion inputs.
-
-    The widget containing this option can have these arguments in its widget options:
-    - no_quick_create: if true, it will disable the quick create
-*/
-var CompletionFieldMixin = {
-    init: function() {
-        this.limit = 7;
-        this.orderer = new utils.DropMisordered();
-        this.can_create = this.node.attrs.can_create || true;
-        this.can_write = this.node.attrs.can_write || true;
-    },
-    /**
-     * Call this method to search using a string.
-     */
-    get_search_result: function(search_val) {
-        var self = this;
-
-        var dataset = new data.DataSet(this, this.field.relation, self.build_context());
-        this.last_query = search_val;
-        var exclusion_domain = [], ids_blacklist = this.get_search_blacklist();
-        if (!_(ids_blacklist).isEmpty()) {
-            exclusion_domain.push(['id', 'not in', ids_blacklist]);
-        }
-
-        return this.orderer.add(dataset.name_search(
-                search_val, new data.CompoundDomain(self.build_domain(), exclusion_domain),
-                'ilike', this.limit + 1, self.build_context())).then(function(_data) {
-            self.last_search = _data;
-            // possible selections for the m2o
-            var values = _.map(_data, function(x) {
-                x[1] = x[1].split("\n")[0];
-                return {
-                    label: _.str.escapeHTML(x[1].trim()) || data.noDisplayContent,
-                    value: x[1],
-                    name: x[1],
-                    id: x[0],
-                };
-            });
-
-            // search more... if more results that max
-            if (values.length > self.limit) {
-                values = values.slice(0, self.limit);
-                values.push({
-                    label: _t("Search More..."),
-                    action: function() {
-                        dataset.name_search(search_val, self.build_domain(), 'ilike', 160).done(function(_data) {
-                            self._search_create_popup("search", _data);
-                        });
-                    },
-                    classname: 'o_m2o_dropdown_option'
-                });
-            }
-            // quick create
-            var raw_result = _(_data.result).map(function(x) {return x[1];});
-            if (search_val.length > 0 && !_.include(raw_result, search_val) &&
-                ! (self.options && (self.options.no_create || self.options.no_quick_create))) {
-                self.can_create && values.push({
-                    label: _.str.sprintf(_t('Create "<strong>%s</strong>"'),
-                        $('<span />').text(search_val).html()),
-                    action: function() {
-                        self._quick_create(search_val);
-                    },
-                    classname: 'o_m2o_dropdown_option'
-                });
-            }
-            // create...
-            if (!(self.options && (self.options.no_create || self.options.no_create_edit)) && self.can_create){
-                values.push({
-                    label: _t("Create and Edit..."),
-                    action: function() {
-                        self._search_create_popup("form", undefined, self._create_context(search_val));
-                    },
-                    classname: 'o_m2o_dropdown_option'
-                });
-            }
-            else if (values.length === 0) {
-                values.push({
-                    label: _t("No results to show..."),
-                    action: function() {},
-                    classname: 'o_m2o_dropdown_option'
-                });
-            }
-
-            return values;
-        });
-    },
-    get_search_blacklist: function() {
-        return [];
-    },
-    _quick_create: function(name) {
-        var self = this;
-        var slow_create = function () {
-            self._search_create_popup("form", undefined, self._create_context(name));
-        };
-        if (self.options.quick_create === undefined || self.options.quick_create) {
-            new data.DataSet(this, this.field.relation, self.build_context())
-                .name_create(name).done(function(data) {
-                    if (!self.get('effective_readonly'))
-                        self.add_id(data[0]);
-                }).fail(function(error, event) {
-                    event.preventDefault();
-                    slow_create();
-                });
-        } else
-            slow_create();
-    },
-    // all search/create popup handling
-    _search_create_popup: function(view, ids, context) {
-        var self = this;
-        new SelectCreateDialog(this, _.extend({}, (this.options || {}), {
-            res_model: self.field.relation,
-            domain: self.build_domain(),
-            context: new data.CompoundContext(self.build_context(), context || {}),
-            title: (view === 'search' ? _t("Search: ") : _t("Create: ")) + this.string,
-            initial_ids: ids ? _.map(ids, function(x) {return x[0];}) : undefined,
-            initial_view: view,
-            disable_multiple_selection: true,
-            on_selected: function(element_ids) {
-                self.add_id(element_ids[0]);
-                self.focus();
-            }
-        })).open();
-    },
-    /**
-     * To implement.
-     */
-    add_id: function(id) {},
-    _create_context: function(name) {
-        var tmp = {};
-        var field = (this.options || {}).create_name_field;
-        if (field === undefined)
-            field = "name";
-        if (field !== false && name && (this.options || {}).quick_create !== false)
-            tmp["default_" + field] = name;
-        return tmp;
-    },
-};
-
-/**
  * Must be applied over an class already possessing the PropertiesMixin.
  *
  * Apply the result of the "invisible" domain to this.$el.
@@ -339,52 +127,6 @@ var InvisibilityChangerMixin = {
         this.$el.toggleClass('o_form_invisible', this.get("effective_invisible"));
     },
 };
-
-var InvisibilityChanger = core.Class.extend(core.mixins.PropertiesMixin, InvisibilityChangerMixin, {
-    init: function(parent, field_manager, invisible_domain, $el) {
-        this.setParent(parent);
-        core.mixins.PropertiesMixin.init.call(this);
-        InvisibilityChangerMixin.init.call(this, field_manager, invisible_domain);
-        this.$el = $el;
-        this.start();
-    },
-});
-
-// Specialization of InvisibilityChanger for the `notebook` form element to handle more
-// elegantly its special cases (i.e. activate the closest visible sibling)
-var NotebookInvisibilityChanger = InvisibilityChanger.extend({
-    // Override start so that it does not call _check_visibility since it will be
-    // called again when view content will be loaded (event view_content_has_changed)
-    start: function() {
-        this.on("change:effective_invisible", this, this._check_visibility);
-    },
-    _check_visibility: function() {
-        this._super();
-        if (this.get("effective_invisible") === true) {
-            // Switch to invisible
-            // Remove this element as active and set a visible sibling active (if there is one)
-            if (this.$el.hasClass('active')) {
-                this.$el.removeClass('active');
-                var visible_siblings = this.$el.siblings(':not(.o_form_invisible)');
-                if (visible_siblings.length) {
-                    $(visible_siblings[0]).addClass('active');
-                }
-            }
-        } else {
-            // Switch to visible
-            // If there is no visible active sibling, set this element as active,
-            // otherwise if that sibling hasn't autofocus and if we are in edit mode,
-            //    remove that sibling as active and set this element as active
-            var visible_active_sibling = this.$el.siblings(':not(.o_form_invisible).active');
-            if (!(visible_active_sibling.length)) {
-                this.$el.addClass('active');
-            } else if (!$(visible_active_sibling[0]).data('autofocus') && this._ic_field_manager.get('actual_mode') === "edit") {
-                this.$el.addClass('active');
-                $(visible_active_sibling[0]).removeClass('active');
-            }
-        }
-    },
-});
 
 /**
     Base class for all fields, custom widgets and buttons to be displayed in the form view.
@@ -1091,73 +833,19 @@ var SelectCreateDialog = ViewDialog.extend({
     on_view_list_loaded: function() {},
 });
 
-var DomainEditorDialog = SelectCreateDialog.extend({
-    init: function(parent, options) {
-        options = _.defaults(options, {initial_facet: {
-            category: _t("Custom Filter"),
-            icon: 'fa-star',
-            field: {
-                get_context: function () { return options.context; },
-                get_groupby: function () { return []; },
-                get_domain: function () { return options.default_domain; },
-            },
-            values: [{label: _t("Selected domain"), value: null}],
-        }});
-
-        this._super(parent, options);
-    },
-
-    get_domain: function (selected_ids) {
-        var group_domain = [];
-        var domain;
-        if (this.$('.o_list_record_selector input').prop('checked')) {
-            if (this.view_list.grouped) {
-                group_domain = _.chain(_.values(this.view_list.groups.children))
-                                        .filter(function (child) { return child.records.length; })
-                                        .map(function (c) { return c.datagroup.domain;})
-                                        .value();
-                group_domain = _.flatten(group_domain, true);
-                group_domain = _.times(group_domain.length - 1, _.constant('|')).concat(group_domain);
-            }
-            var search_data = this.searchview.build_search_data();
-            domain = pyeval.sync_eval_domains_and_contexts({
-                domains: search_data.domains,
-                contexts: search_data.contexts,
-                group_by_seq: search_data.groupbys || []
-            }).domain;
-        }
-        else {
-            domain = [["id", "in", selected_ids]];
-        }
-        return this.dataset.domain.concat(group_domain).concat(domain || []);
-    },
-
-    on_view_list_loaded: function() {
-        this.$('.o_list_record_selector input').prop('checked', true);
-        this.$footer.find(".o_selectcreatepopup_search_select").prop('disabled', false);
-    },
-});
-
 return {
     // mixins
-    FieldManagerMixin: FieldManagerMixin,
     ReinitializeWidgetMixin: ReinitializeWidgetMixin,
-    ReinitializeFieldMixin: ReinitializeFieldMixin,
-    CompletionFieldMixin: CompletionFieldMixin,
 
     // misc
     FormWidget: FormWidget,
     DefaultFieldManager: DefaultFieldManager,
-    InvisibilityChanger: InvisibilityChanger,
-    NotebookInvisibilityChanger: NotebookInvisibilityChanger,
     commands: commands,
     AbstractField: AbstractField,
 
     // Dialogs
-    ViewDialog: ViewDialog,
     FormViewDialog: FormViewDialog,
     SelectCreateDialog: SelectCreateDialog,
-    DomainEditorDialog: DomainEditorDialog,
 };
 
 });
