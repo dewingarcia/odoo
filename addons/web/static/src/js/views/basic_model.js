@@ -184,7 +184,7 @@ var Model = Class.extend({
                 var record = this._make_record(model, params);
                 def = this._fetch_record(record);
             } else {
-                def = this.make_record_with_defaults(model, params.fields, params.context).then(function (id) {
+                def = this.make_record_with_defaults(model, params.context).then(function (id) {
                     return self.local_data[id];
                 });
             }
@@ -982,18 +982,18 @@ var Model = Class.extend({
             return parent_id;
         });
     },
-    make_record_with_defaults: function(model, fields, context) {
+    make_record_with_defaults: function(model, context) {
         var self = this;
-        var fields_key = Object.keys(fields);
+        var fields_key = Object.keys(this.fields);
         fields_key = _.without(fields_key, '__last_update');
 
         return this.perform_model_rpc(model, 'default_get', [fields_key], {
             context: this.get_context(context),
         }).then(function (result) {
             var data = {};
-            var record = self._make_record(model, {data: data, fields: fields, context: context});
+            var record = self._make_record(model, {data: data, fields: self.fields, context: context});
             var defs = [];
-            _.each(fields, function(value, key) { // FIXME: be careful when using _.each as it doesn't work when there is a field named 'length'
+            _.each(this.fields, function(value, key) { // FIXME: be careful when using _.each as it doesn't work when there is a field named 'length'
                 if (key in result) {
                     if (value.type === 'many2many') {
                         data[key] = result[key][0];
