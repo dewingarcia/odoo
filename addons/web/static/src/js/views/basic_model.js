@@ -401,8 +401,9 @@ var Model = Class.extend({
         var field = record.fields[field_name];
         var fields_changed = [];
         var changes = record.changes;
+        var view = field.views && (field.views.tree || field.views.kanban);
         var def;
-        if (field.type === 'one2many' || field.type === 'many2many') {
+        if (view) {
             fields_changed.push(field_name);
             var list = changes.relational_data[field_name];
             if (!list) {
@@ -434,7 +435,7 @@ var Model = Class.extend({
                     delete list.cache[record.res_id];
                     list.count--;
                 }
-            } else {
+            } else { // many2many
                 changes.data[field_name] = value;
                 list.res_ids = value;
                 list.count = list.res_ids.length;
