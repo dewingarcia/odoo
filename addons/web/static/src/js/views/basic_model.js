@@ -580,6 +580,9 @@ var Model = Class.extend({
         if (!('__last_update' in record.fields)) {
             record.fields.__last_update = {};
         }
+        if (!('display_name' in record.fields)) {
+            record.fields.display_name = {type: 'char'};
+        }
         return this.perform_model_rpc(record.model, 'read', [record.res_id, Object.keys(record.fields)], {
             context: { 'bin_size': true },
         }).then(function(result) {

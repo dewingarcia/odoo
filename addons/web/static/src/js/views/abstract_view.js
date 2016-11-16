@@ -140,7 +140,7 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         this.db_id = db_id;
         var state = this.datamodel.get(db_id);
         if (state.is_record) {
-            this.set({title : state.data.display_name});
+            this.set({ title : state.res_id ? state.data.display_name : _t("New") });
         }
         if (this.pager) {
             this.update_pager();
