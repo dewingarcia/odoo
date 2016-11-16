@@ -399,12 +399,11 @@ var Model = Class.extend({
         var self = this;
         var record = this.local_data[record_id];
         var field = record.fields[field_name];
-        var fields_changed = [];
+        var fields_changed = [field_name];
         var changes = record.changes;
         var view = field.views && (field.views.tree || field.views.kanban);
         var def;
         if (view) {
-            fields_changed.push(field_name);
             var list = changes.relational_data[field_name];
             if (!list) {
                 list = this.get(record.relational_data[field_name].id);

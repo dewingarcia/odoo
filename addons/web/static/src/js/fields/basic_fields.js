@@ -37,7 +37,12 @@ var InputField = AbstractField.extend({
             this.$el.attr('placeholder', this.field.__attrs.placeholder);
         }
         this.$el.attr('id', this.id_for_label);
+        // save cursor position to restore it after updating value
+        var selectionStart = this.el.selectionStart;
+        var selectionEnd = this.el.selectionEnd;
         this.$el.val(this.format_value(this.value));
+        this.el.selectionStart = selectionStart;
+        this.el.selectionEnd = selectionEnd;
     },
     render_readonly: function() {
         this.$el.empty().html(this.format_value(this.value));
@@ -227,7 +232,7 @@ var FieldBoolean = AbstractField.extend({
     render_readonly: function() {
         var $checkbox = this.format_value(this.value);
         this.$input = $checkbox.find('input');
-        this.$el.append($checkbox);
+        this.$el.empty().append($checkbox);
     },
     render_edit: function() {
         this.render_readonly();
