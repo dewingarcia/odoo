@@ -48,7 +48,10 @@ function format_id(value) {
 
 function format_integer(value) {
     if (!value && value !== 0) {
-        return false;
+        // previously, it returned 'false'. I don't know why.  But for the Pivot
+        // view, I want to display the concept of 'no value' with an empty
+        // string.
+        return "";
     }
     return utils.insert_thousand_seps(_.str.sprintf('%d', value));
 }
@@ -74,7 +77,7 @@ function format_many2many(value, field, data, options) {
 function format_monetary(value, field, data, options) {
     options = options || {};
     var currency_field = options.currency_field || field.currency_field || 'currency_id';
-    var currency_id = data[currency_field] && data[currency_field];
+    var currency_id = data && data[currency_field] && data[currency_field];
     var currency = session.get_currency(currency_id);
     var digits_precision = (currency && currency.digits) || [69,2];
     var precision = digits_precision[1];

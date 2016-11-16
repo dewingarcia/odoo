@@ -195,7 +195,9 @@
         <script type="text/javascript" src="/web/static/src/js/views/list/list_renderer.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/list/list_tests.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/list/list_view.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/pivot_view.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/pivot/pivot_model.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/pivot/pivot_renderer.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/views/pivot/pivot_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/search_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/search_filters.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/search_inputs.js"></script>

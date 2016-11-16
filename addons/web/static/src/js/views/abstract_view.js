@@ -100,8 +100,15 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
     get_renderer_options: function() {
         return {};
     },
-    has_content: function(state) {
-        return state.count;
+    hasNoContent: function(state) {
+        return !state.count  && this.no_content_help;
+    },
+    displayNoContentHelp: function() {
+        var $msg = $('<div>')
+            .addClass('oe_view_nocontent')
+            .html(this.no_content_help);
+        this.$el.append($msg);
+        return;
     },
     open_record: function(id, options) {
         // TODO: move this to view manager at some point
@@ -150,14 +157,11 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
             this.update_buttons();
         }
         this.$('.oe_view_nocontent').remove();
-        if (!this.has_content(state) && this.no_content_help) {
-            var $msg = $('<div>')
-                        .addClass('oe_view_nocontent')
-                        .html(this.no_content_help);
-            this.$el.append($msg);
+        if (this.hasNoContent(state)) {
             if (this.renderer) {
                 this.renderer.do_hide();
             }
+            this.displayNoContentHelp();
             return;
         }
         if (this.renderer) {

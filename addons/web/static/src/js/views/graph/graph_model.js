@@ -7,17 +7,40 @@ var BasicModel = require('web.BasicModel');
 var _t = core._t;
 
 return BasicModel.extend({
+    init: function(fields_view) {
+        this.initialMode = fields_view.arch.attrs.type || 'bar';
+        this.initialMeasure = '__count__';
+        this.initialGroupBys = [];
+        this._super.apply(this, arguments);
+    },
+    _process_fields_view: function(fields_view) {
+        var self = this;
+        var fields = fields_view.fields;
+        fields.__count__ = {string: _t("Count"), type: "integer"};
+        fields_view.arch.children.forEach(function(field) {
+            var name = field.attrs.name;
+            if (field.attrs.interval) {
+                name += ':' + field.attrs.interval;
+            }
+            if (field.attrs.type === 'measure') {
+                self.measure = name;
+            } else {
+                self.initialGroupBys.push(name);
+            }
+        });
+        return fields;
+    },
     load: function(model, params) {
         if (!params.grouped_by.length) {
             var grouped_by = params.context.graph_groupbys ||
                              (params.grouped_by.length && params.grouped_by) ||
-                             this.initial_grouped_by;
+                             this.initialGroupBys;
             params.grouped_by = grouped_by.slice(0);
         }
         params.fields = this.fields;
         var record = this._make_list(model, params);
-        record.measure = params.measure || this.measure;
-        record.mode = params.mode || this.mode;
+        record.measure = params.measure || this.initialMeasure;
+        record.mode = params.mode || this.initialMode;
         return this._load_graph(record.id);
     },
     reload: function(id) {
@@ -25,13 +48,13 @@ return BasicModel.extend({
     },
     import: function(obj, params) {
         return this._super(obj, _.extend({
-            mode: obj.mode || this.mode,
-            measure: obj.measure || this.measure,
+            mode: obj.mode || this.initialMode,
+            measure: obj.measure || this.initialMeasure,
         }, params));
     },
     set_group_by: function(list_id, group_by) {
         if (!group_by.length) {
-            group_by = this.initial_grouped_by;
+            group_by = this.initialGroupBys;
         }
         return this._super(list_id, group_by);
     },
@@ -44,26 +67,6 @@ return BasicModel.extend({
         var element = this.local_data[id];
         element.mode = mode;
         return this;
-    },
-    _process_fields_view: function(fields_view) {
-        var self = this;
-        var fields = fields_view.fields;
-        fields.__count__ = {string: _t("Count"), type: "integer"};
-        this.mode = fields_view.arch.attrs.type || 'bar';
-        this.measure = '__count__';
-        this.initial_grouped_by = [];
-        fields_view.arch.children.forEach(function(field) {
-            var name = field.attrs.name;
-            if (field.attrs.interval) {
-                name += ':' + field.attrs.interval;
-            }
-            if (field.attrs.type === 'measure') {
-                self.measure = name;
-            } else {
-                self.initial_grouped_by.push(name);
-            }
-        });
-        return fields;
     },
     _load_graph: function(id) {
         var self = this;

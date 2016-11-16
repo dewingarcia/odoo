@@ -25,7 +25,7 @@ var GraphView = AbstractView.extend({
     init: function() {
         var self = this;
         this._super.apply(this, arguments);
-        this.measures = [];
+        this.measures = {};
         _.each(this.fields, function (field, name) {
             if (name !== 'id' && field.store === true) {
                 if (field.type === 'integer' || field.type === 'float' || field.type === 'monetary') {
