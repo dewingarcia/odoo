@@ -35,12 +35,6 @@ return Widget.extend({
         'keydown': 'on_keydown',
     },
 
-    // this flag determines if the form view will apply the onchanges immediately
-    // or can wait a little bit to apply them.  The main reason is that you don't
-    // want to apply onchanges for each keypress in an input. Clearly, for most of the
-    // other use cases, it is desired to apply onchanges as soon as possible.
-    apply_onchange_immediately: true,
-
     init: function(parent, name, record, options) {
         this._super(parent);
         options = options || {};
@@ -139,7 +133,6 @@ return Widget.extend({
             local_id: this.local_id,
             name: this.name,
             value: this.value,
-            apply_onchange_immediately: this.apply_onchange_immediately,
         };
         this.trigger_up('field_changed', changes);
     },

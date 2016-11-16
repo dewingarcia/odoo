@@ -24,9 +24,6 @@ var InputField = AbstractField.extend({
         },
     }),
 
-    // we want the view to aggregate the keypresses before applying the onchange
-    apply_onchange_immediately: false,
-
     init: function() {
         this._super.apply(this, arguments);
         if (this.mode === 'edit') {
