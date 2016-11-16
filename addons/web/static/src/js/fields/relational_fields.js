@@ -670,17 +670,18 @@ var FormFieldMany2ManyTags = FieldMany2ManyTags.extend({
     }),
 
     open_color_picker: function (event) {
-        // FIXME: check if there is a color field on the model
-        // if (this.fields.color) {
+        var tag_id = $(event.currentTarget).data('id');
+        var tag = _.findWhere(this.m2m_values, { id: tag_id });
+        if (tag && 'color' in tag) { // if there is a color field on the related model
             this.$color_picker = $(qweb.render('FieldMany2ManyTag.colorpicker', {
                 'widget': this,
-                'tag_id': $(event.currentTarget).data('id'),
+                'tag_id': tag_id,
             }));
 
             $(event.currentTarget).append(this.$color_picker);
             this.$color_picker.dropdown('toggle');
             this.$color_picker.attr("tabindex", 1).focus();
-        // }
+        }
     },
     close_color_picker: function (){
         this.$color_picker.remove();
