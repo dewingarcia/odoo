@@ -30,6 +30,9 @@ var PivotView = AbstractView.extend({
     display_name: _lt('Pivot'),
     icon: 'fa-table',
     template: 'PivotView',
+    config: _.extend({}, AbstractView.prototype.config, {
+        hasPager: false,
+    }),
 
     init: function() {
         this._super.apply(this, arguments);

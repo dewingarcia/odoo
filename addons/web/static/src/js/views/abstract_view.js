@@ -16,6 +16,7 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         Renderer: undefined, // to be set
         open_groups_by_default: false,
         page_size: 40,
+        hasPager: true,  // TODO: change this into false
     },
     defaults: {
         action: {},
@@ -142,7 +143,7 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         if (state.is_record) {
             this.set({ title : state.res_id ? state.data.display_name : _t("New") });
         }
-        if (this.pager) {
+        if (this.pager && this.config.hasPager) {
             this.update_pager();
         }
         if (this.$buttons) {
