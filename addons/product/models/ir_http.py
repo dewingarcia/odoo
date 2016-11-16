@@ -15,26 +15,39 @@ class Http(models.AbstractModel):
 
     def session_info(self):
         result = super(Http, self).session_info()
-        result.update({"weight_uom": self.get_weight_uom()})
+        result.update(self.get_uom_data())
         return result
 
-    def get_weight_uom(self):
-        """ Fetches the configured UoM for weights and returns its characteristics
+    def get_decimals(self, rounding):
+        """ returns the number of decimals digits from a "rounding" value.
+              rounding    return
+        E.g.:    0.001 ->      3
+                0.0008 ->      4
+                    10 ->      0
         """
-        def get_decimals(rounding):
-            """ returns the number of decimals digits from a "rounding".
-            E.g.: 0.001 -> 3
-                  0.0008 -> 4
-            """
-            if 0 < rounding < 1:
-                return int(math.ceil(math.log10(1.0 / rounding)))
-            else:
-                return 0
-
-        weight_uom = request.env.user.company_id.weight_uom_id
-        if weight_uom:
-            data = weight_uom.read(['name', 'factor', 'rounding'])[0]
-            return {'name': data['name'], 'factor': data['factor'], 'digits': [69, get_decimals(data['rounding'])]}
+        if 0 < rounding < 1:
+            return int(math.ceil(math.log10(1.0 / rounding)))
         else:
+            return 0
+
+    def get_uom_data(self):
+        """ Fetches the company's configured UoMs for display and returns their characteristics
+        """
+        weight_uom = request.env.user.company_id.weight_uom_id
+        if not weight_uom:
             _logger.warning("No unit of measure found to display weights, please make sure to set one in the General Settings. Falling back to hard-coded Kilos.")
-            return {'name': 'kg', 'factor': 1, 'digits': [69, 3]}
+            weight_data = {'name': 'kg', 'factor': 1, 'digits': [69, 3]}
+        else:
+            weight_data = {'name': weight_uom.name, 'factor': weight_uom.factor, 'digits': [69, self.get_decimals(weight_uom.rounding)]}
+
+        volume_uom = request.env.user.company_id.volume_uom_id
+        if not volume_uom:
+            _logger.warning("No unit of measure found to display volumes, please make sure to set one in the General Settings. Falling back to hard-coded Liters.")
+            volume_data = {'name': 'Liter(s)', 'factor': 1, 'digits': [69, 3]}
+        else:
+            volume_data = {'name': volume_uom.name, 'factor': volume_uom.factor, 'digits': [69, self.get_decimals(volume_uom.rounding)]}
+
+        return {
+            'weight_uom': weight_data,
+            'volume_uom': volume_data,
+        }
