@@ -221,7 +221,7 @@ return AbstractRenderer.extend({
         var field = this.state.fields[node.attrs.name];
         var value = record.data[node.attrs.name];
         if (node.attrs.widget) {
-            var Widget = field_registry.get(node.attrs.widget);
+            var Widget = field_registry.get_any(['list.' + node.attrs.widget, node.attrs.widget]);
             if (Widget) {
                 var widget = new Widget(this, node.attrs.name, record, {
                     mode: 'readonly',

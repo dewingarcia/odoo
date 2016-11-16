@@ -155,8 +155,11 @@ ListRenderer.include({
             if (modifiers.readonly) {
                 return;
             }
-
-            var Widget = field_registry.get(field.type);
+            var widget_keys = ['list.' + field.type, field.type];
+            if (node.attrs.widget) {
+                widget_keys = ['list.' + node.attrs.widget, node.attrs.widget].concat(widget_keys);
+            }
+            var Widget = field_registry.get_any(widget_keys);
             var widget = new Widget(self, node.attrs.name, record, {
                 mode: 'edit'
             });

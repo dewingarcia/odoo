@@ -191,7 +191,10 @@ return AbstractRenderer.extend({
     _render_field_widget: function(node) {
         var name = node.attrs.name;
         var field = this.state.fields[name];
-        var widget_keys = (node.attrs.widget ? [node.attrs.widget] : []).concat(['form.' + field.type, field.type]);
+        var widget_keys = ['form.' + field.type, field.type];
+        if (node.attrs.widget) {
+            widget_keys = ['form.' + node.attrs.widget, node.attrs.widget].concat(widget_keys);
+        }
         var Widget = field_registry.get_any(widget_keys);
 
         if (node.attrs.widget && !field_registry.contains(node.attrs.widget)) {
