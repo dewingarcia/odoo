@@ -69,9 +69,7 @@ return {
     on_field_changed: function(event) {
         var self = this;
         var local_id = event.data.local_id;
-        var field = event.data.name;
-        var value = event.data.value;
-        this.datamodel.notify_change(local_id, field, value).then(function (result) {
+        this.datamodel.notify_changes(local_id, event.data.changes).then(function (result) {
             if (event.data.force_save) {
                 self.datamodel.save(local_id).then(function () {
                     self.confirm_save(local_id);

@@ -16,8 +16,6 @@ ListRenderer.include({
             // record.data[event.data.name] = event.data.value;
             var $td = event.target.$el.parent();
             $td.addClass('o_field_dirty');
-            this.current_field = event.data.name;
-            this.current_value = event.data.value;
         },
         move_down: function() {
             if (this.current_row < this.state.data.length - 1) {
@@ -74,8 +72,6 @@ ListRenderer.include({
 
         this.current_row = null;
         this.current_col = null;
-        this.current_field = null;
-        this.current_value = null;
         this.changes = {};
     },
     start: function() {
@@ -210,8 +206,6 @@ ListRenderer.include({
     //             name: this.current_field,
     //             data: record.data,
     //         });
-    //         this.current_field = null;
-    //         this.current_value = null;
     //     }
     // },
     set_cell_value: function(row_index, col_index, keep_dirty_flag) {

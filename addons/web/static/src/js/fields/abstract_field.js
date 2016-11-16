@@ -129,12 +129,12 @@ return Widget.extend({
         } catch(e) {
             this._is_valid = false;
         }
-        var changes = {
+        var changes = {};
+        changes[this.name] = this.value;
+        this.trigger_up('field_changed', {
             local_id: this.local_id,
-            name: this.name,
-            value: this.value,
-        };
-        this.trigger_up('field_changed', changes);
+            changes: changes,
+        });
     },
     // main rendering function.  Override this if your widget has the same render
     // for each mode.  Also, note that this function is supposed to be idempotent:

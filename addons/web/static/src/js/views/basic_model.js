@@ -395,57 +395,63 @@ var Model = Class.extend({
             aggregate_values: params.aggregate_values || {},
         });
     },
-    notify_change: function(record_id, field_name, value) {
+    notify_changes: function(record_id, changes) {
         var self = this;
         var record = this.local_data[record_id];
-        var field = record.fields[field_name];
-        var fields_changed = [field_name];
-        var changes = record.changes;
-        var view = field.views && (field.views.tree || field.views.kanban);
-        var def;
-        if (view) {
-            var list = changes.relational_data[field_name];
-            if (!list) {
-                list = this.get(record.relational_data[field_name].id);
-                changes.relational_data[field_name] = list;
-            }
-            if (field.type === 'one2many') {
-                changes.data[field_name] = changes.data[field_name] || record.data[field_name].slice(0);
-                if (value[0] === 'CREATE') {
-                    var view = field.views.tree || field.views.kanban;
-                    var data = value[1];
-                    data.id = _.uniqueId('virtual_id_');
-                    var subrecord = this._make_record(field.relation, {
-                        data: data,
-                        fields: view.fields,
-                    });
-                    changes.data[field_name] = changes.data[field_name].concat(subrecord.res_id);
-                    list.cache[record.res_id] = subrecord;
-                    if (list.data.length < list.limit) {
-                        list.data.push(subrecord);
-                    }
-                    list.count++;
-                } else if (value[0] === 'DELETE') {
-                    changes.data[field_name].splice(_.indexOf(changes.data[field_name], value[1]), 1);
-                    var record_index = _.indexOf(list.data, _.findWhere(list.data, {res_id: value[1]}));
-                    if (record_index > -1) {
-                        list.data.splice(record_index, 1);
-                    }
-                    delete list.cache[record.res_id];
-                    list.count--;
-                }
-            } else { // many2many
-                changes.data[field_name] = value;
-                list.res_ids = value;
-                list.count = list.res_ids.length;
-                def = this._fetch_ungrouped_list(list).then(this._fetch_relational_data.bind(this));
-            }
-        } else {
-            changes.data[field_name] = value;
-        }
-        return $.when(def).then(function() {
+        var record_changes = record.changes;
+        var on_change_fields = []; // the fields that have changed and that have an on_change
+        var defs = [];
+        for (var field_name in changes) {
+            var value = changes[field_name];
+            var field = record.fields[field_name];
             if (field.__attrs.on_change) {
-                return self._apply_on_change(record, [field_name]).then(function(result) {
+                on_change_fields.push(field_name);
+            }
+            var view = field.views && (field.views.tree || field.views.kanban);
+            if (view) {
+                var list = record_changes.relational_data[field_name];
+                if (!list) {
+                    list = this.get(record.relational_data[field_name].id);
+                    record_changes.relational_data[field_name] = list;
+                }
+                if (field.type === 'one2many') {
+                    record_changes.data[field_name] = record_changes.data[field_name] || record.data[field_name].slice(0);
+                    if (value[0] === 'CREATE') {
+                        var data = value[1];
+                        data.id = _.uniqueId('virtual_id_');
+                        var subrecord = this._make_record(field.relation, {
+                            data: data,
+                            fields: view.fields,
+                        });
+                        record_changes.data[field_name] = record_changes.data[field_name].concat(subrecord.res_id);
+                        list.cache[record.res_id] = subrecord;
+                        if (list.data.length < list.limit) {
+                            list.data.push(subrecord);
+                        }
+                        list.count++;
+                    } else if (value[0] === 'DELETE') {
+                        record_changes.data[field_name].splice(_.indexOf(record_changes.data[field_name], value[1]), 1);
+                        var record_index = _.indexOf(list.data, _.findWhere(list.data, {res_id: value[1]}));
+                        if (record_index > -1) {
+                            list.data.splice(record_index, 1);
+                        }
+                        delete list.cache[record.res_id];
+                        list.count--;
+                    }
+                } else { // many2many
+                    record_changes.data[field_name] = value;
+                    list.res_ids = value;
+                    list.count = list.res_ids.length;
+                    defs.push(this._fetch_ungrouped_list(list).then(this._fetch_relational_data.bind(this)));
+                }
+            } else {
+                record_changes.data[field_name] = value;
+            }
+        }
+        return $.when.apply($, defs).then(function() {
+            var fields_changed = _.keys(changes);
+            if (on_change_fields.length) {
+                return self._apply_on_change(record, on_change_fields).then(function(result) {
                     return fields_changed.concat(Object.keys(result && result.value || {}));
                 });
             }

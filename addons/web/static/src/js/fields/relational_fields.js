@@ -565,7 +565,7 @@ var FieldMany2ManyTags = AbstractRelationalField.extend({
                 event.stopped = false;
                 return;
             }
-            var new_value = event.data.value;
+            var new_value = event.data.changes[this.name];
             if (new_value) {
                 this.add_id(new_value);
                 this.many2one.reinitialize(false);
