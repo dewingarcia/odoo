@@ -3,12 +3,12 @@
     <data>
 
         <record id="im_livechat_channel_action" model="ir.actions.act_window">
-            <field name="name">Website Live Chat Channels</field>
+            <field name="name">Livechat Channels</field>
             <field name="res_model">im_livechat.channel</field>
             <field name="view_mode">kanban,form</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
-                Click to define a new website live chat channel.
+                Click to define a new live chat channel.
               </p><p>
                 You can create channels for each website on which you want
                 to integrate the website live chat widget, allowing your website

@@ -4,6 +4,7 @@
 import uuid
 
 from odoo import api, fields, models, tools
+from odoo.modules.module import get_resource_path
 
 
 class Rating(models.Model):
@@ -36,6 +37,18 @@ class Rating(models.Model):
     message_id = fields.Many2one('mail.message', string="Linked message", help="Associated message when posting a review. Mainly used in website addons.", index=True)
     access_token = fields.Char('Security Token', default=new_access_token, help="Access token to set the rating of the value")
     consumed = fields.Boolean(string="Filled Rating", help="Enabled if the rating has been filled.")
+    rating_image = fields.Binary('Image', compute='_compute_rating_image')
+
+    @api.multi
+    def _compute_rating_image(self):
+        for rating in self:
+            try:
+                image_path = get_resource_path('rating', 'static/src/img', 'rating_%s.png' % (int(rating.rating),))
+                print rating.rating
+                print int(rating.rating)
+                rating.rating_image = open(image_path, 'rb').read().encode('base64')
+            except (IOError, OSError):
+                rating.rating_image = False
 
     @api.multi
     def reset(self):
@@ -54,6 +67,8 @@ class RatingMixin(models.AbstractModel):
 
     rating_ids = fields.One2many('rating.rating', 'res_id', string='Rating', domain=lambda self: [('res_model', '=', self._name)])
     rating_last_value = fields.Float('Rating Last Value', related='rating_ids.rating', store=True)
+    rating_last_image = fields.Binary('Rating Last Image', related='rating_ids.rating_image')
+    rating_last_feedback = fields.Text('Rating Last Feedback', related='rating_ids.feedback')
     rating_count = fields.Integer('Rating count', compute="_compute_rating_count")
 
     @api.multi
