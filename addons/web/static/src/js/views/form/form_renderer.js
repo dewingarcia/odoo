@@ -82,8 +82,7 @@ return AbstractRenderer.extend({
             var $notebook = $(this);
             var name = $notebook.data('name');
             if (name in state) {
-                var $active_page = $notebook.find('li a').get(state[name]);
-                $active_page.click();
+                $notebook.find('> ul > li > a[data-toggle="tab"]').eq(state[name]).click();
             }
         });
     },
