@@ -1,17 +1,21 @@
 odoo.define('journal_dashboard', function (require) {
 'use strict';
 
-var kanban_widgets = require('web.kanban_widgets');
+var AbstractField = require('web.AbstractField');
+var field_registry = require('web.field_registry');
 
-var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
-    start: function() {
-        this.graph_type = this.$node.attr('graph_type');
-        this.data = JSON.parse(this.field.raw_value);
-        this.display_graph();
-        return this._super();
+var JournalDashboardGraph = AbstractField.extend({
+    className: "o_dashboard_graph",
+    init: function() {
+        this._super.apply(this, arguments);
+        this.graph_type = this.node_options.graph_type;
+        this.data = JSON.parse(this.value);
     },
-
-    display_graph : function() {
+    start: function() {
+        nv.utils.windowResize(this.on_resize);
+        return this._super.apply(this, arguments);
+    },
+    render : function() {
         var self = this;
         nv.addGraph(function () {
             self.$svg = self.$el.append('<svg>');
@@ -24,7 +28,7 @@ var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
                     self.chart = nv.models.lineChart();
                     self.chart.forceY([0]);
                     self.chart.options({
-                        x: function(d, u) { return u },
+                        x: function(d, u) { return u; },
                         margin: {'left': 0, 'right': 0, 'top': 0, 'bottom': 0},
                         showYAxis: false,
                         showLegend: false,
@@ -32,7 +36,7 @@ var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
                     self.chart.xAxis
                         .tickFormat(function(d) {
                             var label = '';
-                            _.each(self.data, function(v, k){
+                            _.each(self.data, function(v){
                                 if (v.values[d] && v.values[d].x){
                                     label = v.values[d].x;
                                 }
@@ -48,8 +52,8 @@ var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
                     self.$svg.addClass('o_graph_barchart');
 
                     self.chart = nv.models.discreteBarChart()
-                        .x(function(d) { return d.label })
-                        .y(function(d) { return d.value })
+                        .x(function(d) { return d.label; })
+                        .y(function(d) { return d.value; })
                         .showValues(false)
                         .showYAxis(false)
                         .margin({'left': 0, 'right': 0, 'top': 0, 'bottom': 40});
@@ -65,20 +69,16 @@ var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
                 .call(self.chart);
 
             self.customize_chart();
-
-            nv.utils.windowResize(self.on_resize);
         });
     },
-
-    on_resize: function(){
+    on_resize: function() {
         this.chart.update();
         this.customize_chart();
     },
-
-    customize_chart: function(){
+    customize_chart: function() {
         if (this.graph_type === 'bar') {
             // Add classes related to time on each bar of the bar chart
-            var bar_classes = _.map(this.data[0].values, function (v, k) {return v.type});
+            var bar_classes = _.map(this.data[0].values, function (v) {return v.type; });
 
             _.each(this.$('.nv-bar'), function(v, k){
                 // classList doesn't work with phantomJS & addClass doesn't work with a SVG element
@@ -86,15 +86,13 @@ var JournalDashboardGraph = kanban_widgets.AbstractField.extend({
             });
         }
     },
-
-    destroy: function(){
+    destroy: function() {
         nv.utils.offWindowResize(this.on_resize);
         this._super();
     },
-
 });
 
 
-kanban_widgets.registry.add('dashboard_graph', JournalDashboardGraph);
+field_registry.add('dashboard_graph', JournalDashboardGraph);
 
 });

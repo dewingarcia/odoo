@@ -173,7 +173,7 @@
                                     </div>
                                     <div class="col-xs-6">
                                         <span class="pull-right text-right">
-                                            <field name="state" widget="kanban_label_selection" options="{'classes': {'draft': 'default', 'cancel': 'default', 'none': 'danger', 'proforma': 'warning', 'proforma2': 'warning', 'open': 'warning',
+                                            <field name="state" widget="label_selection" options="{'classes': {'draft': 'default', 'cancel': 'default', 'none': 'danger', 'proforma': 'warning', 'proforma2': 'warning', 'open': 'warning',
                                             'paid': 'success'}}"/>
                                         </span>
                                     </div>
