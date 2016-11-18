@@ -909,15 +909,7 @@ var Model = Class.extend({
             context: session.user_context, // todo: combine with view context
         }).then(function () {
             if (parent_id) {
-                var parent = self.local_data[parent_id];
-                _.each(records, function (record) {
-                    var direct_parent = find_direct_parent(parent, record);
-                    var index = _.indexOf(direct_parent.data, record);
-                    direct_parent.count--;
-                    direct_parent.data.splice(index, 1);
-                });
-
-                return parent.id;
+                return self.reload(parent_id);
             }
         });
     },
