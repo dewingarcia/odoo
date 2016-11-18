@@ -358,6 +358,7 @@ var Model = Class.extend({
     },
     _make_record: function(model, params) {
         var data = params.data || {};
+        var fields = _.extend({}, {display_name: {type: "char"}}, params.fields);
         var record = {
             id: _.uniqueId(),
             res_id: params.id || data.id,
@@ -369,8 +370,8 @@ var Model = Class.extend({
             count: params.res_ids ? params.res_ids.length : 0,
 
             model: model,
-            fields: params.fields,
-            field_names: params.field_names || _.keys(params.fields),
+            fields: fields,
+            field_names: _.uniq(params.field_names.concat(['display_name'])) || _.keys(fields),
             data: data,
             is_record: true,
             context: params.context,
@@ -603,12 +604,6 @@ var Model = Class.extend({
     },
     _fetch_record: function(record) {
         var self = this;
-        if (!('__last_update' in record.fields)) {
-            record.fields.__last_update = {};
-        }
-        if (!('display_name' in record.fields)) {
-            record.fields.display_name = {type: 'char'};
-        }
         return this.perform_model_rpc(record.model, 'read', [record.res_id, record.field_names], {
             context: { 'bin_size': true },
         }).then(function(result) {

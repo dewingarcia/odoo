@@ -111,7 +111,6 @@ var FormView = AbstractView.extend({
     }),
     init: function () {
         this._super.apply(this, arguments);
-        this.fields.display_name = this.fields.display_name || {type: "char"};
         this.mode = 'readonly'; // can be: readonly, edit
         this.dataset_ids = this.options.dataset ? this.options.dataset.res_ids : this.dataset.ids;
         this.current_id = this.options.dataset ? this.options.dataset.current_id : this.dataset.ids[this.dataset.index];
