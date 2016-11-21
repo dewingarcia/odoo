@@ -8,24 +8,6 @@ var session = require('web.session');
 var utils = require('web.utils');
 
 
-function find_direct_parent(parent, record) {
-    if (parent.is_record) {
-        return;
-    }
-    var index = _.indexOf(parent.data, record);
-    if (index >= 0) {
-        return parent;
-    } else {
-        var direct_parent;
-        for (var i = 0; i < parent.data.length; i++) {
-            direct_parent = find_direct_parent(parent.data[i], record);
-            if (direct_parent) {
-                return direct_parent;
-            }
-        }
-    }
-}
-
 function traverse(tree, f) { // FIXME: move to web.utils
     if (f(tree)) {
         _.each(tree.children, function(c) { traverse(c, f); });
