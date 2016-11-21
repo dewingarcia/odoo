@@ -254,7 +254,7 @@ var Model = Class.extend({
                 });
             }
             // replace changes in x2many fields by the appropriate commands
-            var commands = self._generate_x2many_commands(record.fields, record.data, record.changes);
+            var commands = self._generate_x2many_commands(record);
             _.extend(record.changes.data, commands);
             // FIXME: don't do RPC if there is no change to save
             var args = method === 'write' ? [[record.data.id], changes] : [changes];
@@ -318,7 +318,10 @@ var Model = Class.extend({
         });
         return view_fields;
     },
-    _generate_x2many_commands: function(fields, data, changes) {
+    _generate_x2many_commands: function(record) {
+        var changes = record.changes;
+        var data = record.data;
+        var fields = record.fields;
         var commands = {};
         _.each(changes.data, function(value, field) {
             if (fields[field].type === 'many2many') {
@@ -469,7 +472,7 @@ var Model = Class.extend({
         var context = data.build_context(record, session.user_context).eval();
         return this.mutex.exec(function() {
             // replace changes in x2many fields by the appropriate commands
-            var commands = self._generate_x2many_commands(record.fields, record.data, record.changes);
+            var commands = self._generate_x2many_commands(record);
             var changed_data = _.extend({id: false}, record.data, record.changes.data, commands);
             var args = [id_list, changed_data, fields, onchange_spec, context];
             return self.perform_model_rpc(record.model, 'onchange', args, {}).then(function(result) {
