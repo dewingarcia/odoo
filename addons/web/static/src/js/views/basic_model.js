@@ -764,7 +764,8 @@ var Model = Class.extend({
     _fetch_relational_data: function(element) {
         var self = this;
         var defs = [];
-        _.each(element.fields, function(field, name) {
+        _.each(element.field_names, function(name) {
+            var field = element.fields[name];
             if (field.type === 'many2one') {
                 defs.push(self._fetch_many2one(element, name));
             }
