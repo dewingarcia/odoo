@@ -249,8 +249,8 @@ var Model = Class.extend({
             var method = record.res_id ? 'write' : 'create';
             var changes = record.changes.data;
             if (method === 'create') {
-                _.each(record.fields, function(value, key) {
-                    changes[key] = changes[key] || record.data[key];
+                _.each(record.field_names, function(name) {
+                    changes[name] = changes[name] || record.data[name];
                 });
             }
             // replace changes in x2many fields by the appropriate commands
@@ -467,7 +467,7 @@ var Model = Class.extend({
     },
     _apply_on_change: function(record, fields) {
         var self = this;
-        var onchange_spec = this._build_onchange_specs(record.fields);
+        var onchange_spec = this._build_onchange_specs(record);
         var id_list = record.data.id ? [record.data.id] : [];
         var context = data.build_context(record, session.user_context).eval();
         return this.mutex.exec(function() {
@@ -517,11 +517,12 @@ var Model = Class.extend({
             });
         });
     },
-    _build_onchange_specs: function(fields) {
+    _build_onchange_specs: function(record) {
         // TODO: replace this function by some generic tree function in utils
 
         var onchange_specs = {};
-        _.each(fields, function(field, name) {
+        _.each(record.field_names, function(name) {
+            var field = record.fields[name];
             onchange_specs[name] = (field.__attrs && field.__attrs.on_change) || "";
             _.each(field.views, function(view) {
                 _.each(view.fields, function(field, subname) {
@@ -600,7 +601,8 @@ var Model = Class.extend({
     _postprocess: function(record) {
         var self = this;
         var defs = [];
-        _.each(record.fields, function(field, name) {
+        _.each(record.field_names, function(name) {
+            var field = record.fields[name];
             if (field.__fetch_status && !field.__status_information) {
                 var field_values = _.mapObject(record.data, function (val, key) {
                     return get_value(key, val, record.fields);
