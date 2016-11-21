@@ -92,17 +92,34 @@ var Model = Class.extend({
         // save is performed.
         this.mutex = new utils.Mutex();
 
+        // the fields_view is an optional argument that is always given for
+        // models instantiated by views, but not for standalone widgets
+        // ideally, the Model should be split into two (or maybe three):
+        //  - a low-level layer with all the basic operation (rpcs, makes...)
+        //    that may be sufficient for the standalone case, and which wouldn't
+        //    take any arguments
+        //  - an extension requiring a fields_view which will be used by views
+        //    and in studio
         if (fields_view) {
-            // find all fields appearing in the view, copy their attrs and
-            // flag them if they require a particular handling.
-            // do the same for inner fields_views
-            this.fields = this._process_fields_view(fields_view);
+            // process the fields_view to find all fields appearing in the views.
+            // list those fields' name in this.fields_name, which will be the list
+            // of fields read when data is fetched.
+            // this.fields is the list of all field's description (the result of
+            // the fields_get), where the fields appearing in the fields_view are
+            // augmented with their attrs and some flags if they require a
+            // particular handling.
+            var view_fields = this._process_fields_view(fields_view);
+            this.field_names = _.keys(view_fields);
+            this.fields = _.defaults(view_fields, fields_view.fields);
             var self = this;
+            // process the inner fields_view as well to find the fields they use.
+            // register those fields' description directly on the view.
+            // for those inner views, the list of all fields isn't necessary, so
+            // basically the field_names will be the keys of the fields obj.
             // don't use _ to iterate on fields in case there is a 'length' field,
             // as _ doesn't behave correctly when there is a length key in the object
             for (var field_name in this.fields) {
-                var field = this.fields[field_name];
-                _.each(field.views, function (inner_fields_view) {
+                _.each(this.fields[field_name].views, function(inner_fields_view) {
                     inner_fields_view.fields = self._process_fields_view(inner_fields_view);
                 });
             }
@@ -165,6 +182,7 @@ var Model = Class.extend({
         var record = this._make_record(model, {
             data: data,
             fields: record_fields,
+            field_names: _.keys(record_fields),
             relational_data: relational_data,
         });
         return record.id;
@@ -178,6 +196,7 @@ var Model = Class.extend({
         var def;
         if (!('fields' in params)) {
             params.fields = this.fields;
+            params.field_names = this.field_names;
         }
         if ('id' in params) {
             if (params.id) {
@@ -351,6 +370,7 @@ var Model = Class.extend({
 
             model: model,
             fields: params.fields,
+            field_names: params.field_names || _.keys(params.fields),
             data: data,
             is_record: true,
             context: params.context,
@@ -368,6 +388,7 @@ var Model = Class.extend({
             id: _.uniqueId(),
             model: model,
             fields: params.fields,
+            field_names: params.field_names || _.keys(params.fields),
             grouped_by: params.grouped_by || [],
             ordered_by: params.ordered_by || [],
             offset: 0,
@@ -481,7 +502,7 @@ var Model = Class.extend({
                             fields = field.views.kanban.fields;
                         }
                         var data = self._make_list(field.relation, {
-                            fields: fields
+                            fields: fields,
                         });
                         data.data = _.map(val.slice(1), function(elem) {
                             var record = self._make_record(field.relation, {data: elem[2], fields: fields});
@@ -588,7 +609,7 @@ var Model = Class.extend({
         if (!('display_name' in record.fields)) {
             record.fields.display_name = {type: 'char'};
         }
-        return this.perform_model_rpc(record.model, 'read', [record.res_id, Object.keys(record.fields)], {
+        return this.perform_model_rpc(record.model, 'read', [record.res_id, record.field_names], {
             context: { 'bin_size': true },
         }).then(function(result) {
             result = result[0];
@@ -660,7 +681,7 @@ var Model = Class.extend({
             }
         }
         if (missing_ids.length) {
-            def = this.perform_model_rpc(list.model, 'read', [missing_ids, Object.keys(list.fields)], {
+            def = this.perform_model_rpc(list.model, 'read', [missing_ids, list.field_names], {
                 context: {}, // FIXME
             });
         }
@@ -670,6 +691,7 @@ var Model = Class.extend({
                 var record = list.cache[id] || self._make_record(list.model, {
                     data: _.findWhere(records, {id: id}),
                     fields: list.fields,
+                    field_names: list.field_names,
                     relational_data: list.relational_data,
                 });
                 list.data.push(record);
@@ -683,7 +705,7 @@ var Model = Class.extend({
         options = options || {};
         return this.perform_rpc('/web/dataset/search_read', {
             model: list.model,
-            fields: Object.keys(list.fields),
+            fields: list.field_names,
             domain: list.domain || [],
             offset: list.offset,
             limit: list.limit,
@@ -694,6 +716,7 @@ var Model = Class.extend({
                 return self._make_record(list.model, {
                     data: record,
                     fields: list.fields,
+                    field_names: list.field_names,
                     relational_data: list.relational_data,
                 });
             });
@@ -707,7 +730,7 @@ var Model = Class.extend({
     },
     _fetch_grouped_list: function(list) {
         var self = this;
-        var fields = _.uniq(Object.keys(list.fields).concat(list.grouped_by));
+        var fields = _.uniq(list.field_names.concat(list.grouped_by));
         return this.perform_model_rpc(list.model, 'read_group', [], {
             fields: fields,
             context: session.user_context, // todo: combine with view context
@@ -732,6 +755,7 @@ var Model = Class.extend({
                     count: group[raw_groupby + '_count'],
                     domain: group.__domain,
                     fields: list.fields,
+                    field_names: list.field_names,
                     value: group[raw_groupby],
                     aggregate_values: aggregate_values,
                     grouped_by: list.grouped_by,
@@ -893,7 +917,7 @@ var Model = Class.extend({
     },
     add_record_in_group: function (group_id, res_id) {
         var group = this.local_data[group_id];
-        var new_record = this._make_record(group.model, {id: res_id, fields: group.fields});
+        var new_record = this._make_record(group.model, {id: res_id, fields: group.fields, field_names: group.field_names});
         group.data.unshift(new_record);
         group.count++;
         return this._fetch_record(new_record)
@@ -928,6 +952,7 @@ var Model = Class.extend({
                 context: parent.context,
                 domain: parent.domain.concat([[group_by,"=",id]]),
                 fields: parent.fields,
+                field_names: parent.field_names,
                 grouped_by: parent.grouped_by,
                 open_group_by_default: true,
                 ordered_by: parent.ordered_by,
@@ -985,14 +1010,13 @@ var Model = Class.extend({
     },
     make_record_with_defaults: function(model, context) {
         var self = this;
-        var fields_key = Object.keys(this.fields);
-        fields_key = _.without(fields_key, '__last_update');
+        var fields_key = _.without(this.field_names, '__last_update');
 
         return this.perform_model_rpc(model, 'default_get', [fields_key], {
             context: this.get_context(context),
         }).then(function (result) {
             var data = {};
-            var record = self._make_record(model, {data: data, fields: self.fields, context: context});
+            var record = self._make_record(model, {data: data, fields: self.fields, field_names: self.field_names, context: context});
             var defs = [];
             _.each(this.fields, function(value, key) { // FIXME: be careful when using _.each as it doesn't work when there is a field named 'length'
                 if (key in result) {
@@ -1026,7 +1050,7 @@ var Model = Class.extend({
         return this.perform_model_rpc(record.model, 'copy', [record.data.id], {
             context: this.get_context(context),
         }).then(function(res_id) {
-            return self.load(record.model, {id: res_id, fields: record.fields});
+            return self.load(record.model, {id: res_id, fields: record.fields, field_names: record.field_names});
         });
     },
 });
