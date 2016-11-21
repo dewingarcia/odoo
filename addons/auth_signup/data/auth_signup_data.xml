@@ -72,7 +72,7 @@
 <div style="padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777">
 <p>Dear <t t-esc="record.name"/>,</p>
     <p>
-        You have been invited to connect to <t t-esc='"%s" % record.company_id.name'/> in order to get access to your documents in Odoo.
+        You have been invited to connect to &quot;<t t-esc="record.company_id.name"/>&quot; in order to get access to your documents in Odoo.
     </p>
     <p>
         To accept the invitation, click on the following link:
@@ -85,7 +85,7 @@
 <div style="padding:0px;width:600px;margin:auto; margin-top: 10px; background: #fff repeat top /100%;color:#777777">
     <t t-raw="user.signature"/>
     <p style="font-size: 11px; margin-top: 10px;">
-        <strong>Sent by <t t-esc="user.company_id.name" using <a href="www.odoo.com" style="text-decoration:none; color: #875A7B;">Odoo</a></strong>
+        <strong>Sent by <t t-esc="user.company_id.name"/> using <a href="www.odoo.com" style="text-decoration:none; color: #875A7B;">Odoo</a></strong>
     </p>
 </div>]]></field>
             <field name="user_signature" eval="False"/>

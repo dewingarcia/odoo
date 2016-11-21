@@ -48,7 +48,7 @@
             <field name="body_html"><![CDATA[
 <p>Hello,</p>
 <p>
-    <t t-esc="user.name"/> shared the <t t-esc="record.slide_type" <strong t-esc="record.name"/> with you!
+    <t t-esc="user.name"/> shared the <t t-esc="record.slide_type"/> <strong t-esc="record.name"/> with you!
 </p>
 <p style="text-align: center; margin-top: 10px;">
     <a t-att-href="record.website_url">
