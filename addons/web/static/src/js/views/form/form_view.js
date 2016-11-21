@@ -164,13 +164,17 @@ var FormView = AbstractView.extend({
         this.$buttons.find('.o_form_button_save').click(this.save_record.bind(this));
         this.$buttons.find('.o_form_button_cancel').click(this.discard_changes.bind(this));
         this.$buttons.find('.o_form_button_create').click(this.create_record.bind(this));
-        if (this.mode === 'readonly') {
-            this.$buttons.find('.o_form_buttons_edit').addClass('o_hidden');
-        }
-        if (this.mode === 'edit') {
-            this.$buttons.find('.o_form_buttons_view').addClass('o_hidden');
-        }
+
+        this.update_buttons();
+
         this.$buttons.appendTo($node);
+    },
+    update_buttons: function() {
+        if (this.$buttons) {
+            var edit_mode = (this.mode === 'edit');
+            this.$buttons.find('.o_form_buttons_edit').toggleClass('o_hidden', !edit_mode);
+            this.$buttons.find('.o_form_buttons_view').toggleClass('o_hidden', edit_mode);
+        }
     },
     /**
      * Instantiate and render the sidebar if a sidebar is requested
@@ -204,17 +208,11 @@ var FormView = AbstractView.extend({
     },
     to_edit_mode: function() {
         this.mode = "edit";
-        if (this.$buttons) {
-            this.$buttons.find('.o_form_buttons_edit').removeClass('o_hidden');
-            this.$buttons.find('.o_form_buttons_view').addClass('o_hidden');
-        }
         this.$el.addClass('o_form_editable');
         this.update_state(this.db_id);
     },
     to_readonly_mode: function() {
         this.mode = "readonly";
-        this.$buttons.find('.o_form_buttons_edit').addClass('o_hidden');
-        this.$buttons.find('.o_form_buttons_view').removeClass('o_hidden');
         this.$el.removeClass('o_form_editable');
         this.update_state(this.db_id);
     },
