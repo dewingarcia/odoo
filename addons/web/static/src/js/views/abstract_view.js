@@ -66,13 +66,11 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         this.fields = fields_view.fields;
         this.arch = fields_view.arch;
         this.options = _.defaults({}, options, this.defaults);
+        this.page_size = this.options.limit ||
+                         parseInt(this.arch.attrs.limit, 10) ||
+                         this.config.page_size;
         var Model = this.config.Model;
         FieldManagerMixin.init.call(this, new Model(fields_view));
-        if (this.multi_record) {
-            this.config.page_size = this.options.limit ||
-                                    parseInt(this.arch.attrs.limit, 10) ||
-                                    this.config.page_size;
-        }
     },
     start: function() {
         this.$el.toggleClass('o_cannot_create', !this.is_action_enabled('create'));
@@ -216,14 +214,14 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
     },
     render_pager: function($node, options) {
         var data = this.datamodel.get(this.db_id);
-        this.pager = new Pager(this, data.count || 1, data.offset + 1, this.config.page_size, options);
+        this.pager = new Pager(this, data.count || 1, data.offset + 1, this.page_size, options);
 
         this.pager.on('pager_changed', this, function (new_state) {
             var self = this;
             var data = this.datamodel.get(this.db_id);
             this.pager.disable();
-            var limit_changed = (this.config.page_size !== new_state.limit);
-            this.config.page_size = new_state.limit;
+            var limit_changed = (this.page_size !== new_state.limit);
+            this.page_size = new_state.limit;
             this.datamodel
                 .set_limit(data.id, new_state.limit)
                 .set_offset(data.id, new_state.current_min - 1)
@@ -263,7 +261,7 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
                 domain: domain,
                 grouped_by: group_by,
                 context: context,
-                limit: this.config.page_size,
+                limit: this.page_size,
                 many2manys: this.many2manys,
                 m2m_context: this.m2m_context,
                 open_group_by_default: this.config.open_groups_by_default,

@@ -109,6 +109,7 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
         _.each(this.views, function (view) {
             view.options = _.extend({
                 action: self.action,
+                limit: self.action.limit,
             }, self.flags, self.flags[view.type], view.options);
         });
         if (this.flags.search_view) {
