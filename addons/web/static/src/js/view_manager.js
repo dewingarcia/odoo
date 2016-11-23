@@ -94,6 +94,7 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
     },
     willStart: function () {
         var views_def;
+        var self = this;
         var first_view_to_display = this.first_view || this.default_view;
         if (!first_view_to_display.fields_view || (this.flags.search_view && !this.search_fields_view)) {
             views_def = this.load_views();
@@ -127,7 +128,13 @@ var ViewManager = Widget.extend(ControlPanelMixin, {
         var options = this.flags[view_to_load] && this.flags[view_to_load].options;
         var main_view_loaded = this.switch_mode(view_to_load.type, options);
 
-        return $.when(this._super(), main_view_loaded, this.search_view_loaded);
+        var def = $.when(this._super(), main_view_loaded, this.search_view_loaded);
+        if (this.flags.on_load) {
+            def.then(function () {
+                self.flags.on_load(self);
+            });
+        }
+        return def;
     },
     /**
      * Loads all missing field_views of views in this.views and the search view.

@@ -109,9 +109,9 @@ var FormView = AbstractView.extend({
             }
         },
     }),
-    init: function () {
+    init: function (parent, dataset, fields_view, options) {
         this._super.apply(this, arguments);
-        this.mode = 'readonly'; // can be: readonly, edit
+        this.mode = options && options.mode || 'readonly'; // can be: readonly, edit
         this.dataset_ids = this.options.dataset ? this.options.dataset.res_ids : this.dataset.ids;
         this.current_id = this.options.dataset ? this.options.dataset.current_id : this.dataset.ids[this.dataset.index];
     },
@@ -217,6 +217,7 @@ var FormView = AbstractView.extend({
         this.update_state(this.db_id);
     },
     save_record: function() {
+        var self = this;
         if (!this.datamodel.is_dirty(this.db_id)) {
             this.to_readonly_mode();
         } else {
@@ -224,7 +225,10 @@ var FormView = AbstractView.extend({
             if (invalid_fields.length) {
                 this.notify_invalid_fields(invalid_fields);
             } else {
-                this.datamodel.save(this.db_id).then(this.to_readonly_mode.bind(this));
+                this.datamodel.save(this.db_id).then(function (element) {
+                    self.to_readonly_mode();
+                    self.trigger_up('saved', _.clone(element.data));
+                });
             }
         }
     },

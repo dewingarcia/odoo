@@ -1001,7 +1001,7 @@ var Model = Class.extend({
             var data = {};
             var record = self._make_record(model, {data: data, fields: self.fields, field_names: self.field_names, context: context});
             var defs = [];
-            _.each(this.fields, function(value, key) { // FIXME: be careful when using _.each as it doesn't work when there is a field named 'length'
+            _.each(self.fields, function(value, key) { // FIXME: be careful when using _.each as it doesn't work when there is a field named 'length'
                 if (key in result) {
                     if (value.type === 'many2many') {
                         data[key] = result[key][0];

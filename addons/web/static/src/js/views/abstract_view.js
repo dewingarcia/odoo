@@ -50,6 +50,10 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
             this.open_record(event.data.id, {mode: 'edit'});
         },
         reload: 'reload',
+        open_dialog: 'open_dialog',
+        close_dialog: function () {
+            this.trigger_up('do_action', {action: false});
+        },
         // TODO: add open_action, ...
     }),
 
@@ -129,6 +133,30 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         this.trigger_up('switch_view', {
             view_type: 'form',
             options: options,
+        });
+    },
+    open_dialog: function (event) {
+        var data = event.data;
+        this.do_action({
+            type: 'ir.actions.act_window',
+            res_model: data.model,
+            res_id: data.id,
+            view_id: data.view_id,
+            view_mode: data.type,
+            view_type: data.type,
+            views: [[false, data.type]],
+            target: 'new',
+            context: data.context,
+            flags: {
+                on_load: function (viewManager) {
+                    viewManager.$('.o_form_statusbar, .oe_title').remove();
+                    data.on_load && data.on_load(viewManager);
+                },
+                mode: 'edit',
+                footer_to_buttons: true,
+                action_buttons: false,
+                headless: true
+            },
         });
     },
     delete_records: function(ids) {

@@ -698,12 +698,12 @@ var ActionManager = Widget.extend({
             // explicitly passing a closing action to dialog_stop() prevents
             // it from reloading the original form view
             this.dialog_stop(executor.action);
-            this.dialog = new Dialog(this, {
+            this.dialog = new Dialog(this, _.defaults(options || {}, {
                 title: executor.action.name,
                 dialogClass: executor.klass,
                 buttons: [],
                 size: executor.action.context.dialog_size,
-            });
+            }));
 
             // chain on_close triggers with previous dialog, if any
             this.dialog.on_close = function(){
@@ -722,7 +722,7 @@ var ActionManager = Widget.extend({
             this.dialog.on("closed", null, this.dialog.on_close);
             this.dialog_widget = executor.widget();
             if (this.dialog_widget instanceof ViewManager) {
-                _.extend(this.dialog_widget.flags, {
+                _.defaults(this.dialog_widget.flags, {
                     $buttons: this.dialog.$footer,
                     footer_to_buttons: true,
                 });
