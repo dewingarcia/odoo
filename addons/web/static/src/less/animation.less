@@ -149,7 +149,7 @@
 .o-display-marked(@content, @top, @left, @color) {
     position: absolute;
     top: @top;
-    left: @left;
+    .left(@left);
     font-size: 300px;
     font-family: "FontAwesome";
     content: @content;
@@ -176,7 +176,7 @@
     -ms-animation-fill-mode:forwards; /*IE 10+*/
 
     @media (max-width: 992px) {
-        left: 40%;
+        .left(40%);
         font-size: 30vw;
     }
 }

@@ -9,11 +9,11 @@
     }
     .oe_left {
         .oe_inline;
-        float: left!important;
+        .float(left)!important;
     }
     .oe_right {
         .oe_inline;
-        float: right!important;
+        .float(right)!important;
     }
 
     @media (min-width: @screen-xs-min) {
@@ -30,8 +30,8 @@
             > div, > span, > button, > label, > a, > input { // > * did not add a level of priority to the rule
                 .o-flex(0, 0, auto);
                 width: auto!important;
-                margin-right: @odoo-form-spacing-unit/2;
-                margin-left: @odoo-form-spacing-unit/2;
+                .margin-right(@odoo-form-spacing-unit/2);
+                .margin-left(@odoo-form-spacing-unit/2);
             }
 
             > .o_row {
@@ -48,7 +48,7 @@
 
         .o_row .o_form_field_many2one, .o_form_field_many2one.oe_inline {
             &.o_with_button:not(:last-child) { // If invisible element as last child, this line has no effect but that's not very important
-                margin-right: (35px + (@odoo-form-spacing-unit/2));
+                .margin-right(35px + (@odoo-form-spacing-unit/2));
             }
         }
     }
@@ -211,7 +211,7 @@
 
             > input {
                 .o-flex(0, 0, auto);
-                margin: 0 @odoo-form-spacing-unit 0 0;
+                .margin(0, @odoo-form-spacing-unit, 0, 0);
             }
             > label {
                 margin: 0;
@@ -220,7 +220,7 @@
 
         &.o_horizontal {
             .o_radio_item {
-                margin-right: @odoo-form-spacing-unit * 2;
+                .margin-right(@odoo-form-spacing-unit * 2);
             }
         }
 
@@ -259,7 +259,7 @@
     .o_form_field_percent_pie {
         .o-align-items(center);
         > .o_pie {
-            margin-right: 10px;
+            .margin-right(10px);
         }
     }
 

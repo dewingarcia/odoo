@@ -15,7 +15,7 @@
         background-color: #eee;
         border-bottom: 1px solid #cacaca;
         > tr > th {
-            border-left: 1px solid #dfdfdf;
+            .border-left(1px solid #dfdfdf);
             &:not(.o_column_sortable):hover {
                 cursor: default;
             }
@@ -36,12 +36,12 @@
 
         &.o-sort-up:after {
             font-family: FontAwesome;
-            margin-left: 5px;
+            .margin-left(5px);
             content: "\f0d7";
         }
         &.o-sort-down:after {
             font-family: FontAwesome;
-            margin-left: 5px;
+            .margin-left(5px);
             content: "\f0d8";
         }
     }
@@ -49,7 +49,7 @@
     .o_list_record_selector {
         width: 1px;  // to prevent the column to expand
         > input {
-            margin-left: 3px;
+            .margin-left(3px);
             .hidden-xs();
         }
     }
@@ -86,7 +86,7 @@
         .o_group_pager {
             cursor: text;
             .user-select(none);
-            text-align: right;
+            .text-align(right);
             .o_pager_previous, .o_pager_next {
                 background-color: @odoo-list-group-header-color;
                 &:hover {
@@ -103,7 +103,7 @@
     }
 
     .o_list_number {
-        text-align: right;
+        .text-align(right);
         white-space: nowrap;
     }
     .o_list_text {
@@ -153,7 +153,7 @@
             }
             .o_form_field, .badge { // Many2Many tags
                 display: block;
-                float: left;
+                .float(left);
                 white-space: normal;
                 max-width: 100%; // Fix a chrome bug where badge would not break on multiple lines
             }
@@ -172,8 +172,8 @@
         }
         .o_form_input {
             height: 100%;
-            padding-left: 5px;
-            padding-right: 5px;
+            .padding-left(5px);
+            .padding-right(5px);
         }
         .o_form_input, .o_form_textarea, .o_form_field_many2manytags, .o_form_field_monetary {
             border-style: solid;
@@ -182,7 +182,7 @@
             width: 0;
         }
         .o_checkbox {
-            padding: 7px 0 0 5px;
+            .padding(7px, 0, 0, 5px);
             background: transparent;
         }
         .o_form_textarea {
@@ -193,7 +193,7 @@
         }
         .o_form_input_dropdown, .o_datepicker {
             > .o_form_input {
-                padding-right: 15px; // To prevent caret overlapping
+                .padding-right(15px); // To prevent caret overlapping
             }
             > .o_dropdown_button, .o_datepicker_button {
                 .o-position-absolute(20%, 5px);
@@ -202,7 +202,7 @@
         .o_form_field > .o_external_button {
             padding: 0;
             background-color: inherit;
-            margin-left: 3px;
+            .margin-left(3px);
         }
         .o_row_handle {
             visibility: hidden; // Hide sequence when editing
@@ -211,7 +211,7 @@
             width: auto!important; // Override the width computed in JS (needed for Chrome)
         }
         .o_form_field_number {
-            text-align: right;
+            .text-align(right);
         }
     }
 }

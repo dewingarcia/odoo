@@ -5,8 +5,15 @@
         <link rel="stylesheet" type="text/less" href="/web/static/lib/bootstrap/less/mixins/vendor-prefixes.less"/>
         <link rel="stylesheet" type="text/less" href="/web/static/lib/bootstrap/less/mixins/buttons.less"/>
 
+        <t t-if="lang_direction == 'rtl' or (request and request.env['res.lang'].search([('code', '=', request.env.user.lang)]).direction == 'rtl')">
+            <link rel="stylesheet" type="text/less" href="/web/static/src/less/rtl.less"/>
+        </t>
+        <t t-else="">
+            <link rel="stylesheet" type="text/less" href="/web/static/src/less/ltr.less"/>
+        </t>
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/variables.less"/>
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/utils.less"/>
+        <link rel="stylesheet" type="text/less" href="/web/static/src/less/mixin_rtl_ltr.less"/>
     </template>
 
     <template id="web.assets_common">
@@ -85,7 +92,7 @@
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/import_bootstrap.less"/>
 
         <link rel="stylesheet" type="text/css" href="/web/static/lib/nvd3/nv.d3.css"/>
-        <link rel="stylesheet" type="text/css" href="/base/static/src/css/modules.css"/>
+        <link rel="stylesheet" type="text/less" href="/base/static/src/css/modules.less"/>
 
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/bootstrap_overridden.less"/>
         <link rel="stylesheet" type="text/less" href="/web/static/src/less/webclient_extra.less"/>

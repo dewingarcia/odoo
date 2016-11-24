@@ -108,7 +108,7 @@
         }
         .o_td_label .o_form_label {
             font-weight: bold;
-            margin-right: 0px;
+            .margin-right(0px);
         }
     }
     &.oe_form_configuration {
@@ -130,7 +130,7 @@
     .o_form_label {
         font-size: @font-size-base; // The label muse have the same size whatever their position
         line-height: @line-height-base;
-        margin-right: @odoo-form-spacing-unit;
+        .margin-right(@odoo-form-spacing-unit);
         &.o_form_invalid {
             color: @brand-danger;
         }
@@ -153,10 +153,10 @@
                 @colored-tag-width: 45px;
                 width: 5*@colored-tag-width + 3px;
                 > li {
-                    float: left;
+                    .float(left);
                     color: black;
                     > span {
-                        border-radius: 6px;
+                        .border-radius(6px);
                         width: @colored-tag-width;
                         height: 30px;
                         display: inline-block;
@@ -185,7 +185,7 @@
 
     // Boolean
     .o_form_field_boolean {
-        margin: 0 @odoo-form-spacing-unit 0 0;
+        .margin(0, @odoo-form-spacing-unit, 0, 0);
     }
 
     // Numbers
@@ -222,7 +222,7 @@
         position: relative;
 
         > input {
-            padding-right: 15px;
+            .padding-right(15px);
             cursor: pointer;
         }
 
@@ -294,6 +294,7 @@
 
     // One2Many Kanban views
     .o_form_field .o_kanban_view.o_kanban_ungrouped {
+        direction: @lng-direction;
         padding: 0;
         .o_kanban_record {
             box-shadow: none;
@@ -317,7 +318,7 @@
     .o_form_field_percent_pie {
         .o_pie {
             position: relative;
-            border-radius: 100%;
+            .border-radius(100%);
             overflow: hidden;
             background-color: @odoo-brand-optional;
 
@@ -326,7 +327,7 @@
                 .o-position-absolute(0, 0);
                 width: 100%;
                 height: 100%;
-                border-radius: 100%;
+                .border-radius(100%);
             }
 
             .o_mask {
@@ -345,7 +346,7 @@
                 .o-justify-content(center);
                 .o-align-items(center);
 
-                border-radius: 100%;
+                .border-radius(100%);
 
                 font-weight: 700;
                 color: @odoo-brand-primary;
@@ -357,7 +358,7 @@
     .oe_attachment {
         display: inline-block;
         border: 1px solid @odoo-brand-lightsecondary;
-        margin: 0 @odoo-form-spacing-unit @odoo-form-spacing-unit 0;
+        .margin(0, @odoo-form-spacing-unit, @odoo-form-spacing-unit, 0);
         padding: @odoo-form-spacing-unit;
     }
 
@@ -367,11 +368,11 @@
             padding: 0;
 
             &.o_td_label {
-                text-align: right;
+                .text-align(right);
             }
 
             .o_form_label {
-                padding-right: 20px;
+                .padding-right(20px);
 
                 min-width: 0;
                 white-space: nowrap;
@@ -381,14 +382,14 @@
             }
 
             .o_form_field {
-                text-align: right;
+                .text-align(right);
                 width: 100%;
             }
         }
 
         .oe_subtotal_footer_separator {
             width: 100%;
-            text-align: right;
+            .text-align(right);
             border-top: 1px solid @odoo-brand-secondary;
             font-weight: bold;
             font-size: 1.3em;
@@ -402,30 +403,30 @@
         }
 
         .o_address_city {
-            margin-right: 2%;
+            .margin-right(2%);
         }
         .o_address_state {
-            margin-right: 2%;
+            .margin-right(2%);
         }
         &.o_zip_city {
             .o_address_zip {
-                margin-right: 2%;
+                .margin-right(2%);
             }
             .o_address_city {
-                margin-right: 0;
+                .margin-right(0);
             }
             .o_address_state {
                 display: block;
-                margin-right: 0;
+                .margin-right(0);
             }
         }
         &.o_city_state {
             .o_address_state {
-                margin-right: 0;
+                .margin-right(0);
             }
             .o_address_zip {
                 display: block;
-                margin-right: 0;
+                .margin-right(0);
             }
         }
         > span.o_form_field {
@@ -499,8 +500,8 @@
 
 // Buttons in ControlPanel
 .o_control_panel .o_form_buttons_view > button:first-child {
-    float: left; // Unfortunately needed for the bounce effect
-    margin-right: 4px;
+    .float(left); // Unfortunately needed for the bounce effect
+    .margin-right(4px);
 }
 
 // Light labels (not in bold) for settings forms

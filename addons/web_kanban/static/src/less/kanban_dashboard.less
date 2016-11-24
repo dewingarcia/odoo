@@ -21,17 +21,17 @@
     .o_invisible {
         width: 0;
         visibility: hidden;
-        padding-left: 0px !important;
-        padding-right: 0px !important;
-        margin-left: 0px !important;
-        margin-right: 0px !important;
+        .padding-left(0px) !important;
+        .padding-right(0px) !important;
+        .margin-left(0px) !important;
+        .margin-right(0px) !important;
         overflow: hidden;
 
         * {
-            padding-left: 0px !important;
-            padding-right: 0px !important;
-            margin-left: 0px !important;
-            margin-right: 0px !important;
+            .padding-left(0px) !important;
+            .padding-right(0px) !important;
+            .margin-left(0px) !important;
+            .margin-right(0px) !important;
         }
     }
 
@@ -61,12 +61,12 @@
             }
 
             .row .row {
-                margin-left: 0px;
-                margin-right: 0px;
+                .margin-left(0px);
+                .margin-right(0px);
 
                 > div {
-                    padding-left: 0px;
-                    padding-right: 0px;
+                    .padding-left(0px);
+                    .padding-right(0px);
                 }
             }
         }
@@ -91,7 +91,7 @@
                 padding: @odoo-horizontal-padding;
 
                 .o_kanban_manage_toggle_button {
-                    text-align: right;
+                    .text-align(right);
                 }
             }
         }
@@ -100,9 +100,17 @@
             display: inline-block;
             vertical-align: top;
 
-            > .row > div {
-                padding-top: @odoo-horizontal-padding;
-                padding-bottom: @odoo-horizontal-padding;
+            > .row {
+                > div {
+                    padding-top: @odoo-horizontal-padding;
+                    padding-bottom: @odoo-horizontal-padding;
+                }
+                > .o_kanban_primary_left{
+                        .float(left);
+                }
+                > .o_kanban_primary_right{
+                    .float(right);
+                }
             }
 
             .o_kanban_primary_bottom {

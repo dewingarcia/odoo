@@ -1,5 +1,14 @@
 @nb-calendar-colors: 24;
 
+.o_cp_buttons > .o_calendar_buttons {
+    .o_calendar_button_prev{
+        .scaleX(1);
+    }
+    .o_calendar_button_next{
+        .scaleX(1);
+    }
+}
+
 .o_calendar_container {
     height: 100%;
     .o-webclient-padding(@top: @odoo-horizontal-padding/2, @bottom: @odoo-horizontal-padding/2);
@@ -42,13 +51,16 @@
                 background-color: lighten(@odoo-brand-secondary, 30%);
             }
             .o_attendee_head {
-                float: right;
-                margin-left: 1px;
+                .float(right);
+                .margin-left(1px);
                 width: 18px;
                 height: 18px;
             }
             .fc-view {
                 overflow-x: auto;
+                > .fc-event-time, .fc-event-title{
+                .float(right);
+                }
             }
         }
     }
@@ -58,7 +70,7 @@
         position: relative;
 
         &.o_sidebar_hidden {
-            margin-right: -@odoo-horizontal-padding; // hack to display the toggler in the gutter
+            .margin-right(-@odoo-horizontal-padding); // hack to display the toggler in the gutter
             .o_calendar_sidebar_toggler {
                 padding: 4px;
                 color: darken(@odoo-webclient-background-color, 30%);
@@ -76,7 +88,7 @@
 
         .o_calendar_sidebar {
             width: 250px;
-            padding-left: 8px;
+            .padding-left(8px);
         }
 
         .ui-datepicker {
@@ -109,6 +121,7 @@
                     }
                 }
                 .ui-datepicker-prev {
+                    .scaleX(1);
                     order: 1;
                     &:after {
                         font-family: FontAwesome;
@@ -116,6 +129,7 @@
                     }
                 }
                 .ui-datepicker-next {
+                    .scaleX(1);
                     order: 3;
                     &:before {
                         font-family: FontAwesome;
@@ -131,7 +145,7 @@
             }
             table {
                 td {
-                    padding: 0 2px 2px 0;
+                    .padding(0, 2px, 2px, 0);
                     background-color: @odoo-view-background-color;
                     a {
                         border: none;
@@ -167,7 +181,7 @@
 .modal {
     .o_attendee_head {
         width: 32px;
-        margin-right: 5px;
+        .margin-right(5px);
     }
 }
 

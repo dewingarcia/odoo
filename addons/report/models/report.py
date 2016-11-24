@@ -211,17 +211,18 @@ class Report(models.Model):
         # The received html report must be simplified. We convert it in a xml tree
         # in order to extract headers, bodies and footers.
         try:
+            lang_direction = self.env['res.lang'].search([('code', '=', self.env.user.lang)]).direction
             root = lxml.html.fromstring(html)
             match_klass = "//div[contains(concat(' ', normalize-space(@class), ' '), ' {} ')]"
 
             for node in root.xpath(match_klass.format('header')):
                 body = lxml.html.tostring(node)
-                header = render_minimal(dict(subst=True, body=body, base_url=base_url))
+                header = render_minimal(dict(subst=True, body=body, base_url=base_url, lang_direction=lang_direction))
                 headerhtml.append(header)
 
             for node in root.xpath(match_klass.format('footer')):
                 body = lxml.html.tostring(node)
-                footer = render_minimal(dict(subst=True, body=body, base_url=base_url))
+                footer = render_minimal(dict(subst=True, body=body, base_url=base_url, lang_direction=lang_direction))
                 footerhtml.append(footer)
 
             for node in root.xpath(match_klass.format('article')):
@@ -242,7 +243,7 @@ class Report(models.Model):
 
                 # Extract the body
                 body = lxml.html.tostring(node)
-                reportcontent = render_minimal(dict(subst=False, body=body, base_url=base_url))
+                reportcontent = render_minimal(dict(subst=False, body=body, base_url=base_url, lang_direction=lang_direction))
 
                 contenthtml.append(tuple([reportid, reportcontent]))
 

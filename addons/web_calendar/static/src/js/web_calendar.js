@@ -300,6 +300,7 @@ var CalendarView = View.extend({
             selectHelper: true,
             editable: this.editable,
             droppable: true,
+            isRTL: _t.database.parameters.direction == 'rtl' ? true : false,
 
             // callbacks
             viewRender: function(view) {

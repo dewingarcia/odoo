@@ -50,9 +50,9 @@
 
     h1 {
         width: 48%;
-        padding: 0 0 0 @actionColWidth;
-        margin: 0 0 25px 0;
-        float: left;
+        .padding(0, 0, 0, @actionColWidth);
+        .margin(0, 0, 25px, 0);
+        .float(left);
         font-size: 2em;
         height: 1.5em;
     }
@@ -71,7 +71,7 @@
         }
         td:last-child {
             width: 1%;
-            padding-left: 3px;
+            .padding-left(3px);
 
             button {
                 height: 100%;
@@ -86,8 +86,8 @@
 
     .progress {
         width: 49%;
-        margin: 10px @actionColWidth 0 0;
-        float: right;
+        .margin(10px, @actionColWidth, 0, 0);
+        .float(right);
         position: relative;
         display: inline-block;
 
@@ -95,7 +95,7 @@
             text-align: center;
             position: absolute;
             width: 100%;
-            left: 0;
+            .left(0);
             top: 1px;
             z-index: 10;
             text-shadow:
@@ -122,7 +122,7 @@
         margin: 0 @actionColWidth;
         .fa {
             font-size: 20px;
-            margin-left: 7px;
+            .margin-left(7px);
             line-height: 14px;
             position: relative;
             top: 3px;
@@ -131,7 +131,7 @@
 
     .interface_options {
         margin-bottom: 25px;
-        padding-left: @actionColWidth;
+        .padding-left(@actionColWidth);
 
         .oe_radio_input, .o_radio_input {
             border: none;
@@ -149,7 +149,7 @@
             margin-bottom: 30px;
 
             .congrats_icon {
-                float: right;
+                .float(right);
                 font-size: 2em;
                 position: relative;
                 top: -0.25em;
@@ -174,7 +174,7 @@
                     position: absolute;
                     top: 50%;
                     margin-top: -0.55em;
-                    left: 0;
+                    .left(0);
                     width: 100%;
                     text-align: center;
                     //text-shadow: 1px 1px 0 black;
@@ -243,7 +243,7 @@
                 color: @odoo-brand-optional;
                 display: none;
                 cursor: pointer;
-                margin: 0 10px 0 5px;
+                .margin(0, 10px, 0, 5px);
             }
             &:hover .change_partner {
                 display: inline;
@@ -338,12 +338,12 @@
             }
 
             td.cell_action {
-                text-align: left;
+                .text-align(left);
             }
 
             td.cell_account_code {
                 width: 80px;
-                padding-left: @mainTableBordersPadding;
+                .padding-left(@mainTableBordersPadding);
             }
 
             td.cell_due_date {
@@ -355,18 +355,18 @@
             }
 
             td.cell_debit {
-                text-align: right;
+                .text-align(right);
                 width: 15%;
             }
 
             td.cell_credit {
                 width: 15%;
-                text-align: right;
-                padding-right: @mainTableBordersPadding;
+                .text-align(right);
+                .padding-right(@mainTableBordersPadding);
             }
 
             td.cell_info_popover {
-                text-align: right;
+                .text-align(right);
             }
 
             tr.line_open_balance {
@@ -388,12 +388,12 @@
 
             tr .do_partial_reconcile_button {
                 color: @odoo-brand-optional;
-                padding-right: 5px;
+                .padding-right(5px);
             }
 
             tr .undo_partial_reconcile_button {
                 color: @odoo-brand-secondary;
-                padding-right: 5px;
+                .padding-right(5px);
             }
         }
 
@@ -426,9 +426,9 @@
             }
 
             caption {
-                text-align: left;
+                .text-align(left);
                 height: 26px;
-                margin: 0 @actionColWidth 4px @actionColWidth;
+                .margin(0, @actionColWidth, 4px, @actionColWidth);
                 padding: 0; 
 
                 .partner_name {
@@ -438,12 +438,12 @@
 
                 .tip_reconciliation_not_balanced {
                     color: red;
-                    float: right;
-                    padding-right: 7px;
+                    .float(right);
+                    .padding-right(7px);
                 }
 
                 button {
-                    float: right;
+                    .float(right);
                     position: relative;
                     top: -4px;
 
@@ -458,7 +458,7 @@
             }
 
             // accounting "T"
-            td.cell_credit { border-left: @accountingBorder; }
+            td.cell_credit { .border-left(@accountingBorder); }
         }
 
 
@@ -467,7 +467,7 @@
             display: none;
             padding: 1px;
             .match_controls {
-                padding: 0 0 5px (@actionColWidth+@mainTableBordersPadding);
+                .padding(0, 0, 5px, (@actionColWidth+@mainTableBordersPadding));
 
                 .filter {
                     width: 240px;
@@ -480,7 +480,7 @@
                 }
 
                 .pager_control_left {
-                    margin-right: 10px;
+                    .margin-right(10px);
                 }
 
                 .pager_control_left.disabled, .pager_control_right.disabled {
@@ -491,7 +491,7 @@
 
             .show_more {
                 display: inline-block;
-                margin-left: (@actionColWidth+@mainTableBordersPadding);
+                .margin-left((@actionColWidth+@mainTableBordersPadding));
                 margin-top: 5px;
             }
         }
@@ -519,7 +519,7 @@
                     display: none;
                     position: absolute;
                     top: 0;
-                    right: 0;
+                    .right(0);
                     z-index: 100;
 
                     .dropdown-menu {
@@ -537,12 +537,12 @@
                 margin: 0;
                 vertical-align: top;
 
-                &.create_group_left { float: left; }
-                &.create_group_right { float: right; }
+                &.create_group_left { .float(left); }
+                &.create_group_right { .float(right); }
 
                 td {
                     width: 99%;
-                    padding-left: 8px;
+                    .padding-left(8px);
 
                     .oe_m2o_cm_button {
                         line-height: 22px;
@@ -552,9 +552,9 @@
                 td.o_td_label {
                     line-height: 26px;
                     font-weight: bold;
-                    padding-right: 8px;
+                    .padding-right(8px);
                     min-width: 100px;
-                    border-right: 1px solid #ddd;
+                    .border-right(1px solid #ddd);
                     white-space: nowrap;
                     width: 1%;
                 }
@@ -579,7 +579,7 @@
 .o_manual_reconciliation {
     .o_manual_reconciliation_line {
         .button_reconcile {
-            float: right;
+            .float(right);
             position: relative;
             top: 1.1em;
         }
@@ -593,7 +593,7 @@
                 }
 
                 td:nth-child(2) {
-                    padding-left: 0;
+                    .padding-left(0);
                 }
 
                 .cell_item_name {
@@ -606,7 +606,7 @@
                     display: inline-block;
                 }
                 .cell_item_name + .cell_last_time_entries_checked {
-                    padding-left: 20px;
+                    .padding-left(20px);
                 }
 
                 .cell_title_account_code {
@@ -638,7 +638,7 @@
         }
 
         td.cell_due_date {
-            padding-left: @mainTableBordersPadding !important;
+            .padding-left(@mainTableBordersPadding) !important;
         }
     }
 }

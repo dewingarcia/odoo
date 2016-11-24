@@ -46,13 +46,13 @@
         margin: 4px;
 
         .o_kanban_image {
-            float: left;
+            .float(left);
             width: @o-kanban-image-width;
 
             + div {
-                padding-left: @o-kanban-image-width + @o-kanban-inside-hgutter;
+                .padding-left(@o-kanban-image-width + @o-kanban-inside-hgutter);
                 @media (max-width: @screen-xs-max) {
-                    padding-left:  @o-kanban-image-width + @o-kanban-inside-hgutter-mobile;
+                    .padding-left(@o-kanban-image-width + @o-kanban-inside-hgutter-mobile);
                 }
             }
         }
@@ -65,15 +65,15 @@
         }
 
         .o_dropdown_kanban {
-            float: right;
+            .float(right);
             @media (max-width: @screen-xs-max) {
                 visibility: visible;
             }
 
             // Open the dropdown a the left side of the dropdown toggle
             > .dropdown-menu {
-                left: auto;
-                right: 0;
+                .left(auto);
+                .right(0);
                 padding: 3px;
             }
         }
@@ -88,15 +88,15 @@
         }
 
         .oe_kanban_footer_left {
-            float: left;
+            .float(left);
         }
 
         .oe_kanban_bottom_right {
-            float: right;
+            .float(right);
         }
 
         .oe_kanban_bottom_left {
-            float: left;
+            .float(left);
             .oe_kanban_align {
                 display: inline-block;
                 vertical-align: middle;
@@ -106,7 +106,7 @@
         .o_kanban_tags {
             margin: 0 0 @o-kanban-inside-vgutter -@o-kanban-inside-hgutter;
             @media (max-width: @screen-xs-max) {
-                margin-left:  -@o-kanban-inside-hgutter-mobile;
+                .margin-left(-@o-kanban-inside-hgutter-mobile);
             }
             max-height: 9px;
             .o_tag {
@@ -131,7 +131,7 @@
     }
 
     .o_kanban_quick_create {
-        margin: 0 @o-kanban-record-margin @o-kanban-record-margin @o-kanban-record-margin;
+        .margin(0, @o-kanban-record-margin, @o-kanban-record-margin, @o-kanban-record-margin);
         padding: 3px;
         input {
             width: 100%;
@@ -163,7 +163,7 @@
         .o_kanban_record {
             .o-flex(1, 1, @o-kanban-default-record-width);
             @media (max-width: @screen-xs-max) {
-                margin: 0 0 1px 0;
+                .margin(0, 0, 1px, 0);
                 .o-flex(1, 0, 100%);
                 box-shadow: none;
             }
@@ -181,7 +181,7 @@
 
     &.o_kanban_grouped {
         min-height: 100%;
-        padding: 0 @odoo-horizontal-padding - @o-kanban-group-padding - @o-kanban-record-margin;
+        .padding(0, @odoo-horizontal-padding, - @o-kanban-group-padding, - @o-kanban-record-margin);
         .o_kanban_record {
             width: @o-kanban-default-record-width;
         }
@@ -274,7 +274,7 @@
             > button, > a {
                 .o-position-absolute(@right: @o-kanban-inside-hgutter, @bottom: @o-kanban-inside-vgutter);
                 @media (max-width: @screen-xs-max) {
-                    right: @o-kanban-inside-hgutter-mobile;
+                    .right(@o-kanban-inside-hgutter-mobile);
                 }
             }
         }
@@ -290,7 +290,7 @@
         }
         .oe_kanban_avatar {
             .img-rounded;
-            margin-left: 2px;
+            .margin-left(2px);
         }
 
         .oe_kanban_avatar_smallbox {
@@ -298,8 +298,8 @@
             width: 40px;
             box-shadow: 0 1px 4px @gray-light;
 
-            float: left;
-            margin-right: 5px;
+            .float(left);
+            .margin-right(5px);
         }
 
         .o_kanban_attachment_image {
@@ -322,13 +322,13 @@
             }
             .o_progressbar_value {
                 .o-flex(0, 0, auto);
-                text-align: right;
+                .text-align(right);
                 width: auto;
                 height: 100%;
             }
             input.o_progressbar_value {
                 width: 15%;
-                margin-left: 8px;
+                .margin-left(8px);
             }
         }
 
@@ -338,7 +338,7 @@
 
             > li {
                 display: inline-block;
-                margin-right: 1px;
+                .margin-right(1px);
 
                 > a {
                     width: 15px;
@@ -402,7 +402,7 @@
             }
             &:hover .o_kanban_config, .o_kanban_config.open {
                 display: inline-block;
-                margin-left: 4px;
+                .margin-left(4px);
             }
             .o_kanban_config {
                 display: none;
@@ -417,16 +417,17 @@
 
         &.o_column_folded {
             position: relative;
-            border-right: 1px solid darken(@odoo-webclient-background-color, 10%);
+            .border-right(1px solid darken(@odoo-webclient-background-color, 10%));
             margin: 0;
 
             .o_column_title {
                 line-height: 1.3;
                 text-transform: uppercase;
-                transform-origin: left bottom;
-                transform: rotate(90deg);
-                top: 40px;
-                left: 15px;
+                .transform-origin(left, bottom);
+                .rotate(90deg);
+                top: 55px;
+                .left(10px);
+                .right(0px);
                 position: absolute;
                 overflow: visible;
             }
@@ -485,10 +486,11 @@
                 font-weight: 300;
                 white-space: nowrap;
                 text-transform: uppercase;
-                transform-origin: left bottom;
-                transform: rotate(90deg);
-                top: 40px;
-                left: 15px;
+                .transform-origin(left, bottom);
+                .rotate(90deg);
+                top: 55px;
+                .left(7px);
+                .right(0px);
                 position: absolute;
             }
         }

@@ -13,23 +13,23 @@
             }
 
             > td {
-                text-align: right;
+                .text-align(right);
 
                 &.oe_timesheet_weekly_account {
                     white-space: nowrap;
-                    text-align: left;
+                    .text-align(left);
                 }
                 input.oe_timesheet_weekly_input {
                     display: inline-block;
                     width: 40px;
-                    text-align: right;
+                    .text-align(right);
                 }
 
                 .oe_timesheet_button_add {
-                    margin-left: 8px;
+                    .margin-left(8px);
                 }
                 .o_with_button + .oe_timesheet_button_add {
-                    margin-left: 45px;
+                    .margin-left(45px);
                 }
             }
 
@@ -60,10 +60,10 @@
 
                     .oe_timesheet_button_add {
                         .o-flex(0, 0, auto);
-                        margin-left: 8px;
+                        .margin-left(8px);
                     }
                     .o_with_button + .oe_timesheet_button_add {
-                        margin-left: 45px;
+                        .margin-left(45px);
                     }
                 }
             }

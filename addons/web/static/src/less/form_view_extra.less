@@ -17,28 +17,28 @@
         }
     }
     &.o_form_nosheet > header {
-        margin: -16px -16px 0 -16px;
+        .margin(-16px, -16px, 0, -16px);
     }
     ul.oe_form_status, ul.oe_form_status_clickable {
         display: inline-block;
         margin: 0;
-        padding: 0 18px 0 0;
+        .padding(0, 18px, 0, 0);
         li {
             display: inline-block;
             list-style-type: none;
             // It is probably a bad idea to modify this margin
-            margin: 0 -18px 0 0;
+            .margin(0, -18px, 0, 0);
             padding: 0;
             height: 30px;
             .o-vertical-gradient(#fcfcfc, #dedede);
             &:first-child > .label {
-                border-left: 1px solid #cacaca;
-                padding-left: 14px;
+                .border-left(1px solid #cacaca);
+                .padding-left(14px);
             }
             &:last-child {
-                border-right: 1px solid #cacaca;
+                .border-right(1px solid #cacaca);
                 > .label {
-                    padding-right: 14px;
+                    .padding-right(14px);
                 }
                 > .arrow {
                     display: none;
@@ -49,7 +49,7 @@
                 text-shadow: 0 1px 1px #fcfcfc, 0 -1px 1px #dedede;
                 padding: 7px;
                 display: inline-block;
-                padding-left: 24px;
+                .padding-left(24px);
                 margin: 0;
                 position: relative;
                 // Customize for statusbar label
@@ -64,13 +64,13 @@
                 display: inline-block;
                 vertical-align: top;
                 overflow: hidden;
-                margin-left: -5px;
+                .margin-left(-5px);
                 span {
                     position: relative;
                     width: 24px;
                     height: 24px;
                     display: inline-block;
-                    margin-left: -12px;
+                    .margin-left(-12px);
                     margin-top: 3px;
                     border-radius: 3px;
                     box-shadow: -1px 1px 2px rgba(255,255,255,0.2), inset -1px 1px 1px rgba(0,0,0,0.2);
@@ -90,7 +90,7 @@
                 margin: 0;
                 width: 100%;
                 span.label {
-                    padding-left: 14px;
+                    .padding-left(14px);
                 }
             }
         }
@@ -182,7 +182,7 @@
     // Groups
     .o_group {
         .o_td_label {
-            border-right: 1px solid #ddd;
+            .border-right(1px solid #ddd);
         }
     }
 
@@ -195,7 +195,7 @@
 
     .o_form_field.o_form_field_many2one .o_external_button {
         padding: 0;
-        margin-left: 2px;
+        .margin-left(2px);
         font-size: 19px;
         color: #7C7BAD;
         border: none;
@@ -217,7 +217,7 @@
 
     // Translate icon
     .o_field_translate {
-        margin-left: -15px;
+        .margin-left(-15px);
     }
 
     // Percent pie field
@@ -228,7 +228,7 @@
         .o_pie {
             width: @pie-dimension;
             height: @pie-dimension;
-            margin-left: 5px;
+            .margin-left(5px);
 
             &:after { // Outside pie border to go over border-radius irregularities
                 border: 1px solid @odoo-brand-primary;
@@ -250,7 +250,7 @@
             border-top: 1px solid #cacaca;
         }
         .o_td_label {
-            border-right: none;
+            .border-right(none);
         }
     }
 }
