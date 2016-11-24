@@ -93,6 +93,9 @@ var CalendarView = AbstractView.extend({
             this.$calendar.fullCalendar('refetchEvents');
         },
     },
+    config: _.extend({}, AbstractView.prototype.config, {
+        hasPager: false,
+    }),
     defaults: _.extend({}, AbstractView.prototype.defaults, {
         confirm_on_delete: true,
     }),
