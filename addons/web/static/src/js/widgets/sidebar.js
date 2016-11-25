@@ -167,6 +167,10 @@ var Sidebar = Widget.extend({
             });
         });
     },
+    get_attachement_domain: function() {
+        // Override in website_digital_sale
+        return [ ['res_model', '=', this.dataset.model], ['res_id', '=', this.model_id], ['type', 'in', ['binary', 'url']] ];
+    },
     do_attachement_update: function(dataset, model_id, args) {
         this.dataset = dataset;
         this.model_id = model_id;
@@ -177,7 +181,7 @@ var Sidebar = Widget.extend({
         if (!model_id) {
             this.on_attachments_loaded([]);
         } else {
-            var dom = [ ['res_model', '=', dataset.model], ['res_id', '=', model_id], ['type', 'in', ['binary', 'url']] ];
+            var dom = this.get_attachement_domain();
             var ds = new data.DataSetSearch(this, 'ir.attachment', dataset.get_context(), dom);
             ds.read_slice(['name', 'url', 'type', 'create_uid', 'create_date', 'write_uid', 'write_date'], {}).done(this.on_attachments_loaded);
         }
