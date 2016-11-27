@@ -104,7 +104,7 @@ class AssetsBundle(object):
         if sep is None:
             sep = '\n            '
         response = []
-        if True:
+        if debug == 'assets':
             if css and self.stylesheets:
                 if not self.is_css_preprocessed():
                     self.preprocess_css(debug=debug)

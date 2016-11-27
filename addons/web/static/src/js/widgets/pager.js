@@ -47,6 +47,7 @@ var Pager = Widget.extend({
             validate: function() {
                 return $.Deferred().resolve();
             },
+            withAccessKey: true,  // can be disabled, for example, for x2m widgets
         });
         this._super(parent);
     },

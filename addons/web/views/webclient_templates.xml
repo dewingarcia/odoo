@@ -180,7 +180,6 @@
         <script type="text/javascript" src="/web/static/src/js/views/view_registry.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/form/form_common.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/form/form_renderer.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/form/form_tests.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/form/form_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/graph/graph_model.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/graph/graph_renderer.js"></script>
@@ -189,11 +188,9 @@
         <script type="text/javascript" src="/web/static/src/js/views/kanban/kanban_quick_create.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/kanban/kanban_record.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/kanban/kanban_renderer.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/kanban/kanban_tests.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/kanban/kanban_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/list/list_editable_renderer.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/list/list_renderer.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/views/list/list_tests.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/list/list_view.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/pivot/pivot_model.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/pivot/pivot_renderer.js"></script>
@@ -203,10 +200,6 @@
         <script type="text/javascript" src="/web/static/src/js/views/search_inputs.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/search_menus.js"></script>
         <script type="text/javascript" src="/web/static/src/js/views/tree_view.js"></script>
-
-        <script type="text/javascript" src="/web/static/src/js/testing/test.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/testing/test_model.js"></script>
-        <script type="text/javascript" src="/web/static/src/js/testing/test_utils.js"></script>
     </template>
 
     <template id="web.assets_frontend">
@@ -385,26 +378,32 @@
             <t t-set="html_data" t-value="{'style': 'height: 100%;'}"/>
             <t t-set="title">Odoo Web Tests</t>
             <t t-set="head">
-                <link type="text/css" rel="stylesheet" href="/web/static/lib/qunit/qunit-1.17.1.css"/>
-                <script type="text/javascript" src="/web/static/lib/qunit/qunit-1.17.1.js"></script>
+                <link type="text/css" rel="stylesheet" href="/web/static/lib/qunit/qunit-2.0.1.css"/>
+                <script type="text/javascript" src="/web/static/lib/qunit/qunit-2.0.1.js"></script>
+                <script type="text/javascript" src="/web/static/test/helpers/qunit_config.js"></script>
 
                 <t t-call-assets="web.assets_common" t-css="false"/>
                 <t t-call-assets="web.assets_backend" t-css="false"/>
-                <t t-call="web.webclient_script"/>
+                <script type="text/javascript" src="/web/static/test/helpers/test_utils.js"></script>
+                <script type="text/javascript" src="/web/static/test/helpers/mock_server.js"></script>
 
-                <script type="text/javascript" src="/web/static/test/testing.js"></script>
-                <script type="text/javascript" src="/web/static/test/registry.js"></script>
-                <script type="text/javascript" src="/web/static/test/rpc-misordered.js"></script>
-                <script type="text/javascript" src="/web/static/test/mutex.js"></script>
-                <script type="text/javascript" src="/web/static/test/data.js"></script>
-                <script type="text/javascript" src="/web/static/test/evals.js"></script>
-                <script type="text/javascript" src="/web/static/test/form.js"></script>
-                <script type="text/javascript" src="/web/static/test/formats.js"></script>
-                <script type="text/javascript" src="/web/static/test/framework.js"></script>
-                <script type="text/javascript" src="/web/static/test/list.js"></script>
-                <script type="text/javascript" src="/web/static/test/list-utils.js"></script>
-                <script type="text/javascript" src="/web/static/test/list-editable.js"></script>
-                <script type="text/javascript" src="/web/static/test/search.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/form_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/graph_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/list_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/pivot_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/kanban_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/basic_model_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/views/field_utils_tests.js"></script>
+
+                <script type="text/javascript" src="/web/static/test/framework/registry_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/pyeval_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/class_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/data_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/time_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/util_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/widget_tests.js"></script>
+
+                <script type="text/javascript" src="/web/static/test/widgets/pager_tests.js"></script>
             </t>
 
             <div id="qunit"/>

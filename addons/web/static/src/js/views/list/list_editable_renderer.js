@@ -116,7 +116,7 @@ ListRenderer.include({
         for (; col_index < this.columns.length; col_index++) {
             col_attrs = this.columns[col_index].attrs;
             modifiers = JSON.parse(col_attrs.modifiers);
-            is_readonly = modifiers.readonly;
+            is_readonly = 'readonly' in modifiers ? modifiers.readonly : this.state.fields[col_attrs.name].readonly;
             if (!is_readonly) {
                 break;
             }
@@ -148,7 +148,7 @@ ListRenderer.include({
         _.each(this.columns, function(node, index) {
             var field = self.state.fields[node.attrs.name];
             var modifiers = JSON.parse(field.__attrs.modifiers);
-            if (modifiers.readonly) {
+            if ('readonly' in modifiers ? modifiers.readonly : field.readonly) {
                 return;
             }
             var widget_keys = ['list.' + field.type, field.type];

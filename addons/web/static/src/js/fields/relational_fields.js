@@ -147,6 +147,7 @@ var FieldX2Many = AbstractRelationalField.extend({
         this.control_panel = new ControlPanel(this, "X2ManyControlPanel");
         this.pager = new Pager(this, this.state.count, this.state.offset + 1, this.state.limit, {
             single_page_hidden: true,
+            withAccessKey: false,
         });
         this.pager.on('pager_changed', this, function (new_state) {
             this.trigger_up('load', {

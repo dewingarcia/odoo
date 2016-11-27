@@ -34,9 +34,14 @@ function format_datetime(value) {
     return moment(time.str_to_datetime(value)).format(datetime_format);
 }
 
+// Format a float, according to the local settings
+// Params:
+// * value: a number describing the raw value of the float
+// * field [optional]: a description of a field, that may contains extra
+//   information, such as a given precision
 function format_float(value, field) {
     var l10n = core._t.database.parameters;
-    var precision = field.digits ? field.digits[1] : 2;
+    var precision = (field && field.digits) ? field.digits[1] : 2;
     var formatted = _.str.sprintf('%.' + precision + 'f', value || 0).split('.');
     formatted[0] = utils.insert_thousand_seps(formatted[0]);
     return formatted.join(l10n.decimal_point);

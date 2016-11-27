@@ -4,7 +4,6 @@ odoo.define('web.Widget', function (require) {
 var core = require('web.core');
 var session = require('web.session');
 
-var qweb = core.qweb;
 var mixins = core.mixins;
 
 /**
@@ -213,7 +212,7 @@ var Widget = core.Class.extend(mixins.PropertiesMixin, {
     renderElement: function() {
         var $el;
         if (this.template) {
-            $el = $(qweb.render(this.template, {widget: this}).trim());
+            $el = $(core.qweb.render(this.template, {widget: this}).trim());
         } else {
             $el = this._make_descriptive();
         }

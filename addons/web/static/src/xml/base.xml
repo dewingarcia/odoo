@@ -1216,7 +1216,7 @@
     <span class="o_pager_value"></span> / <span class="o_pager_limit"></span>
     <span class="btn-group btn-group-sm">
         <!-- accesskeys not wanted in X2Many widgets -->
-        <t t-if="!widget.getParent().x2m">
+        <t t-if="widget.options.withAccessKey">
             <t t-set="att_prev" t-value="{'accesskey': 'p'}" />
             <t t-set="att_next" t-value="{'accesskey': 'n'}" />
         </t>

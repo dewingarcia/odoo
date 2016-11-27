@@ -19,6 +19,7 @@ return AbstractRenderer.extend({
     init: function(parent, arch) {
         this._super.apply(this, arguments);
         this.stacked = arch.attrs.stacked !== "False";
+        this.$el.css({minWidth: '100px', minHeight: '100px'});
     },
     _render: function() {
         if (this.to_remove) {
@@ -112,7 +113,7 @@ return AbstractRenderer.extend({
         svg.transition().duration(0);
 
         var chart = nv.models.multiBarChart();
-        var maxVal = _.max(values, function(v) {return v.y})
+        var maxVal = _.max(values, function(v) {return v.y});
         chart.options({
           margin: {left: 12 * String(maxVal && maxVal.y || 10000000).length},
           delay: 250,
