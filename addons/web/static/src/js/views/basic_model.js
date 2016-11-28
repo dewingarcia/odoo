@@ -344,6 +344,8 @@ var Model = Class.extend({
     _make_record: function(model, params) {
         var data = params.data || {};
         var fields = _.extend({}, {display_name: {type: "char"}}, params.fields);
+        var field_names = params.field_names ? _.uniq(params.field_names.concat(['display_name']))
+                                             : _.keys(fields);
         var record = {
             id: _.uniqueId(),
             res_id: params.id || data.id,
@@ -356,7 +358,7 @@ var Model = Class.extend({
 
             model: model,
             fields: fields,
-            field_names: _.uniq(params.field_names.concat(['display_name'])) || _.keys(fields),
+            field_names: field_names,
             data: data,
             is_record: true,
             context: params.context,
