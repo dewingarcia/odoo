@@ -15,6 +15,7 @@ function demoData() {
     return {
         partner: {
             fields: {
+                display_name: {string: "STRING", type: 'char'},
                 foo: {string: "Foo", type: 'char'},
                 bar: {string: "Bar", type: 'integer'},
             },
@@ -30,12 +31,15 @@ QUnit.module('Basic Model');
 
 
 QUnit.test('simple functionality', function(assert) {
-    var model = makeModel(demoData());
+    var data = demoData();
+    var model = makeModel(data);
     assert.equal(model.get(1), null, "should return null for non existing key");
+
 
     var params = {
         id: 2,
-        fields: ['foo'],
+        fields: data.partner.fields,
+        field_names: ['foo'],
     };
     model.load('partner', params).then(function(resultID) {
         // it is a string, because it is used as a key in an object
@@ -44,6 +48,8 @@ QUnit.test('simple functionality', function(assert) {
         var record = model.get(resultID);
         assert.equal(record.res_id, 2, "res_id read should be the same as asked");
         assert.ok(record.is_record, "should be of type 'record'");
+        assert.equal(record.data.foo, "gnap", "should correctly read value");
+        assert.equal(record.data.bar, undefined, "should not fetch the field 'bar'");
     });
 });
 
