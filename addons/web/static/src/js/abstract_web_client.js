@@ -193,7 +193,7 @@ var WebClient = Widget.extend({
      * This allows to widgets that are not inside the ActionManager to perform do_action
      */
     do_action: function() {
-        return this.action_manager.do_action.apply(this, arguments);
+        return this.action_manager.doAction.apply(this, arguments);
     },
     do_reload: function() {
         var self = this;

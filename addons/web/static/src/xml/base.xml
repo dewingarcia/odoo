@@ -66,7 +66,14 @@
     </div>
 </form>
 
-<div t-name="ActionManager" class="o_content"/>
+<div t-name="ActionManager" class="o_action_manager"/>
+
+<div t-name="Action" class="o_action">
+    <div class="o_control_panel"/>
+    <div class="o_wrapper">
+        <div class="o_content"/>
+    </div>
+</div>
 
 <t t-name="ControlPanel">
     <div class="o_control_panel">
