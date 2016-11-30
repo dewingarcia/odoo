@@ -37,6 +37,8 @@ var MockServer = Class.extend({
             arch = utils.xml_to_json(doc, true);
         }
         var fields = this.data[model].fields;
+        var onchanges = this.data[model].onchanges || {};
+
         var fieldNodes = {};
 
         _traverse(arch, function(node) {
@@ -73,6 +75,11 @@ var MockServer = Class.extend({
                 modifiers.invisible = pyeval.py_eval(node.attrs.invisible);
             }
             node.attrs.modifiers = JSON.stringify(modifiers);
+
+            // add onchanges
+            if (name in onchanges) {
+                node.attrs.on_change="1";
+            }
         });
         var result = {
             arch: arch,
@@ -189,6 +196,29 @@ var MockServer = Class.extend({
         }
         return $.when(names);
     },
+    _write: function(model, args) {
+        var record = this.data[model].records.find(function (record) {
+            return record.id === args[0][0];
+        });
+        _.extend(record, args[1]);
+        return $.when(true);
+    },
+    _onchange: function(model, args) {
+        var onchanges = this.data[model].onchanges;
+        var record = args[1];
+        var fields = args[2];
+        var result = {};
+        _.each(fields, function(field) {
+            var changes = _.clone(record);
+            onchanges[field](changes);
+            _.each(changes, function(value, key) {
+                if (record[key] !== value) {
+                    result[key] = value;
+                }
+            });
+        });
+        return $.when({value: result});
+    },
     performRpc: function(route, args) {
         if (this.logRPC) {
             console.log('Mock server called.', route, args);
@@ -204,6 +234,12 @@ var MockServer = Class.extend({
         }
         if (args.method === 'name_search') {
             return this._nameSearch(args.model, args.kwargs);
+        }
+        if (args.method === 'write') {
+            return this._write(args.model, args.args);
+        }
+        if (args.method === 'onchange') {
+            return this._onchange(args.model, args.args);
         }
 
         console.error("Unimplemented route", route, args);

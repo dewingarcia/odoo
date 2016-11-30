@@ -48,7 +48,12 @@ function createView(params) {
         ids: [params.res_id],
     };
 
-    var mockServer = new MockServer(params.data);
+    var Server = MockServer;
+    if (params.mockRPC) {
+        Server = MockServer.extend({performRpc: params.mockRPC});
+    }
+
+    var mockServer = new Server(params.data);
     var fields_view = mockServer.fieldsViewGet(params.arch, params.model);
 
     var view = new params.View(null, dataset, fields_view, params.view_options);

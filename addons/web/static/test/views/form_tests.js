@@ -575,5 +575,91 @@ QUnit.test('buttons in form view', function (assert) {
 });
 
 
+QUnit.test('change and save char', function (assert) {
+    assert.expect(6);
+    var form = createView({
+        View: FormView,
+        model: 'partner',
+        data: this.data,
+        arch: '<form string="Partners">' +
+                '<group><field name="foo"/></group>' +
+            '</form>',
+        mockRPC: function(route, args) {
+            if (args.method === 'write') {
+                assert.ok(true, "should call the /write route");
+            }
+            return this._super(route, args);
+        },
+        res_id: 2,
+    });
+
+    assert.equal(form.mode, 'readonly', 'form view should be in readonly mode');
+    assert.equal(form.$('span:contains(blip)').length, 1,
+                    "should contain span with field value");
+
+    form.$buttons.find('.o_form_button_edit').click();
+
+    assert.equal(form.mode, 'edit', 'form view should be in edit mode');
+    form.$('input').val("tralala").trigger('input');;
+    form.$buttons.find('.o_form_button_save').click();
+
+    assert.equal(form.mode, 'readonly', 'form view should be in readonly mode');
+    assert.equal(form.$('span:contains(tralala)').length, 1,
+                    "should contain span with field value");
+
+});
+
+QUnit.test('properly reload data from server', function (assert) {
+    var form = createView({
+        View: FormView,
+        model: 'partner',
+        data: this.data,
+        arch: '<form string="Partners">' +
+                '<group><field name="foo"/></group>' +
+            '</form>',
+        mockRPC: function(route, args) {
+            if (args.method === 'write') {
+                args.args[1].foo = "apple";
+            }
+            return this._super(route, args);
+        },
+        res_id: 2,
+    });
+
+    form.$buttons.find('.o_form_button_edit').click();
+    form.$('input').val("tralala").trigger('input');;
+    form.$buttons.find('.o_form_button_save').click();
+    assert.equal(form.$('span:contains(apple)').length, 1,
+                    "should contain span with field value");
+});
+
+QUnit.test('properly apply onchange in simple case', function (assert) {
+    this.data.partner.onchanges = {
+        foo: function(obj) {
+            obj.int_field = obj.foo.length + 1000;
+        },
+    };
+    var form = createView({
+        View: FormView,
+        model: 'partner',
+        data: this.data,
+        arch: '<form string="Partners">' +
+                '<group><field name="foo"/><field name="int_field"/></group>' +
+            '</form>',
+        res_id: 2,
+    });
+
+    form.$buttons.find('.o_form_button_edit').click();
+
+    assert.equal(form.$('input').eq(1).val(), 9,
+                    "should contain input with initial value");
+
+    form.$('input').first().val("tralala").trigger('input');
+
+    assert.equal(form.$('input').eq(1).val(), 1007,
+                    "should contain input with onchange applied");
+});
+
+
 
 });
