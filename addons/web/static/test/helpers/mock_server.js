@@ -187,7 +187,7 @@ var MockServer = Class.extend({
         return $.when($.extend(true, {}, result));
     },
     // not yet fully implemented (missing: limit, and evaluate operators)
-    _nameSearch: function(model, _kwargs) {
+    _mockNameSearch: function(model, _kwargs) {
         var names = _.map(this.data[model].records, function (record) {
             return [record.id, record.display_name];
         });
@@ -196,14 +196,14 @@ var MockServer = Class.extend({
         }
         return $.when(names);
     },
-    _write: function(model, args) {
+    _mockWrite: function(model, args) {
         var record = this.data[model].records.find(function (record) {
             return record.id === args[0][0];
         });
         _.extend(record, args[1]);
         return $.when(true);
     },
-    _onchange: function(model, args) {
+    _mockOnchange: function(model, args) {
         var onchanges = this.data[model].onchanges;
         var record = args[1];
         var fields = args[2];
@@ -219,31 +219,41 @@ var MockServer = Class.extend({
         });
         return $.when({value: result});
     },
+    _mockLoadAction: function(args) {
+        var action = _.findWhere(this.data['ir.action'].records, {id: args.action_id});
+        return $.when($.extend(true, {}, action));
+    },
     performRpc: function(route, args) {
         if (this.logRPC) {
             console.log('Mock server called.', route, args);
         }
-        if (route === "/web/dataset/search_read") {
-            return this._mockSearchRead(args);
-        }
-        if (args.method === "read_group") {
-            return this._mockReadGroup(args.model, args.kwargs);
-        }
-        if (args.method === 'read') {
-            return this._mockRead(args.model, args.args, args.kwargs);
-        }
-        if (args.method === 'name_search') {
-            return this._nameSearch(args.model, args.kwargs);
-        }
-        if (args.method === 'write') {
-            return this._write(args.model, args.args);
-        }
-        if (args.method === 'onchange') {
-            return this._onchange(args.model, args.args);
-        }
+        switch (route) {
+            case '/web/dataset/search_read':
+                return this._mockSearchRead(args);
 
-        console.error("Unimplemented route", route, args);
-        return $.when();
+            case '/web/action/load':
+                return this._mockLoadAction(args);
+        }
+        switch (args.method) {
+            case 'read_group':
+                return this._mockReadGroup(args.model, args.kwargs);
+
+            case 'read':
+                return this._mockRead(args.model, args.args, args.kwargs);
+
+            case 'name_search':
+                return this._mockNameSearch(args.model, args.kwargs);
+
+            case 'write':
+                return this._mockWrite(args.model, args.args);
+
+            case 'onchange':
+                return this._mockOnchange(args.model, args.args);
+
+            default:
+                console.error("Unimplemented route", route, args);
+                return $.when();
+        }
     },
 });
 

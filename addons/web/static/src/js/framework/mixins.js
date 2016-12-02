@@ -358,10 +358,64 @@ var PropertiesMixin = _.extend({}, EventDispatcherMixin, {
     }
 });
 
+var CacheMixin = {
+    __cache: {},
+
+    invalidateCache: function() {
+        this.__cache = {};
+    },
+    _generateKey: function() {
+        return _.map(Array.prototype.slice.call(arguments), function (arg) {
+            if (!arg) {
+                return false;
+            }
+            return _.isObject(arg) ? JSON.stringify(arg) : arg;
+        }).join(',');
+    },
+    addToCache: function(key, value) {
+        var stringKey = this._generateKey(key);
+        this.__cache[stringKey] = value;
+    },
+    removeFromCache: function(key) {
+        var stringKey = this._generateKey(key);
+        delete this.__cache[stringKey];
+    },
+    // getter: optional argument.  If getter is present and the cache
+    // does not contain the key, then the getter will be used to fetch
+    // the value.
+    readFromCache: function(key, getter) {
+        var stringKey = this._generateKey(key);
+        if (stringKey in this.__cache) {
+            return this.__cache[stringKey];
+        } else if (getter) {
+            var value = getter();
+            this.__cache[stringKey] = value;
+            return value;
+        }
+        return null;
+    },
+};
+
+var UtilsMixin = {
+    performRPC: function(route, args) {
+        var def = $.Deferred();
+        this.trigger_up('perform_rpc', {
+            route: route,
+            args: args,
+            on_success: function(result) {
+                def.resolve(result);
+            },
+        });
+        return def;
+    },
+};
+
 return {
     ParentedMixin: ParentedMixin,
     EventDispatcherMixin: EventDispatcherMixin,
     PropertiesMixin: PropertiesMixin,
+    CacheMixin: CacheMixin,
+    UtilsMixin: UtilsMixin,
 };
 
 });

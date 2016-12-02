@@ -34,14 +34,24 @@ var WebClient = Widget.extend({
             this.current_action_updated(e.data.action);
         },
         perform_rpc: function(event) {
-            if (event.data.on_fail) {
-                event.data.on_fail();
-            }
+            var data = event.data;
+            return session.rpc(data.route, data.args).then(function (result) {
+                if (data.on_success) {
+                    data.on_success(result);
+                }
+            }).fail(function () {
+                if (data.on_fail) {
+                    data.on_fail();
+                }
+            });
         },
         perform_model_rpc: function(event) {
             if (event.data.on_fail) {
                 event.data.on_fail();
             }
+        },
+        push_state: function(event) {
+            this.do_push_state(event.data);
         },
     },
     init: function(parent) {
@@ -193,7 +203,7 @@ var WebClient = Widget.extend({
      * This allows to widgets that are not inside the ActionManager to perform do_action
      */
     do_action: function() {
-        return this.action_manager.doAction.apply(this, arguments);
+        return this.action_manager.doAction.apply(this.action_manager, arguments);
     },
     do_reload: function() {
         var self = this;

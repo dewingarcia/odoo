@@ -1,39 +1,41 @@
-odoo.define('web.Action', function(require) {
-"use strict";
-
-var Widget = require('web.Widget');
-
-var Action = Widget.extend({
-    template: 'Action',
-    config: {
-        MainWidget: null,
-    },
-    init: function(parent, options) {
-        this.withControlPanel = options.withControlPanel;
-        this.currentBreadcrumbs = options.currentBreadcrumbs;
-        // this.currentTitle = ...
-        // this.setupControlPanel()
-    },
-    
-
-});
-
-return Action;
-
-});
-
 odoo.define('web.ActionManager', function (require) {
 "use strict";
 
-var data_manager = require('web.data_manager');
+var mixins = require('web.mixins');
 var Widget = require('web.Widget');
 
-var ActionManager = Widget.extend({
+var ActionManager = Widget.extend(mixins.CacheMixin, mixins.UtilsMixin, {
     template: 'ActionManager',
-
+    init: function(parent) {
+        this.actions = [];
+        this._super(parent);
+    },
+    // TODO: remove this...
     // return the description of the current main action displayed
     getCurrentAction: function() {
         return {};
+    },
+    _loadAction: function(action_id, options) {
+        var self = this;
+        options.additional_context = options.additional_context || {};
+        var additional_context = {
+            active_id : options.additional_context.active_id,
+            active_ids : options.additional_context.active_ids,
+            active_model : options.additional_context.active_model
+        };
+        return this.readFromCache([action_id, additional_context], function() {
+            return self.performRPC("/web/action/load", {
+                action_id: action_id,
+                additional_context : additional_context,
+            }).then(function (action) {
+                // TODO: check if this is useful? if not, remove this
+                // if (action.no_cache) {
+                //     self.removeFromCache([action_id, additional_context]);
+                // }
+                return $.extend(true, {}, action);
+            });
+        });
+
     },
     // perform an action.
     // params:
@@ -45,25 +47,57 @@ var ActionManager = Widget.extend({
     //   - action_menu_id: ...
     //   - clear_breadcrumbs: ...
     doAction: function(action, options) {
+        options = options || {};
+        var self = this;
         if (_.isNumber(action) || _.isString(action)) {
-            var self = this;
-            var additional_context = {
-                active_id : options.additional_context.active_id,
-                active_ids : options.additional_context.active_ids,
-                active_model : options.additional_context.active_model
-            };
-            return data_manager
-                    .load_action(action, additional_context)
-                    .then(function(result) {
-                        return self._doAction(result, options);
-                    });
+            return this._loadAction(action, options).then(function (action) {
+                return self._doAction(action, options);
+            });
         }
         return this._doAction(action, options);
     },
     _doAction: function(action, options) {
-        return $.when();
+        var self = this;
+        action.menu_id = options.action_menu_id;
+        return $.when().then(function() {
+            self.actions.push(action);
+            self.doPushState();
+        });
     },
+    doPushState: function() {
+        var lastAction = _.last(this.actions);
+        var state = {
+            action: lastAction.id,
+            model: lastAction.res_model,
+            menu_id: lastAction.menu_id,
+            view_type: lastAction.view_mode.split(',')[0],
+        };
+        this.trigger_up('push_state', state);
+    },
+    do_load_state: function(state) {
+        var active_ids;
+        if (state.active_ids) {
+            // The jQuery BBQ plugin does some parsing on values that are valid integers.
+            // It means that if there's only one item, it will do parseInt() on it,
+            // otherwise it will keep the comma seperated list as string.
+            active_ids = state.active_ids.toString().split(',').map(function(id) {
+                return parseInt(id, 10) || id;
+            });
+        } else if (state.active_id) {
+            active_ids = [state.active_id];
+        }
 
+        return this.doAction(state.action, {
+            additional_context: {
+                active_id: 'active_id' in state ? state.active_id : undefined,
+                active_ids: active_ids,
+                active_model: state.model,
+                params: state,
+            },
+            res_id: state.id,
+            view_type: state.view_type,
+        });
+    },
 });
 
 return ActionManager;

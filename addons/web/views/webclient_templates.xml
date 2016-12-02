@@ -137,6 +137,7 @@
         <script type="text/javascript" src="/web/static/src/js/framework/data_model.js"></script>
         <script type="text/javascript" src="/web/static/src/js/framework/formats.js"></script>
         <script type="text/javascript" src="/web/static/src/js/framework/pyeval.js"></script>
+        <script type="text/javascript" src="/web/static/src/js/framework/action.js"></script>
         <script type="text/javascript" src="/web/static/src/js/action_manager.js"></script>
         <script type="text/javascript" src="/web/static/src/js/control_panel.js"></script>
         <script type="text/javascript" src="/web/static/src/js/view_manager.js"></script>
@@ -402,6 +403,7 @@
                 <script type="text/javascript" src="/web/static/test/framework/time_tests.js"></script>
                 <script type="text/javascript" src="/web/static/test/framework/util_tests.js"></script>
                 <script type="text/javascript" src="/web/static/test/framework/widget_tests.js"></script>
+                <script type="text/javascript" src="/web/static/test/framework/action_manager_tests.js"></script>
 
                 <script type="text/javascript" src="/web/static/test/widgets/pager_tests.js"></script>
             </t>
