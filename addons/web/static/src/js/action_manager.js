@@ -3,6 +3,7 @@ odoo.define('web.ActionManager', function (require) {
 
 var mixins = require('web.mixins');
 var Widget = require('web.Widget');
+var ViewManager = require('web.ViewManager');
 
 var ActionManager = Widget.extend(mixins.CacheMixin, mixins.UtilsMixin, {
     template: 'ActionManager',
@@ -56,16 +57,37 @@ var ActionManager = Widget.extend(mixins.CacheMixin, mixins.UtilsMixin, {
         }
         return this._doAction(action, options);
     },
+    // actually perform an action
+    // params:
+    // * action: an actual action description (object)
     _doAction: function(action, options) {
-        var self = this;
         action.menu_id = options.action_menu_id;
-        return $.when().then(function() {
-            self.actions.push(action);
-            self.doPushState();
-        });
+
+        if (action.type === 'ir.actions.act_window') {
+            var viewManager = new ViewManager(this, options);
+            return this.addAction(viewManager, action);
+        }
+        console.warn('unsupported action', action, options);
+        return $.Deferred().reject();
+    },
+    // add action to the action stack.
+    // params:
+    // * action: instance of Action (for ex, view manager)
+    // * description: object
+    addAction: function(action, description) {
+        var self = this;
+        return action
+            .appendTo(this.$el)
+            .then(function() {
+                _.each(self.actions, function(a) {
+                    a.widget.$el.detach();
+                });
+                self.actions.push({widget: action, description: description});
+                self.doPushState();
+            });
     },
     doPushState: function() {
-        var lastAction = _.last(this.actions);
+        var lastAction = _.last(this.actions).description;
         var state = {
             action: lastAction.id,
             model: lastAction.res_model,

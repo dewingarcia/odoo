@@ -14,8 +14,6 @@ var Action = Widget.extend({
         // this.currentTitle = ...
         // this.setupControlPanel()
     },
-    
-
 });
 
 return Action;
