@@ -72,7 +72,7 @@ var ControlPanel = Widget.extend({
         });
 
         // By default, hide the ControlPanel and remove its contents from the DOM
-        this._toggle_visibility(false);
+        // this._toggle_visibility(false);
 
         return this._super();
     },

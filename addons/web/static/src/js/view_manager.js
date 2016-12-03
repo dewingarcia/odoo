@@ -9,16 +9,42 @@ var Action = require('web.Action');
 // var Model = require('web.DataModel');
 // var pyeval = require('web.pyeval');
 // var SearchView = require('web.SearchView');
-// var view_registry = require('web.view_registry');
-// var Widget = require('web.Widget');
+var view_registry = require('web.view_registry');
+var mixins = require('web.mixins');
 
 // var QWeb = core.qweb;
 // var _t = core._t;
 
-var ViewManager = Action.extend({
-    init: function(parent, action_description) {
-        console.log(action_description);
-        this._super.apply(this, arguments);
+var ViewManager = Action.extend(mixins.UtilsMixin, {
+    // initialize the view manager
+    // params:
+    // * action_description: this should be an action description of
+    //   type 'ir.actions.act_window'
+    init: function(parent, actionDescription) {
+        this._super(parent, {withControlPanel: true});
+        console.log(actionDescription);
+        this.actionDescription = actionDescription;
+        this.views = {};
+    },
+    willStart: function() {
+        var model = this.actionDescription.res_model;
+        var actionID = this.actionDescription.id;
+        var loadViewsDeferred = this.performModelRPC(model, 'load_views', [], {
+            context: {params: {action: actionID}},
+            options: {
+                action_id: actionID,
+                load_fields: true,
+                toolbar: true,
+                load_filters: true,
+            },
+            views: this.actionDescription.views,
+        }).then(function(result) {
+            console.log(result);
+        });
+        return $.when(this._super(), loadViewsDeferred);
+    },
+    start: function() {
+        return this._super();
     },
 });
 

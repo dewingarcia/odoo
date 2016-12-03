@@ -397,6 +397,8 @@ var CacheMixin = {
 };
 
 var UtilsMixin = {
+
+    // AJAX calls
     performRPC: function(route, args) {
         var def = $.Deferred();
         this.trigger_up('perform_rpc', {
@@ -407,6 +409,27 @@ var UtilsMixin = {
             },
         });
         return def;
+    },
+    performModelRPC: function(model, method, args, kwargs) {
+        return this.performRPC('/web/dataset/call_kw/' + model + '/' + method, {
+            model: model,
+            method: method,
+            args: args || [],
+            kwargs: kwargs || {},
+        });
+    },
+
+    // REGISTRIES QUERIES
+    readFromRegistry: function(registry, key) {
+        var result;
+        this.trigger_up('read_from_registry', {
+            registry: registry,
+            key: key,
+            callback: function(value) {
+                result = value;
+            }
+        });
+        return result;
     },
 };
 

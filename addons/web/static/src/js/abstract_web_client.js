@@ -9,6 +9,12 @@ var NotificationManager = require('web.notification').NotificationManager;
 var session = require('web.session');
 var utils = require('web.utils');
 var Widget = require('web.Widget');
+var Registry = require('web.Registry');
+
+var FormView = require('web.FormView');
+var KanbanView = require('web.KanbanView');
+var ListView = require('web.ListView');
+var GraphView = require('web.GraphView');
 
 var _t = core._t;
 
@@ -48,6 +54,9 @@ var WebClient = Widget.extend({
         this._current_state = null;
         this.menu_dm = new utils.DropMisordered();
         this.action_mutex = new utils.Mutex();
+
+        this.registries = {};
+        this.startRegistries();
         this.startServices();
         this._super(parent);
         this.set('title_part', {"zopenerp": "Odoo"});
@@ -80,6 +89,18 @@ var WebClient = Widget.extend({
                 core.bus.trigger('web_client_ready');
             });
     },
+    startRegistries: function() {
+        // instantiate registries
+        this.registries.actions = new Registry();
+        this.registries.views = new Registry();
+
+        // populate registries
+        this.registries.views
+            .add('form', FormView)
+            .add('list', ListView)
+            .add('kanban', KanbanView)
+            .add('graph', GraphView);
+    },
     // override this method to add other various services
     startServices: function() {
         // ajax service
@@ -94,6 +115,13 @@ var WebClient = Widget.extend({
                     data.on_fail();
                 }
             });
+        };
+
+        // registries services
+        this.custom_events.read_from_registry = function(event) {
+            var registry = this.registries[event.data.registry];
+            var value = registry.get(event.data.key);
+            event.data.callback(value);
         };
 
         // TODO: add cache service
