@@ -22,7 +22,6 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
     //   type 'ir.actions.act_window'
     init: function(parent, actionDescription) {
         this._super(parent, {withControlPanel: true});
-        console.log(actionDescription);
         this.actionDescription = actionDescription;
         this.views = {};
         this.fields = null;
@@ -33,7 +32,7 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
         var self = this;
         var model = this.actionDescription.res_model;
         var actionID = this.actionDescription.id;
-        var loadViewsDeferred = this.performModelRPC(model, 'load_views', [], {
+        var def = this.performModelRPC(model, 'load_views', [], {
             context: {params: {action: actionID}},
             options: {
                 action_id: actionID,
@@ -66,7 +65,7 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
             var view = self.views[self.currentView].widget;
             return view.do_search([], {}, []);
         });
-        return $.when(this._super(), loadViewsDeferred);
+        return $.when(this._super(), def);
     },
 
     /**

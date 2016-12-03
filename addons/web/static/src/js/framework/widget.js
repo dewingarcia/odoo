@@ -326,7 +326,6 @@ var Widget = core.Class.extend(mixins.PropertiesMixin, {
         }
         function wrap_handler(callback) {
             return function (event) {
-                event.stop_propagation();
                 callback(event);
             };
         }
