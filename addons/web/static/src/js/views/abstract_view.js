@@ -57,11 +57,10 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         // TODO: add open_action, ...
     }),
 
-    init: function(parent, dataset, fields_view, options) {
+    init: function(parent, model, fields_view, options) {
         this._super.apply(this, arguments);
         this.ViewManager = parent; // remove that
-        this.dataset = dataset;
-        this.model = dataset.model;
+        this.model = model;
         this.fields_view = fields_view;
         this.fields = fields_view.fields;
         this.arch = fields_view.arch;

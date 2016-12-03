@@ -9,8 +9,8 @@ var Action = require('web.Action');
 // var Model = require('web.DataModel');
 // var pyeval = require('web.pyeval');
 // var SearchView = require('web.SearchView');
-var view_registry = require('web.view_registry');
 var mixins = require('web.mixins');
+var utils = require('web.utils');
 
 // var QWeb = core.qweb;
 // var _t = core._t;
@@ -25,8 +25,12 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
         console.log(actionDescription);
         this.actionDescription = actionDescription;
         this.views = {};
+        this.fields = null;
+        this.filters = null;
+        this.currentView = null;
     },
     willStart: function() {
+        var self = this;
         var model = this.actionDescription.res_model;
         var actionID = this.actionDescription.id;
         var loadViewsDeferred = this.performModelRPC(model, 'load_views', [], {
@@ -39,11 +43,63 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
             },
             views: this.actionDescription.views,
         }).then(function(result) {
-            console.log(result);
+            self.fields = result.fields;
+            self.filters = result.filters;
+            _.each(result.fields_views, function(fvg, view) {
+                _.defaults(fvg.fields, result.fields);
+                self.views[view] = {
+                    fvg: self._postProcessFVG(fvg),
+                };
+            });
+        }).then(function() {
+            // load initial view
+            var initialViewType = self.actionDescription.views[0][1];
+            self.currentView = initialViewType;
+            var fvg = self.views[initialViewType].fvg;
+            var View = self.readFromRegistry('views', initialViewType);
+            var view = new View(self, self.actionDescription.res_model, fvg, {});
+            self.views[initialViewType].widget = view;
+            self.views[initialViewType].def = view.appendTo($('<div>'));
+            console.log('self', self);
+            return self.views[initialViewType].def;
+        }).then(function() {
+            var view = self.views[self.currentView].widget;
+            return view.do_search([], {}, []);
         });
         return $.when(this._super(), loadViewsDeferred);
     },
+
+    /**
+     * Private function that postprocesses fields_view (mainly parses the arch attribute)
+     */
+    _postProcessFVG: function (fields_view) {
+        var self = this;
+
+        // Parse arch
+        var doc = $.parseXML(fields_view.arch).documentElement;
+        fields_view.arch = utils.xml_to_json(doc, (doc.nodeName.toLowerCase() !== 'kanban'));
+
+        // Special case for id's
+        if ('id' in fields_view.fields) {
+            var id_field = fields_view.fields.id;
+            id_field.original_type = id_field.type;
+            id_field.type = 'id';
+        }
+
+        // Process inner views (one2manys)
+        _.each(fields_view.fields, function(field) {
+            _.each(field.views || {}, function(view) {
+                self._postProcessFVG(view);
+            });
+        });
+
+        return fields_view;
+    },
+
     start: function() {
+        var view = this.views[this.currentView];
+        view.widget.$el.detach();
+        view.widget.$el.appendTo(this.$el);
         return this._super();
     },
 });
