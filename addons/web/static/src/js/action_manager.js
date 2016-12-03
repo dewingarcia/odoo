@@ -64,7 +64,7 @@ var ActionManager = Widget.extend(mixins.CacheMixin, mixins.UtilsMixin, {
         action.menu_id = options.action_menu_id;
 
         if (action.type === 'ir.actions.act_window') {
-            var viewManager = new ViewManager(this, options);
+            var viewManager = new ViewManager(this, action);
             return this.addAction(viewManager, action);
         }
         console.warn('unsupported action', action, options);

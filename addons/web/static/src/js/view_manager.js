@@ -16,6 +16,10 @@ var Action = require('web.Action');
 // var _t = core._t;
 
 var ViewManager = Action.extend({
+    init: function(parent, action_description) {
+        console.log(action_description);
+        this._super.apply(this, arguments);
+    },
 });
 
 // var ViewManager = Widget.extend(ControlPanelMixin, {

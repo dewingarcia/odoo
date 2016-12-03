@@ -13,6 +13,7 @@ var Action = Widget.extend({
         this.currentBreadcrumbs = options.currentBreadcrumbs;
         // this.currentTitle = ...
         // this.setupControlPanel()
+        this._super.apply(this, arguments);
     },
 });
 
