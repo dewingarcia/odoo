@@ -33,18 +33,6 @@ var WebClient = Widget.extend({
         current_action_updated: function (e) {
             this.current_action_updated(e.data.action);
         },
-        perform_rpc: function(event) {
-            var data = event.data;
-            return session.rpc(data.route, data.args).then(function (result) {
-                if (data.on_success) {
-                    data.on_success(result);
-                }
-            }).fail(function () {
-                if (data.on_fail) {
-                    data.on_fail();
-                }
-            });
-        },
         perform_model_rpc: function(event) {
             if (event.data.on_fail) {
                 event.data.on_fail();
@@ -56,11 +44,12 @@ var WebClient = Widget.extend({
     },
     init: function(parent) {
         this.client_options = {};
-        this._super(parent);
         this.origin = undefined;
         this._current_state = null;
         this.menu_dm = new utils.DropMisordered();
         this.action_mutex = new utils.Mutex();
+        this.startServices();
+        this._super(parent);
         this.set('title_part', {"zopenerp": "Odoo"});
     },
     start: function() {
@@ -90,6 +79,26 @@ var WebClient = Widget.extend({
                 self.action_manager.$el.on('scroll', core.bus.trigger.bind(core.bus, 'scroll'));
                 core.bus.trigger('web_client_ready');
             });
+    },
+    // override this method to add other various services
+    startServices: function() {
+        // ajax service
+        this.custom_events.perform_rpc = function(event) {
+            var data = event.data;
+            return session.rpc(data.route, data.args).then(function (result) {
+                if (data.on_success) {
+                    data.on_success(result);
+                }
+            }).fail(function () {
+                if (data.on_fail) {
+                    data.on_fail();
+                }
+            });
+        };
+
+        // TODO: add cache service
+        // TODO: add crash manager service
+        // TODO: add session service
     },
     bind_events: function() {
         var self = this;
