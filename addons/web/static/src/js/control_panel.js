@@ -34,6 +34,7 @@ odoo.define('web.ControlPanel', function (require) {
 var Bus = require('web.Bus');
 var data = require('web.data');
 var Widget = require('web.Widget');
+var SearchView = require('web.SearchView');
 
 var ControlPanel = Widget.extend({
     template: 'ControlPanel',
@@ -41,14 +42,24 @@ var ControlPanel = Widget.extend({
      * @param {String} [template] the QWeb template to render the ControlPanel.
      * By default, the template 'ControlPanel' will be used
      */
-    init: function(parent, template) {
+    init: function(parent, options) {
         this._super(parent);
-        if (template) {
-            this.template = template;
-        }
+        this.searchViewFVG = options.searchViewFVG;
+        this.previousBreadcrumbs = options.previousBreadcrumbs;
+        this.currentBreadcrumbs = options.currentBreadcrumbs;
 
         this.bus = new Bus();
         this.bus.on("update", this, this.update);
+        if (this.searchViewFVG) {
+            var fvg = this.searchViewFVG;
+
+            this.searchView = new SearchView(this, fvg.model, fvg, {
+                $buttons: $('<div>'),
+            });
+        }
+    },
+    willStart: function() {
+        return this.searchView.appendTo($('<div>'));
     },
     /**
      * Renders the control panel and creates a dictionnary of its exposed elements
@@ -65,11 +76,16 @@ var ControlPanel = Widget.extend({
             $sidebar: this.$('.o_cp_sidebar'),
             $switch_buttons: this.$('.o_cp_switch_buttons'),
         };
-
+        this.searchView.$el.detach();
+        this.searchView.$el.appendTo(this.nodes.$searchview);
+        this.searchView.$buttons.contents().appendTo(this.nodes.$searchview_buttons);
+        this.searchView.$buttons = this.nodes.$searchview_buttons;
         // Prevent the search dropdowns to close when clicking inside them
         this.$el.on('click.bs.dropdown', '.o_search_options .dropdown-menu', function (e) {
             e.stopPropagation();
         });
+
+        this.renderBreadcrumbs();
 
         // By default, hide the ControlPanel and remove its contents from the DOM
         // this._toggle_visibility(false);
@@ -181,6 +197,9 @@ var ControlPanel = Widget.extend({
             $(button).removeClass('active');
         });
         this.$(active_view_selector).addClass('active');
+    },
+    renderBreadcrumbs: function() {
+        console.log('bc', this.previousBreadcrumbs, this.currentBreadcrumbs);
     },
     /**
      * Private function that renders the breadcrumbs

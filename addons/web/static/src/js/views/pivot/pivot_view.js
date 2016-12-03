@@ -76,13 +76,13 @@ var PivotView = AbstractView.extend({
             }
         });
     },
-    start: function () {
+    start: function (db_id) {
         this.$el.toggleClass('o_enable_linking', this.enable_linking);
         this.$field_selection = this.$('.o_field_selection');
         core.bus.on('click', this, function () {
             this.$field_selection.empty();
         });
-        return this._super();
+        return this._super(db_id);
     },
     render_field_selection: function (top, left) {
         var record = this.datamodel.get(this.db_id);

@@ -62,9 +62,11 @@ var ActionManager = Widget.extend(mixins.CacheMixin, mixins.UtilsMixin, {
     // * action: an actual action description (object)
     _doAction: function(action, options) {
         action.menu_id = options.action_menu_id;
-
         if (action.type === 'ir.actions.act_window') {
-            var viewManager = new ViewManager(this, action);
+            var viewManager = new ViewManager(this, action, {
+                withControlPanel: true,
+                previousBreadcrumbs: [],
+            });
             return this.addAction(viewManager, action);
         }
         console.warn('unsupported action', action, options);

@@ -112,8 +112,10 @@ var FormView = AbstractView.extend({
     init: function (parent, dataset, fields_view, options) {
         this._super.apply(this, arguments);
         this.mode = options && options.mode || 'readonly'; // can be: readonly, edit
-        this.dataset_ids = this.options.dataset ? this.options.dataset.res_ids : this.dataset.ids;
-        this.current_id = this.options.dataset ? this.options.dataset.current_id : this.dataset.ids[this.dataset.index];
+        this.dataset_ids = options.res_id ? [options.res_id] : [];
+        this.current_id = options.res_id;
+        // this.dataset_ids = this.options.dataset ? this.options.dataset.res_ids : this.dataset.ids;
+        // this.current_id = this.options.dataset ? this.options.dataset.current_id : this.dataset.ids[this.dataset.index];
     },
     start: function() {
         var def;

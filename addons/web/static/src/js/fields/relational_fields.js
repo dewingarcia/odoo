@@ -120,7 +120,6 @@ var FieldX2Many = AbstractRelationalField.extend({
             return;
         }
         var arch = this.view.arch;
-        var fields = this.view.fields;
         if (arch.tag === 'tree') {
             this.renderer = new ListRenderer(this, arch, this.state);
         }

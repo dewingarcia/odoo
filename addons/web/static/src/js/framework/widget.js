@@ -170,8 +170,8 @@ var Widget = core.Class.extend(mixins.PropertiesMixin, {
     attachTo: function(target) {
         var self = this;
         this.setElement(target.$el || target);
-        return this.willStart().then(function() {
-            return self.start();
+        return this.willStart().then(function(result) {
+            return self.start(result);
         });
     },
     /**
@@ -186,10 +186,10 @@ var Widget = core.Class.extend(mixins.PropertiesMixin, {
     },
     __widgetRenderAndInsert: function(insertion, target) {
         var self = this;
-        return this.willStart().then(function() {
+        return this.willStart().then(function(result) {
             self.renderElement();
             insertion(target);
-            return self.start();
+            return self.start(result);
         });
     },
     /**

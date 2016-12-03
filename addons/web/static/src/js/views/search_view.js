@@ -289,23 +289,25 @@ var SearchView = AbstractView.extend({
 
         this.filter_menu = undefined;
         this.groupby_menu = undefined;
-        this.favorite_menu = undefined;
+        this.favorite_menu = undefined
+        
+        this.favorite_filters = [];
     },
-    willStart: function () {
-        var self = this;
-        var def;
-        if (!this.options.disable_favorites) {
-            def = data_manager.load_filters(this.dataset, this.action_id).then(function (filters) {
-                self.favorite_filters = filters;
-            });
-        }
-        return $.when(this._super(), def);
-    },
+    // willStart: function () {
+    //     var self = this;
+    //     var def;
+    //     if (!this.options.disable_favorites) {
+    //         def = data_manager.load_filters(this.dataset, this.action_id).then(function (filters) {
+    //             self.favorite_filters = filters;
+    //         });
+    //     }
+    //     return $.when(this._super(), def);
+    // },
     start: function() {
-        if (this.headless) {
-            this.do_hide();
-        }
-        this.toggle_visibility(false);
+        // if (this.headless) {
+        //     this.do_hide();
+        // }
+        // this.toggle_visibility(false);
         this.setup_global_completion();
         this.query = new SearchQuery()
                 .on('add change reset remove', this.proxy('do_search'))
@@ -326,7 +328,7 @@ var SearchView = AbstractView.extend({
                 menu_defs.push(this.groupby_menu.appendTo(this.$buttons));
             }
             if (!this.options.disable_favorites) {
-                this.favorite_menu = new FavoriteMenu(this, this.query, this.dataset.model, this.action_id, this.favorite_filters);
+                this.favorite_menu = new FavoriteMenu(this, this.query, this.model, this.action_id, this.favorite_filters);
                 menu_defs.push(this.favorite_menu.appendTo(this.$buttons));
             }
         }
@@ -368,7 +370,11 @@ var SearchView = AbstractView.extend({
             return;
         }
         var search = this.build_search_data();
-        this.trigger('search_data', search.domains, search.contexts, search.groupbys);
+        this.trigger_up('search_data', {
+            domain: search.domains,
+            context: search.contexts,
+            groupbys: search.groupbys
+        });
     },
     /**
      * Extract search data from the view's facets.

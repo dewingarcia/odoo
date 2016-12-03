@@ -1,14 +1,9 @@
 odoo.define('web.ViewManager', function (require) {
 "use strict";
 
-// var ControlPanelMixin = require('web.ControlPanelMixin');
 var Action = require('web.Action');
-// var data = require('web.data');
-// var data_manager = require('web.data_manager');
-// var framework = require('web.framework');
-// var Model = require('web.DataModel');
 // var pyeval = require('web.pyeval');
-// var SearchView = require('web.SearchView');
+var pyeval = require('web.pyeval');
 var mixins = require('web.mixins');
 var utils = require('web.utils');
 
@@ -16,13 +11,25 @@ var utils = require('web.utils');
 // var _t = core._t;
 
 var ViewManager = Action.extend(mixins.UtilsMixin, {
+    custom_events: {
+        search_data: function(event) {
+            var view = this.views[this.currentView].widget;
+            var data = event.data;
+
+            var result = pyeval.sync_eval_domains_and_contexts({
+                domains: data.domain,
+                contexts: data.context,
+                group_by_seq: data.groupbys || []
+            });
+            view.do_search(result.domain, result.context, result.group_by);
+        },
+    },
     // initialize the view manager
     // params:
     // * action_description: this should be an action description of
     //   type 'ir.actions.act_window'
-    init: function(parent, actionDescription) {
-        this._super(parent, {withControlPanel: true});
-        this.actionDescription = actionDescription;
+    init: function() {
+        this._super.apply(this, arguments);
         this.views = {};
         this.fields = null;
         this.filters = null;
@@ -30,8 +37,11 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
     },
     willStart: function() {
         var self = this;
-        var model = this.actionDescription.res_model;
-        var actionID = this.actionDescription.id;
+        var model = this.actionDescr.res_model;
+        var actionID = this.actionDescr.id;
+
+        var views = this.actionDescr.views.slice();
+        views.push([this.actionDescr.search_view_id[0] || false, 'search']);
         var def = this.performModelRPC(model, 'load_views', [], {
             context: {params: {action: actionID}},
             options: {
@@ -40,7 +50,7 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
                 toolbar: true,
                 load_filters: true,
             },
-            views: this.actionDescription.views,
+            views: views,
         }).then(function(result) {
             self.fields = result.fields;
             self.filters = result.filters;
@@ -52,20 +62,26 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
             });
         }).then(function() {
             // load initial view
-            var initialViewType = self.actionDescription.views[0][1];
+            var initialViewType = self.actionDescr.views[0][1];
             self.currentView = initialViewType;
             var fvg = self.views[initialViewType].fvg;
             var View = self.readFromRegistry('views', initialViewType);
-            var view = new View(self, self.actionDescription.res_model, fvg, {});
+            //TODO: give correct domain, context, groupBy
+            var view = new View(self, self.actionDescr.res_model, fvg, {
+                domain: [],
+                context: {},
+                groupBy: [],
+            });
             self.views[initialViewType].widget = view;
             self.views[initialViewType].def = view.appendTo($('<div>'));
             console.log('self', self);
             return self.views[initialViewType].def;
-        }).then(function() {
-            var view = self.views[self.currentView].widget;
-            return view.do_search([], {}, []);
         });
-        return $.when(this._super(), def);
+        var _super = this._super.bind(this);
+        return def.then(function() {
+            self.searchViewFVG = self.views.search.fvg;
+            return _super();
+        });
     },
 
     /**
@@ -96,11 +112,18 @@ var ViewManager = Action.extend(mixins.UtilsMixin, {
     },
 
     start: function() {
+        this.$content = this.$('.o_content');
+        this.$el.addClass('o_view_manager');
         var view = this.views[this.currentView];
         view.widget.$el.detach();
-        view.widget.$el.appendTo(this.$el);
+        view.widget.render_buttons(this.controlPanel.nodes.$buttons);
+        view.widget.$el.appendTo(this.$content);
         return this._super();
     },
+    // setBreadcrumbs: function() {
+    //     this.breadcrumbs = [this.title];
+    //     this._super();
+    // },
 });
 
 // var ViewManager = Widget.extend(ControlPanelMixin, {

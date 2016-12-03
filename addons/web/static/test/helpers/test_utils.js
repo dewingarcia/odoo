@@ -42,11 +42,11 @@ function intercept(widget, event_name, fn) {
 // started (with a do_search).  The buttons/pager should also be created, if
 // appropriate.
 function createView(params) {
-    var dataset = {
-        model: params.model || 'foo',
-        index: 0,
-        ids: [params.res_id],
-    };
+    // var dataset = {
+    //     model: params.model || 'foo',
+    //     index: 0,
+    //     ids: [params.res_id],
+    // };
 
     var Server = MockServer;
     if (params.mockRPC) {
@@ -56,7 +56,13 @@ function createView(params) {
     var mockServer = new Server(params.data);
     var fields_view = mockServer.fieldsViewGet(params.arch, params.model);
 
-    var view = new params.View(null, dataset, fields_view, params.view_options);
+    var options = _.extend({}, params.view_options, {
+        domain: params.domain || [],
+        context: params.context || {},
+        groupBy: params.group_by || [],
+        res_id: params.res_id,
+    });
+    var view = new params.View(null, params.model, fields_view, options);
     if (params.with_modifiers) {
         _.each(params.with_modifiers, function(modifier, name) {
             fields_view.fields[name].__attrs.modifiers = JSON.stringify(modifier);

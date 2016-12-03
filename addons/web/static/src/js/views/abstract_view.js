@@ -70,10 +70,20 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
                          this.config.page_size;
         var Model = this.config.Model;
         FieldManagerMixin.init.call(this, new Model(fields_view));
+        this.initialDomain = options.domain;
+        this.initialContext = options.context;
+        this.initialGroupBy = options.groupBy;
+
     },
-    start: function() {
+    willStart: function() {
+        var domain = this.initialDomain;
+        var context = this.initialContext;
+        var groupBy = this.initialGroupBy;
+        return this._load_data(domain, context, groupBy);
+    },
+    start: function(db_id) {
         this.$el.toggleClass('o_cannot_create', !this.is_action_enabled('create'));
-        return this._super.apply(this, arguments);
+        return this.update_state(db_id);
     },
     destroy: function () {
         if (this.$buttons) {
@@ -251,8 +261,7 @@ var AbstractView = Widget.extend(FieldManagerMixin, {
         this.pager.do_toggle(is_pager_visible);
     },
     do_search: function (domain, context, group_by) {
-        var load = this.db_id ? this._reload_data : this._load_data;
-        return load.call(this, domain, context, group_by).then(this.update_state.bind(this));
+        return this._reload_data(domain, context, group_by).then(this.update_state.bind(this));
     },
     _load_data: function(domain, context, group_by) {
         return this.datamodel
