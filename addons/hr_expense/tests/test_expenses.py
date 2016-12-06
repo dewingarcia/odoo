@@ -68,7 +68,7 @@ class TestCheckJournalEntry(TransactionCase):
 
     def test_journal_entry(self):
         # Submitted to Manager
-        self.assertEquals(self.expense.state, 'submit', 'Expense is not in Reported state')
+        self.assertEquals(self.expense.state, 'submit', 'Expense is not in Submitted state')
         # Approve
         self.expense.approve_expense_sheets()
         self.assertEquals(self.expense.state, 'approve', 'Expense is not in Approved state')

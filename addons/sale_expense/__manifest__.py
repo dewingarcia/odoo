@@ -18,6 +18,7 @@ test the features easily.
     'depends': ['sale', 'hr_expense'],
     'data': [
         'views/product_view.xml',
+        'views/hr_expense_views.xml',
     ],
     'demo': ['sale_expense_demo.xml'],
     'test': [],
