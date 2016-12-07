@@ -2,7 +2,13 @@ odoo.define('survey.survey', function (require) {
 'use strict';
 
 var website = require('website.website');
+var core = require('web.core');
+var time = require('web.time');
+var ajax = require('web.ajax');
+var base = require('web_editor.base')
+var formats = require('web.formats');
 
+var _t = core._t;
 /*
  * This file is intended to add interactivity to survey forms rendered by
  * the website engine.
@@ -34,17 +40,6 @@ if(!the_form.length) {
         quiz_correction_mode = true;
     }
 
-    $("div.input-group span.fa-calendar").on('click', function(e) {
-        $(e.currentTarget).closest("div.date").datetimepicker({
-            useSeconds: true,
-            icons : {
-                time: 'fa fa-clock-o',
-                date: 'fa fa-calendar',
-                up: 'fa fa-chevron-up',
-                down: 'fa fa-chevron-down'
-            },
-        });
-    });
 
     // Custom code for right behavior of radio buttons with comments box
     $('.js_comments>input[type="text"]').focusin(function(){
@@ -88,6 +83,9 @@ if(!the_form.length) {
 
                         // prefill of text/number/date boxes
                         var input = the_form.find(".form-control[name=" + key + "]");
+                        if (input.attr('date')){
+                            value = formats.format_value(value[0], {"widget": 'date'});
+                        }
                         input.val(value);
 
                         // special case for comments under multiple suggestions questions
@@ -130,7 +128,13 @@ if(!the_form.length) {
         url: submit_controller,
         type: 'POST',                       // submission type
         dataType: 'json',                   // answer expected type
-        beforeSubmit: function(){           // hide previous errmsg before resubmitting
+        beforeSubmit: function(formData, $form, options){           // hide previous errmsg before resubmitting
+            var date_fields = $form.find('div.date > input.form-control');
+            for (var i = 0; i < date_fields.length; i++) {
+                var el = date_fields[i];
+                var field_obj = _.findWhere(formData, {'name': el.name});
+                field_obj.value = formats.parse_value(field_obj.value, {"widget": 'date'});
+            }
             $('.js_errzone').html("").hide();
         },
         success: function(response, status, xhr, wfe){ // submission attempt
@@ -161,6 +165,35 @@ if(!the_form.length) {
     //         console.debug("[survey] Focus lost on question " + $(this).attr("id"));
     // });
 
+    function load_locale(){
+        var url = "/web/webclient/locale/" + base.get_context().lang || 'en_US';
+        return ajax.loadJS(url);
+    }
+
+    var ready_with_locale = $.when(base.ready(), load_locale());
+    // datetimepicker use moment locale to display date format according to language
+    // frontend does not load moment locale at all.
+    // so wait until DOM ready with locale then init datetimepicker
+    ready_with_locale.then(function(){
+        var l10n = _t.database.parameters;
+        $('.form-control.date').datetimepicker({
+            format : time.strftime_to_moment_format(l10n.date_format),
+            minDate: moment({ y: 1900 }),
+            maxDate: moment().add(200, "y"),
+            calendarWeeks: true,
+            icons: {
+                time: 'fa fa-clock-o',
+                date: 'fa fa-calendar',
+                next: 'fa fa-chevron-right',
+                previous: 'fa fa-chevron-left',
+                up: 'fa fa-chevron-up',
+                down: 'fa fa-chevron-down',
+            },
+            locale : moment.locale(),
+            allowInputToggle: true,
+            keyBinds: null,
+        });
+    });
     // Launch prefilling
     prefill();
     if(quiz_correction_mode === true){
