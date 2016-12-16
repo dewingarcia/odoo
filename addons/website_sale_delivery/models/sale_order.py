@@ -176,6 +176,18 @@ class SaleOrder(models.Model):
         return values
 
 
+class SaleOrderLine(models.Model):
+    _inherit = 'sale.order.line'
+
+    @api.multi
+    def write(self, value):
+        result = super(SaleOrderLine, self).write(value)
+        SaleDelivery = self.env['sale.delivery.carrier']
+        for sale in self.mapped('order_id'):
+            SaleDelivery.search([('order_id', '=', sale.id)]).unlink()
+        return result
+
+
 class SaleDeliveryCarrier(models.TransientModel):
     _name = "sale.delivery.carrier"
 
@@ -183,5 +195,3 @@ class SaleDeliveryCarrier(models.TransientModel):
     carrier_id = fields.Many2one('delivery.carrier', string="Delivery Method")
     price = fields.Float(string="Estimated Delivery Price")
     available = fields.Boolean()
-    # purpose of this fileds to calculate delay time for call main API
-    session_expir = fields.Datetime(string="Last Update", readonly=True, copy=False)
