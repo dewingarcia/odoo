@@ -13,6 +13,9 @@ class SaleOrder(models.Model):
     carrier_id = fields.Many2one("delivery.carrier", string="Delivery Method", help="Fill this field if you plan to invoice the shipping based on picking.")
     invoice_shipping_on_delivery = fields.Boolean(string="Invoice Shipping on Delivery")
 
+    def _get_delivery_price_of_current_so(self):
+        return self.carrier_id._compute_delivery_price_for_so(self)
+
     @api.depends('carrier_id', 'order_line')
     def _compute_delivery_price(self):
         for order in self:
@@ -23,7 +26,8 @@ class SaleOrder(models.Model):
                 # Prevent SOAP call to external shipping provider when SO has no lines yet
                 continue
             else:
-                order.delivery_price = order.carrier_id.with_context(order_id=order.id).price
+                if order.carrier_id:
+                    order.delivery_price = order._get_delivery_price_of_current_so()
 
     @api.onchange('partner_id')
     def onchange_partner_id_dtype(self):

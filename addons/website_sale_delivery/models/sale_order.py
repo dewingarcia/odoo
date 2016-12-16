@@ -40,23 +40,16 @@ class SaleOrder(models.Model):
                 'available': bool(price_unit) if carrier_id.delivery_type not in ['fixed', 'base_on_rule'] else True
             })
 
-    @api.depends('carrier_id', 'order_line')
-    def _compute_delivery_price(self):
-        for order in self:
-            if order.state != 'draft':
-                # We do not want to recompute the shipping price of an already validated/done SO
-                continue
-            elif order.carrier_id.delivery_type != 'grid' and not order.order_line:
-                # Prevent SOAP call to external shipping provider when SO has no lines yet
-                continue
-            else:
-                if order.carrier_id:
-                    carrier = order.carrier_id
-                    sale_delivery = order._get_delivery_price_from_session(carrier)
-                    if not sale_delivery:
-                        price = carrier._compute_delivery_price_for_so(order)
-                        sale_delivery = order._update_delivery_price_in_session(price, carrier)
-                    order.delivery_price = sale_delivery.price
+    def _get_delivery_price_of_current_so(self):
+        carrier = self.carrier_id
+        sale_delivery = self._get_delivery_price_from_session(carrier)
+        if not sale_delivery:
+            price = super(SaleOrder, self)._get_delivery_price_of_current_so()
+            sale_delivery = self._update_delivery_price_in_session(price, carrier)
+            self.delivery_price = sale_delivery.price
+            return price
+        else:
+            return sale_delivery.price
 
     @api.depends('order_line.price_unit', 'order_line.tax_id', 'order_line.discount', 'order_line.product_uom_qty')
     def _compute_amount_delivery(self):

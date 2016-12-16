@@ -135,10 +135,6 @@ class DeliveryCarrier(models.Model):
         self.available = False
         self.price = False
 
-        order = self.env['sale.order'].browse(self.env.context.get('order_id'))
-        if order:
-            self.price = self._compute_delivery_price_for_so(order)
-
     # -------------------------- #
     # API for external providers #
     # -------------------------- #
