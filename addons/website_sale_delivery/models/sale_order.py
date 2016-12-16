@@ -24,6 +24,40 @@ class SaleOrder(models.Model):
         domain=[('is_delivery', '=', False)],
         help='Order Lines to be displayed on the website. They should not be used for computation purpose.')
 
+    @api.multi
+    def _get_delivery_price_from_session(self, carrier_id):
+        self.ensure_one()
+        return self.env['sale.delivery.carrier'].search([('order_id', '=', self.id), ('carrier_id', '=', carrier_id.id)], limit=1)
+
+    @api.multi
+    def _update_delivery_price_in_session(self, price_unit, carrier_id):
+        self.ensure_one()
+        if carrier_id:
+            return self.env['sale.delivery.carrier'].create({
+                'order_id': self.id,
+                'carrier_id': carrier_id.id,
+                'price': price_unit,
+                'available': bool(price_unit) if carrier_id.delivery_type not in ['fixed', 'base_on_rule'] else True
+            })
+
+    @api.depends('carrier_id', 'order_line')
+    def _compute_delivery_price(self):
+        for order in self:
+            if order.state != 'draft':
+                # We do not want to recompute the shipping price of an already validated/done SO
+                continue
+            elif order.carrier_id.delivery_type != 'grid' and not order.order_line:
+                # Prevent SOAP call to external shipping provider when SO has no lines yet
+                continue
+            else:
+                if order.carrier_id:
+                    carrier = order.carrier_id
+                    sale_delivery = order._get_delivery_price_from_session(carrier)
+                    if not sale_delivery:
+                        price = carrier._compute_delivery_price_for_so(order)
+                        sale_delivery = order._update_delivery_price_in_session(price, carrier)
+                    order.delivery_price = sale_delivery.price
+
     @api.depends('order_line.price_unit', 'order_line.tax_id', 'order_line.discount', 'order_line.product_uom_qty')
     def _compute_amount_delivery(self):
         for order in self:
@@ -81,9 +115,14 @@ class SaleOrder(models.Model):
             carrier = DeliveryCarrier.browse(carrier_id)
             try:
                 _logger.debug("Checking availability of carrier #%s" % carrier_id)
-                available = carrier.with_context(order_id=self.id).read(fields=['available'])[0]['available']
-                if available:
-                    available_carriers += carrier
+                sale_delivery = self._get_delivery_price_from_session(carrier_id=carrier)
+                if not sale_delivery:
+                    price = carrier._compute_delivery_price_for_so(order=self)
+                    sale_delivery = self._update_delivery_price_in_session(price, carrier)
+                if sale_delivery:
+                    available = sale_delivery.available
+                    if available:
+                        available_carriers += carrier
             except ValidationError as e:
                 # RIM TODO: hack to remove, make available field not depend on a SOAP call to external shipping provider
                 # The validation error is used in backend to display errors in fedex config, but should fail silently in frontend
@@ -110,7 +149,17 @@ class SaleOrder(models.Model):
             return values
 
         delivery_carriers = order._get_delivery_methods()
-        values['deliveries'] = delivery_carriers.sudo().with_context(order_id=order.id)
+        deliveries = self.env['sale.delivery.carrier']
+        for carrier in delivery_carriers:
+            sale_delivery = order._get_delivery_price_from_session(carrier_id=carrier)
+            if sale_delivery:
+                deliveries |= sale_delivery
+            else:
+                price = carrier._compute_delivery_price_for_so(order)
+                order_delivery = order._update_delivery_price_in_session(price, carrier)
+                if order_delivery:
+                    deliveries |= order_delivery
+        values['deliveries'] = deliveries.sudo()
         return values
 
     @api.multi
@@ -132,3 +181,14 @@ class SaleOrder(models.Model):
                 self._check_carrier_quotation()
 
         return values
+
+
+class SaleDeliveryCarrier(models.TransientModel):
+    _name = "sale.delivery.carrier"
+
+    order_id = fields.Many2one('sale.order', string="Sale Order")
+    carrier_id = fields.Many2one('delivery.carrier', string="Delivery Method")
+    price = fields.Float(string="Estimated Delivery Price")
+    available = fields.Boolean()
+    # purpose of this fileds to calculate delay time for call main API
+    session_expir = fields.Datetime(string="Last Update", readonly=True, copy=False)

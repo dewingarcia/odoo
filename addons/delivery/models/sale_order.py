@@ -42,6 +42,14 @@ class SaleOrder(models.Model):
         self.env['sale.order.line'].search([('order_id', 'in', self.ids), ('is_delivery', '=', True)]).unlink()
 
     @api.multi
+    def _get_delivery_price_from_session(self, carrier_id):
+        return False
+
+    @api.multi
+    def _update_delivery_price_in_session(self, price_unit, carrier_id):
+        return True
+
+    @api.multi
     def delivery_set(self):
 
         # Remove delivery products from the sale order
@@ -55,7 +63,12 @@ class SaleOrder(models.Model):
 
                 if carrier.delivery_type not in ['fixed', 'base_on_rule']:
                     # Shipping providers are used when delivery_type is other than 'fixed' or 'base_on_rule'
-                    price_unit = order.carrier_id.get_shipping_price_from_so(order)[0]
+                    sale_delivery = order._get_delivery_price_from_session(carrier)
+                    if not sale_delivery:
+                        price_unit = order.carrier_id.get_shipping_price_from_so(order)[0]
+                        order._update_delivery_price_in_session(price_unit, order.carrier_id)
+                    else:
+                        price_unit = sale_delivery.price
                 else:
                     # Classic grid-based carriers
                     carrier = order.carrier_id.verify_carrier(order.partner_shipping_id)

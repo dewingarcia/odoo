@@ -104,40 +104,40 @@ class DeliveryCarrier(models.Model):
         for carrier in self:
             carrier.product_id.list_price = carrier.fixed_price
 
-    @api.one
-    def get_price(self):
-        SaleOrder = self.env['sale.order']
-
-        self.available = False
-        self.price = False
-
-        order_id = self.env.context.get('order_id')
-        if order_id:
-            # FIXME: temporary hack until we refactor the delivery API in master
-
-            order = SaleOrder.browse(order_id)
-            if self.delivery_type not in ['fixed', 'base_on_rule']:
+    @api.multi
+    def _compute_delivery_price_for_so(self, order):
+        self.ensure_one()
+        if order and self.delivery_type not in ['fixed', 'base_on_rule']:
+            try:
+                computed_price = self.get_shipping_price_from_so(order)[0]
+                self.available = True
+            except UserError as e:
+                # No suitable delivery method found, probably configuration error
+                _logger.info("Carrier %s: %s, not found", self.name, e.name)
+                computed_price = 0.0
+        else:
+            carrier = self.verify_carrier(order.partner_shipping_id)
+            if carrier:
                 try:
-                    computed_price = self.get_shipping_price_from_so(order)[0]
+                    computed_price = carrier.get_price_available(order)
                     self.available = True
                 except UserError as e:
                     # No suitable delivery method found, probably configuration error
-                    _logger.info("Carrier %s: %s, not found", self.name, e.name)
+                    _logger.info("Carrier %s: %s", carrier.name, e.name)
                     computed_price = 0.0
             else:
-                carrier = self.verify_carrier(order.partner_shipping_id)
-                if carrier:
-                    try:
-                        computed_price = carrier.get_price_available(order)
-                        self.available = True
-                    except UserError as e:
-                        # No suitable delivery method found, probably configuration error
-                        _logger.info("Carrier %s: %s", carrier.name, e.name)
-                        computed_price = 0.0
-                else:
-                    computed_price = 0.0
+                computed_price = 0.0
 
-            self.price = computed_price * (1.0 + (float(self.margin) / 100.0))
+        return computed_price * (1.0 + (float(self.margin) / 100.0))
+
+    @api.one
+    def get_price(self):
+        self.available = False
+        self.price = False
+
+        order = self.env['sale.order'].browse(self.env.context.get('order_id'))
+        if order:
+            self.price = self._compute_delivery_price_for_so(order)
 
     # -------------------------- #
     # API for external providers #
