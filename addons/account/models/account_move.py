@@ -389,7 +389,7 @@ class AccountMoveLine(models.Model):
     ref = fields.Char(related='move_id.ref', string='Reference', store=True, copy=False, index=True)
     payment_id = fields.Many2one('account.payment', string="Originator Payment", help="Payment that created this entry")
     statement_line_id = fields.Many2one('account.bank.statement.line', index=True, string='Bank statement line reconciled with this entry', copy=False, readonly=True)
-    statement_id = fields.Many2one('account.bank.statement', related='statement_line_id.statement_id', string='Statement',
+    statement_id = fields.Many2one('account.bank.statement', related='statement_line_id.statement_id', string='Statement', store=True,
         help="The bank statement used for bank reconciliation", index=True, copy=False)
     reconciled = fields.Boolean(compute='_amount_residual', store=True)
     full_reconcile_id = fields.Many2one('account.full.reconcile', string="Matching Number")
