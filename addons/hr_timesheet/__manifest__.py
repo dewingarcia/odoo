@@ -29,7 +29,6 @@ up a management by affair.
         'views/res_config_views.xml',
         'report/hr_timesheet_report_view.xml',
         'report/report_timesheet_templates.xml',
-        'hr_timesheet_installer.xml',
         'views/hr_views.xml',
     ],
     'demo': [
