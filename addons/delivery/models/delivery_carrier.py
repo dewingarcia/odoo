@@ -2,8 +2,9 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import logging
+import psycopg2
 
-from odoo import api, fields, models, _
+from odoo import api, fields, models, registry, SUPERUSER_ID, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.safe_eval import safe_eval
 
@@ -54,6 +55,7 @@ class DeliveryCarrier(models.Model):
     integration_level = fields.Selection([('rate', 'Get Rate'), ('rate_and_ship', 'Get Rate and Create Shipment')], string="Integration Level", default='rate_and_ship', help="Action while validating Delivery Orders")
     prod_environment = fields.Boolean("Environment", help="Set to True if your credentials are certified for production.")
     margin = fields.Integer(help='This percentage will be added to the shipping price.')
+    debug_logging = fields.Boolean('Debug logging', help="Log XML requests in order to ease debugging")
 
     _sql_constraints = [
         ('margin_not_under_100_percent', 'CHECK (margin >= -100)', 'Margin cannot be lower than -100%'),
@@ -62,6 +64,10 @@ class DeliveryCarrier(models.Model):
     @api.one
     def toggle_prod_environment(self):
         self.prod_environment = not self.prod_environment
+
+    @api.one
+    def toggle_debug(self):
+        self.debug_logging = not self.debug_logging
 
     @api.multi
     def install_more_provider(self):
@@ -185,6 +191,30 @@ class DeliveryCarrier(models.Model):
         self.ensure_one()
         if hasattr(self, '%s_cancel_shipment' % self.delivery_type):
             return getattr(self, '%s_cancel_shipment' % self.delivery_type)(pickings)
+
+    def log_xml(self, xml_string, func):
+        self.ensure_one()
+
+        if self.debug_logging:
+            db_name = self._cr.dbname
+            integrator = self.delivery_type
+
+            # Use a new cursor to avoid rollback that could be caused by an upper method
+            try:
+                db_registry = registry(db_name)
+                with db_registry.cursor() as cr:
+                    env = api.Environment(cr, SUPERUSER_ID, {})
+                    IrLogging = env['ir.logging']
+                    IrLogging.sudo().create({'name': 'delivery.carrier',
+                              'type': 'server',
+                              'dbname': db_name,
+                              'level': 'DEBUG',
+                              'message': xml_string,
+                              'path': integrator,
+                              'func': func,
+                              'line': 1})
+            except psycopg2.Error:
+                pass
 
     @api.onchange('state_ids')
     def onchange_states(self):
