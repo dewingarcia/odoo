@@ -238,7 +238,8 @@ class AccountBankStatement(models.Model):
                     st_line.fast_counterpart_creation()
                 elif not st_line.journal_entry_ids.ids:
                     raise UserError(_('All the account entries lines must be processed in order to close the statement.'))
-                moves = (moves | set([x.move_id for x in st_line.journal_entry_ids]))
+                for aml in st_line.journal_entry_ids:
+                    moves |= aml.move_id
             if moves:
                 moves.post()
             statement.message_post(body=_('Statement %s confirmed, journal items were created.') % (statement.name,))
