@@ -447,7 +447,7 @@ class Website(models.Model):
         tx_id = request.session.get('sale_transaction_id')
         if tx_id:
             transaction = self.env['payment.transaction'].sudo().browse(tx_id)
-            if transaction.state != 'cancel':
+            if transaction:
                 return transaction
             else:
                 request.session['sale_transaction_id'] = False

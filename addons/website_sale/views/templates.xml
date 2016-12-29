@@ -1631,6 +1631,27 @@
         </t>
     </template>
 
+    <template id="cancel" name="Order Cancel Message">
+        <t t-call="website.layout">
+            <t t-set="additional_title">Shop - Cancelled</t>
+            <div id="wrap">
+                <div class="container oe_website_sale">
+                    <div class="row">
+                        <div class="col-md-9">
+                            <h1 class="mb32">Order <em t-field="order.name" /> Cancelled</h1>
+                            <div class="alert alert-danger" t-if="order.payment_tx_id.state_message">
+                                <h3 t-field="order.payment_tx_id.state_message" />
+                            </div>
+                            <div class="alert alert-danger" t-if="not order.payment_tx_id.state_message and order.payment_acquirer_id.cancel_msg">
+                                <h3 t-field="order.payment_acquirer_id.cancel_msg" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
     <template id="total">
         <div id="cart_total" t-att-class="extra_class or ''" t-if="website_sale_order">
             <div class="row" id="order_total_untaxed">
