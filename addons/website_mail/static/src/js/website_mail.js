@@ -38,9 +38,9 @@ odoo.define('website_mail.thread', function(require) {
             });
             this.set('messages', []);
             this.set('message_count', this.options['message_count']);
-            this.set('current_page', this.options['pager_start']);
             this.set('pager', {});
             this.set('domain', this.options['domain']);
+            this._current_page = this.options['pager_start'];
         },
         willStart: function(){
             var self = this;
@@ -53,15 +53,15 @@ odoo.define('website_mail.thread', function(require) {
                 self.on("change:messages", self, self.render_messages);
                 self.on("change:message_count", self, function(){
                     self.render_message_count();
-                    self.set('pager', self._pager(self.get('current_page')));
+                    self.set('pager', self._pager(self._current_page));
                 });
                 self.on("change:pager", self, self.render_pager);
-                self.on("change:current_page", self, self.on_change_current_page);
                 self.on("change:domain", self, self.on_change_domain);
                 // set options and parameters
                 self.options = _.extend(self.options, result['options'] || {});
                 self.set('message_count', self.options['message_count']);
                 self.set('messages', self.preprocess_messages(result['messages']));
+                return result;
             });
         },
         _load_templates: function(){
@@ -80,7 +80,7 @@ odoo.define('website_mail.thread', function(require) {
                 'res_model': this.options['res_model'],
                 'res_id': this.options['res_id'],
                 'limit': this.options['pager_step'],
-                'offset': (this.get('current_page')-1) * this.options['pager_step'],
+                'offset': (this._current_page-1) * this.options['pager_step'],
                 'allow_composer': this.options['allow_composer'],
             }
             // add fields to allow to post comment without being logged
@@ -93,10 +93,7 @@ odoo.define('website_mail.thread', function(require) {
             if(this.get('domain')){
                 data['domain'] = this.get('domain');
             }
-            return ajax.jsonRpc('/website_mail/fetch', 'call', data).then(function(result){
-                self.set('messages', self.preprocess_messages(result['messages']));
-                self.set('message_count', result['message_count']);
-            });
+            return data;
         },
         preprocess_messages: function(messages){
             _.each(messages, function(m){
@@ -144,20 +141,25 @@ odoo.define('website_mail.thread', function(require) {
             }
         },
         // events / actions
-        on_change_current_page: function(){
+        change_current_page: function(page, domain){
+            this._current_page = page;
+            var d = _.clone(this.get('domain'))
+            if(domain){
+                d = domain;
+            }
+            this.set('domain', d); // trigger fetch message
+        },
+        on_change_domain: function(){
             var self = this;
             this.message_fetch().then(function(){
                 var p = self._current_page;
                 self.set('pager', self._pager(p));
             });
         },
-        on_change_domain: function(){
-            this.set('current_page', 1);
-        },
         on_click_pager: function(ev){
             ev.preventDefault();
             var page = $(ev.currentTarget).data('page');
-            this.set('current_page', page);
+            this.change_current_page(page);
         },
         // ui
         render_messages: function(){
