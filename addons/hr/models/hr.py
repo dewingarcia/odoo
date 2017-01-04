@@ -93,11 +93,9 @@ class Job(models.Model):
 
 
 class Employee(models.Model):
-
     _name = "hr.employee"
     _description = "Employee"
     _order = 'name_related'
-    _inherits = {'resource.resource': "resource_id"}
     _inherit = ['mail.thread']
 
     _mail_post_access = 'read'
@@ -107,6 +105,9 @@ class Employee(models.Model):
         image_path = get_module_resource('hr', 'static/src/img', 'default_image.png')
         return tools.image_resize_image_big(open(image_path, 'rb').read().encode('base64'))
 
+    resource_id = fields.Many2one(
+        'resource.resource', string='Resource',
+        auto_join=True, delegate=True, ondelete='cascade', required=True)
     # we need a related field in order to be able to sort the employee by name
     name_related = fields.Char(related='resource_id.name', string="Resource Name", readonly=True, store=True)
     country_id = fields.Many2one('res.country', string='Nationality (Country)')
@@ -138,8 +139,6 @@ class Employee(models.Model):
     parent_id = fields.Many2one('hr.employee', string='Manager')
     category_ids = fields.Many2many('hr.employee.category', 'employee_category_rel', 'emp_id', 'category_id', string='Tags')
     child_ids = fields.One2many('hr.employee', 'parent_id', string='Subordinates')
-    resource_id = fields.Many2one('resource.resource', string='Resource',
-        ondelete='cascade', required=True, auto_join=True)
     coach_id = fields.Many2one('hr.employee', string='Coach')
     job_id = fields.Many2one('hr.job', string='Job Title')
     passport_id = fields.Char('Passport No')
