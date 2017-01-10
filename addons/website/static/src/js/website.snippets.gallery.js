@@ -36,6 +36,12 @@ options.registry.gallery = options.Class.extend({
 
         this._temp_mode = this.$el.find("data-mode").data("mode");
         this._temp_col = this.$el.find("data-columns").data("columns");
+
+        var self = this;
+        this.$target.find(".o_add_images").on('mousedown' ,function (e) {
+            e.stopImmediatePropagation();
+            self.images_add('click');
+        });
     },
     drop_and_build_snippet: function () {
         var uuid = new Date().getTime();
@@ -70,7 +76,7 @@ options.registry.gallery = options.Class.extend({
         return this.$target.find("img").off('save').on('save', function (event, img) {
                 var $parent = $(img).parent();
                 $parent.addClass("saved_active");
-                var index = self.$target.find(".item.saved_active").index();
+                var index = self.$target.find(".item.active").index();
                 $parent.removeClass("saved_active");
                 self.$target.find(".carousel:first li[data-target]:eq("+index+")").css("background-image", "url("+$(img).attr("src")+")");
             });
@@ -244,7 +250,8 @@ options.registry.gallery = options.Class.extend({
     },
     images_rm   : function (type) {
         if(type !== "click") return;
-        this.replace($('<div class="alert alert-info css_editable_mode_display"/>').text(_t("Add Images from the 'Customize' menu")));
+        var add_img = $('<div class="alert alert-info css_editable_mode_display text-center"><span class="o_add_images" style="cursor: pointer;"><i class="fa fa-plus-circle"/> Add Images </span></div>');
+        this.replace(add_img);
     },
     sizing : function () { // done via css, keep it to avoid undefined error
     },
