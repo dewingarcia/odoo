@@ -9,6 +9,5 @@ import pos_config
 import pos_order
 import pos_session
 import product
-import res_config
 import res_partner
 import res_users

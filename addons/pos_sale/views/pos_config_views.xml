@@ -1,16 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <record id="view_pos_config_form_inherit_pos_sale" model="ir.ui.view"> 
-        <field name="name">pos.config.form</field>
+    <record id="pos_config_view_form_pos_sale" model="ir.ui.view"> 
+        <field name="name">pos.config.form.pos.sale</field>
         <field name="model">pos.config</field>
-        <field name="inherit_id" ref="point_of_sale.view_pos_config_form"/>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
         <field name="arch" type="xml">
-        <data>
-            <xpath expr="//group[@name='pos_config_main_options']" position="inside">
-                <field name="crm_team_id" options="{'no_create': True}" groups="base.group_no_one"/>
-            </xpath>
-        </data>
+            <div id="order_reference" position="after">
+                <div class="col-xs-12 col-md-6 o_setting_box" groups="base.group_no_one">
+                    <div class="o_setting_right_pane">
+                        <label for="crm_team_id"/>
+                        <div class="text-muted">
+                            Sales channel used to track orders
+                        </div>
+                        <div class="mt16">
+                            <field name="crm_team_id" options="{'no_create': True}" />
+                        </div>
+                    </div>
+                </div>
+            </div>
         </field>
     </record>
 

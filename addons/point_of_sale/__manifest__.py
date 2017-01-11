@@ -55,7 +55,6 @@ Main Features
         'views/account_statement_report.xml',
         'views/res_users_view.xml',
         'views/res_partner_view.xml',
-        'views/res_config_view.xml',
         'views/report_statement.xml',
         'views/report_userlabel.xml',
         'views/report_saledetails.xml',
