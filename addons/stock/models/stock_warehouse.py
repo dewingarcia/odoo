@@ -251,6 +251,23 @@ class Warehouse(models.Model):
         PickingType.browse(warehouse_data['in_type_id']).write({'return_picking_type_id': warehouse_data['out_type_id']})
         return warehouse_data
 
+    def _get_operations_inprogress(self):
+        location_ids = (self.lot_stock_id + self.wh_input_stock_loc_id + self.wh_qc_stock_loc_id + self.wh_output_stock_loc_id + self.wh_pack_stock_loc_id).ids
+        move_locations = self.env['stock.move'].search(['|', ('location_id', 'in', location_ids), ('location_dest_id', 'in', location_ids), ('state', 'not in', ['done', 'cancel'])])
+
+        operation_type_ids = (self.pick_type_id + self.pack_type_id + self.out_type_id + self.in_type_id + self.int_type_id).ids
+        move_operations = self.env['stock.move'].search([('picking_type_id', 'in', operation_type_ids), ('state', 'not in', ['done', 'cancel'])])
+        return move_locations + move_operations
+
+    @api.multi
+    def toggle_active(self):
+        for warehouse in self:
+            if warehouse.active and warehouse._get_operations_inprogress():
+                raise UserError(_("You cannot archive this warehouse because one or many operations are in progress."))
+            warehouse.active = not warehouse.active
+            (warehouse.lot_stock_id + warehouse.wh_input_stock_loc_id + warehouse.wh_qc_stock_loc_id + warehouse.wh_output_stock_loc_id + warehouse.wh_pack_stock_loc_id).write({'active': warehouse.active})
+            (warehouse.pick_type_id + warehouse.pack_type_id + warehouse.out_type_id + warehouse.in_type_id + warehouse.int_type_id).write({'active': warehouse.active})
+
     @api.multi
     def create_routes(self):
         self.ensure_one()
