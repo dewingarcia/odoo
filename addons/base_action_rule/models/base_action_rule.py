@@ -181,11 +181,12 @@ class BaseActionRule(models.Model):
         """ Process action ``self`` on the ``records`` that have not been done yet. """
         # filter out the records on which self has already been done, then mark
         # remaining records as done (to avoid recursive processing)
-        action_done = self._context['__action_done']
+        action_done = dict(self._context['__action_done'])
         records -= action_done.setdefault(self, records.browse())
         if not records:
             return
         action_done[self] |= records
+        records = records.with_context(__action_done=action_done)
 
         # modify records
         values = {}
