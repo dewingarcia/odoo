@@ -88,9 +88,6 @@
                 <sheet string="Project">
                     <field name="analytic_account_id" invisible="1" required="0"/>
                     <div class="oe_button_box" name="button_box" groups="base.group_user">
-                        <button  class="oe_stat_button" name="attachment_tree_view" type="object" icon="fa-files-o">
-                            <field string="Documents" name="doc_count" widget="statinfo"/>
-                        </button>
                         <button class="oe_stat_button" type="action" attrs="{'invisible':[('use_tasks','=', False)]}"
                             name="%(act_project_project_2_project_task_all)d" icon="fa-tasks">
                             <field string="Tasks" name="task_count" widget="statinfo" options="{'label_field': 'label_tasks'}"/>
@@ -245,7 +242,6 @@
                     <field name="alias_id"/>
                     <field name="alias_name"/>
                     <field name="alias_domain"/>
-                    <field name="doc_count"/>
                     <field name="is_favorite"/>
                     <templates>
                         <t t-name="kanban-box">
@@ -288,12 +284,6 @@
                                         </a>
                                         <a t-if="record.task_needaction_count.raw_value" class="o_needaction" name="%(act_project_project_2_project_task_all)d" type="action" context="{'search_default_message_needaction': 1}">
                                             <t t-esc="record.task_needaction_count.raw_value"/>
-                                        </a>
-                                    </div>
-                                    <div t-if="record.doc_count.raw_value" class="o_project_kanban_box">
-                                        <a name="attachment_tree_view" type="object">
-                                            <span class="o_value"><t t-esc="record.doc_count.value"/></span>
-                                            <span class="o_label">Documents</span>
                                         </a>
                                     </div>
                                 </div>
