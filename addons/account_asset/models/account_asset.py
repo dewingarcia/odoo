@@ -2,7 +2,8 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import calendar
-from datetime import date, datetime
+import math
+from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models, _
@@ -39,6 +40,10 @@ class AccountAssetCategory(models.Model):
     open_asset = fields.Boolean(string='Auto-confirm Assets', help="Check this if you want to automatically confirm the assets of this category when created by invoices.")
     group_entries = fields.Boolean(string='Group Journal Entries', help="Check this if you want to group the generated entries by categories.")
     type = fields.Selection([('sale', 'Sale: Revenue Recognition'), ('purchase', 'Purchase: Asset')], required=True, index=True, default='purchase')
+    depreciation_dates_as_last = fields.Boolean(
+        string='Depreciation dates as last day of the period',
+        help='if True, the assets of that category are by default created with\
+        the "Date of first depreciation" as "last day of the period"')
 
     @api.onchange('account_asset_id')
     def onchange_account_asset(self):
@@ -100,6 +105,23 @@ class AccountAssetAsset(models.Model):
         help="It is the amount you plan to have that you cannot depreciate.")
     invoice_id = fields.Many2one('account.invoice', string='Invoice', states={'draft': [('readonly', False)]}, copy=False)
     type = fields.Selection(related="category_id.type", string='Type', required=True)
+    date_first_depreciation = fields.Selection(
+        string='Date of first depreciation',
+        selection=[
+            ('purchase_date', 'Purchase Date'),
+            ('last_day_period', 'Last day of the period'),
+            ('manual', 'Manual')
+        ],
+        default='purchase_date',
+        required=True,
+        readonly=True,
+        states={'draft': [('readonly', False)]}
+    )
+    manual_date_first_depreciation = fields.Date(
+        string='Manual date of first depreciation',
+        readonly=True,
+        states={'draft': [('readonly', False)]}
+    )
 
     @api.multi
     def unlink(self):
@@ -203,26 +225,36 @@ class AccountAssetAsset(models.Model):
 
         if self.value_residual != 0.0:
             amount_to_depr = residual_amount = self.value_residual
-            if self.prorata:
-                # if we already have some previous validated entries, starting date is last entry + method perio
-                if posted_depreciation_line_ids and posted_depreciation_line_ids[-1].depreciation_date:
-                    last_depreciation_date = datetime.strptime(posted_depreciation_line_ids[-1].depreciation_date, DF).date()
-                    depreciation_date = last_depreciation_date + relativedelta(months=+self.method_period)
-                else:
-                    depreciation_date = datetime.strptime(self._get_last_depreciation_date()[self.id], DF).date()
+
+            # if we already have some previous validated entries, starting date is last entry + method perio
+            if posted_depreciation_line_ids and posted_depreciation_line_ids[-1].depreciation_date:
+                last_depreciation_date = datetime.strptime(posted_depreciation_line_ids[-1].depreciation_date, DF).date()
+                depreciation_date = last_depreciation_date + relativedelta(months=+self.method_period)
             else:
-                # depreciation_date = 1st of January of purchase year if annual valuation, 1st of
-                # purchase month in other cases
-                if self.method_period >= 12:
-                    asset_date = datetime.strptime(self.date[:4] + '-01-01', DF).date()
+                if self.prorata:
+                    # depreciation_date computed from the purchase date
+                    depreciation_date = datetime.strptime(self._get_last_depreciation_date()[self.id], DF).date()
+                elif self.date_first_depreciation == 'purchase_date'\
+                        or (self.date_first_depreciation == 'manual' and not self.manual_date_first_depreciation):
+                    # depreciation_date = 1st of January of purchase year if annual valuation, 1st of
+                    # purchase month in other cases
+                    if self.method_period >= 12:
+                        depreciation_date = datetime.strptime(self.date[:4] + '-01-01', DF).date()
+                    else:
+                        depreciation_date = datetime.strptime(self.date[:7] + '-01', DF).date()
+                elif self.date_first_depreciation == 'last_day_period':
+                    # depreciation_date = the last day of the month or fiscalyear depending the number of period
+                    asset_date = datetime.strptime(self.date, DF).date()
+                    # number of period in the year
+                    period_in_year = int(math.ceil(12.0 / min(12, self.method_period)))
+                    # the period's number of the asset_date
+                    period_number = (((asset_date.month - 1) * period_in_year) / 12) + 1
+                    period_month = min(12, period_number * self.method_period)
+                    depreciation_date = (asset_date.replace(month=period_month, day=1)
+                                         + timedelta(days=31)) .replace(day=1) - timedelta(days=1)
                 else:
-                    asset_date = datetime.strptime(self.date[:7] + '-01', DF).date()
-                # if we already have some previous validated entries, starting date isn't 1st January but last entry + method period
-                if posted_depreciation_line_ids and posted_depreciation_line_ids[-1].depreciation_date:
-                    last_depreciation_date = datetime.strptime(posted_depreciation_line_ids[-1].depreciation_date, DF).date()
-                    depreciation_date = last_depreciation_date + relativedelta(months=+self.method_period)
-                else:
-                    depreciation_date = asset_date
+                    # depreciation_date set manually from the 'manual_date_first_depreciation' field
+                    depreciation_date = datetime.strptime(self.manual_date_first_depreciation, DF).date()
             day = depreciation_date.day
             month = depreciation_date.month
             year = depreciation_date.year
@@ -349,6 +381,12 @@ class AccountAssetAsset(models.Model):
         self.currency_id = self.company_id.currency_id.id
 
     @api.multi
+    @api.onchange('date_first_depreciation')
+    def onchange_date_first_depreciation(self):
+        for record in self:
+            record.manual_date_first_depreciation = None
+
+    @api.multi
     @api.depends('depreciation_line_ids.move_id')
     def _entry_count(self):
         for asset in self:
@@ -366,23 +404,24 @@ class AccountAssetAsset(models.Model):
         vals = self.onchange_category_id_values(self.category_id.id)
         # We cannot use 'write' on an object that doesn't exist yet
         if vals:
-            for k, v in vals['value'].iteritems():
+            for k, v in vals.iteritems():
                 setattr(self, k, v)
 
     def onchange_category_id_values(self, category_id):
         if category_id:
             category = self.env['account.asset.category'].browse(category_id)
-            return {
-                'value': {
-                    'method': category.method,
-                    'method_number': category.method_number,
-                    'method_time': category.method_time,
-                    'method_period': category.method_period,
-                    'method_progress_factor': category.method_progress_factor,
-                    'method_end': category.method_end,
-                    'prorata': category.prorata,
-                }
+            values = {
+                'method': category.method,
+                'method_number': category.method_number,
+                'method_time': category.method_time,
+                'method_period': category.method_period,
+                'method_progress_factor': category.method_progress_factor,
+                'method_end': category.method_end,
+                'prorata': category.prorata,
             }
+            if category.depreciation_dates_as_last:
+                values['date_first_depreciation'] = 'last_day_period'
+            return values
 
     @api.onchange('method_time')
     def onchange_method_time(self):

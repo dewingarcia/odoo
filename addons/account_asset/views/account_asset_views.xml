@@ -54,6 +54,7 @@
                     <group string="Additional Options">
                         <field name="open_asset"/>
                         <field name="group_entries"/>
+                        <field name="depreciation_dates_as_last"/>
                     </group>
                     <group attrs="{'invisible': [('type','=','sale')]}" string="Depreciation Method">
                         <field name="method" widget="radio"/>
@@ -124,6 +125,8 @@
                             <field name="category_id" domain="[('type', '=', 'purchase')]" context="{'default_type': 'purchase'}" help="Category of asset"/>
                             <field name="code"/>
                             <field name="date" help="Date of asset"/>
+                            <field name="date_first_depreciation"/>
+                            <field name="manual_date_first_depreciation" attrs="{'invisible': [('date_first_depreciation','!=','manual')]}"/>
                             <field name="type" invisible="1"/>
                         </group>
                         <group>
