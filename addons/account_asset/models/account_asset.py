@@ -249,9 +249,9 @@ class AccountAssetAsset(models.Model):
                     period_in_year = int(math.ceil(12.0 / min(12, self.method_period)))
                     # the period's number of the asset_date
                     period_number = (((asset_date.month - 1) * period_in_year) / 12) + 1
-                    period_month = min(12, period_number * self.method_period)
-                    depreciation_date = (asset_date.replace(month=period_month, day=1)
-                                         + timedelta(days=31)) .replace(day=1) - timedelta(days=1)
+                    period_month = min(12, period_number * self.method_number)
+                    depreciation_date = asset_date.replace(
+                        month=period_month, day=calendar.monthrange(asset_date.year, period_month)[1])
                 else:
                     # depreciation_date set manually from the 'manual_date_first_depreciation' field
                     depreciation_date = datetime.strptime(self.manual_date_first_depreciation, DF).date()
@@ -284,6 +284,10 @@ class AccountAssetAsset(models.Model):
                 day = depreciation_date.day
                 month = depreciation_date.month
                 year = depreciation_date.year
+
+                # datetime doesn't take into account that the number of days is not the same for each month
+                if self.date_first_depreciation == 'last_day_period':
+                    day = calendar.monthrange(year, month)[1]
 
         self.write({'depreciation_line_ids': commands})
 
