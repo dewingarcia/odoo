@@ -40,7 +40,7 @@ class AccountAssetCategory(models.Model):
     open_asset = fields.Boolean(string='Auto-confirm Assets', help="Check this if you want to automatically confirm the assets of this category when created by invoices.")
     group_entries = fields.Boolean(string='Group Journal Entries', help="Check this if you want to group the generated entries by categories.")
     type = fields.Selection([('sale', 'Sale: Revenue Recognition'), ('purchase', 'Purchase: Asset')], required=True, index=True, default='purchase')
-    depreciation_dates_as_last = fields.Boolean(
+    last_day_period_dates = fields.Boolean(
         string='Depreciation dates as last day of the period',
         help='if True, the assets of that category are by default created with\
         the "Date of first depreciation" as "last day of the period"')
@@ -423,7 +423,7 @@ class AccountAssetAsset(models.Model):
                 'method_end': category.method_end,
                 'prorata': category.prorata,
             }
-            if category.depreciation_dates_as_last:
+            if category.last_day_period_dates:
                 values['date_first_depreciation'] = 'last_day_period'
             return values
 

@@ -54,7 +54,7 @@
                     <group string="Additional Options">
                         <field name="open_asset"/>
                         <field name="group_entries"/>
-                        <field name="depreciation_dates_as_last"/>
+                        <field name="last_day_period_dates"/>
                     </group>
                     <group attrs="{'invisible': [('type','=','sale')]}" string="Depreciation Method">
                         <field name="method" widget="radio"/>
