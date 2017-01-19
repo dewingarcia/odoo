@@ -249,7 +249,7 @@ class AccountAssetAsset(models.Model):
                     period_in_year = int(math.ceil(12.0 / min(12, self.method_period)))
                     # the period's number of the asset_date
                     period_number = (((asset_date.month - 1) * period_in_year) / 12) + 1
-                    period_month = min(12, period_number * self.method_number)
+                    period_month = min(12, period_number * self.method_period)
                     depreciation_date = asset_date.replace(
                         month=period_month, day=calendar.monthrange(asset_date.year, period_month)[1])
                 else:
