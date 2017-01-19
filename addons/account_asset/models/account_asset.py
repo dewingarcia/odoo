@@ -234,8 +234,7 @@ class AccountAssetAsset(models.Model):
                 if self.prorata:
                     # depreciation_date computed from the purchase date
                     depreciation_date = datetime.strptime(self._get_last_depreciation_date()[self.id], DF).date()
-                elif self.date_first_depreciation == 'purchase_date'\
-                        or (self.date_first_depreciation == 'manual' and not self.manual_date_first_depreciation):
+                elif self.date_first_depreciation == 'purchase_date':
                     # depreciation_date = 1st of January of purchase year if annual valuation, 1st of
                     # purchase month in other cases
                     if self.method_period >= 12:
