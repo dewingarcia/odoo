@@ -5,7 +5,8 @@ odoo.define('web_editor.snippets.options', function (require) {
     var Class = require('web.Class');
     var core = require('web.core');
     var Dialog = require('web.Dialog');
-    var base = require('web_editor.base');
+    var mixins = require("web.mixins");
+    var webEditorContext = require("web_editor.context");
     var editor = require('web_editor.editor');
     var widget = require('web_editor.widget');
 
@@ -17,8 +18,11 @@ odoo.define('web_editor.snippets.options', function (require) {
      * this module contains the names of the specialized SnippetOption which can be reference
      * thanks to the data-js key of the full options web_editor template.
      */
-    var SnippetOption = Class.extend({
+    var SnippetOption = Class.extend(mixins.EventDispatcherMixin, {
         init: function (BuildingBlock, editor, $target, option_id) {
+            mixins.EventDispatcherMixin.init.call(this);
+            this.setParent(BuildingBlock);
+
             this.buildingBlock = BuildingBlock;
             this.editor = editor;
             this.$target = $target;
@@ -210,9 +214,11 @@ odoo.define('web_editor.snippets.options', function (require) {
 
         clean_for_save: editor.dummy
     });
-    var registry = {};
 
-    /* ----- default options ---- */
+    /**
+     * The registry object contains the list of available options.
+     */
+    var registry = {};
 
     registry.marginAndResize = SnippetOption.extend({
         preventChildPropagation: true,
@@ -655,7 +661,7 @@ odoo.define('web_editor.snippets.options', function (require) {
             this.$el.toggleClass('hidden', this.$target.css('background-image') === 'none');
         },
         background_position: function (type, value, $li) {
-            if (type != 'click') { return; }
+            if (type !== 'click') { return; }
             var self = this;
 
             this.previous_state = [this.$target.attr('class'), this.$target.css('background-size'), this.$target.css('background-position')];
@@ -896,7 +902,7 @@ odoo.define('web_editor.snippets.options', function (require) {
                 kwargs: {
                     order: 'name DESC',
                     limit: 5,
-                    context: base.get_context(),
+                    context: webEditorContext.get(),
                 }
             }).then(function (result) {
                 self.$search.siblings().remove();
@@ -911,7 +917,7 @@ odoo.define('web_editor.snippets.options', function (require) {
                 args: [[this.ID]],
                 kwargs: {
                     options: options,
-                    context: base.get_context(),
+                    context: webEditorContext.get(),
                 }
             });
         },

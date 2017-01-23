@@ -68,8 +68,13 @@
                         <a data-action="show-mobile-preview" href="#"><span title="Mobile preview" class="fa fa-mobile"/></a>
                     </li>
                     <!-- Page Edition -->
-                    <li>
-                        <a data-action="new_page" href="#" data-toggle="modal" data-target="#o_website_add_page_modal"><span class="fa fa-plus"/>New</a>
+                    <li class="o_new_content_menu">
+                        <a href="#"><span class="fa fa-plus"/>New</a>
+                        <div id="o_new_content_menu_choices" class="o_hidden">
+                            <ul>
+                                <li groups="website.group_website_designer"><a href="#" data-action="new_page"><i class="fa fa-file-o"/><p>New Page</p></a></li>
+                            </ul>
+                        </div>
                     </li>
                     <li t-if="not translatable">
                         <a data-action="edit" href="#"><span class="fa fa-pencil"/>Edit</a>
@@ -82,17 +87,6 @@
                     </li>
                 </ul>
             </nav>
-        </xpath>
-
-        <!-- Add new page/content modal -->
-        <xpath expr="//div[@id='wrapwrap']" position="after">
-            <div groups="website.group_website_publisher" class="modal" id="o_website_add_page_modal">
-                <div class="modal-dialog modal-lg">
-                    <ul>
-                        <li groups="website.group_website_designer"><a href="#" data-action="new_page"><i class="fa fa-file-o"/><p>New Page</p></a></li>
-                    </ul>
-                </div>
-            </div>
         </xpath>
     </template>
 </odoo>

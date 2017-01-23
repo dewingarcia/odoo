@@ -10,7 +10,7 @@
  * only when the deferred is resolved, and its value is equal to the resolved value.
  * The module can be rejected (unloaded). This will be logged in the console as info.
  *
- * logs: 
+ * logs:
  *      Missing dependencies:
  *          These modules do not appear in the page. It is possible that the
  *          JavaScript file is not in the page or that the module name is wrong

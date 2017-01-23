@@ -5,13 +5,11 @@ var core = require('web.core');
 var session = require('web.session');
 var Model = require('web.DataModel');
 var common = require('web.form_common');
-var base = require('web_editor.base');
-var editor = require('web_editor.editor');
-var summernote = require('web_editor.summernote');
+require('web_editor.editor');
+require('web_editor.summernote');
 var transcoder = require('web_editor.transcoder');
 
 var QWeb = core.qweb;
-var _t = core._t;
 
 /**
  * FieldTextHtml Widget
@@ -108,7 +106,7 @@ var FieldTextHtmlSimple = widget.extend({
         var history = this.$content.data('NoteHistory');
         if (history) {
             history.reset();
-            self.$('.note-toolbar').find('button[data-event="undo"]').attr('disabled', true);
+            this.$('.note-toolbar').find('button[data-event="undo"]').attr('disabled', true);
         }
     },
     text_to_html: function (text) {
@@ -277,7 +275,7 @@ var FieldTextHtml = widget.extend({
             src += "?";
         }
 
-        for (var k in attr) {
+        for (k in attr) {
             if (attr[k] !== null) {
                 src += "&"+k+"="+(_.isBoolean(attr[k]) ? +attr[k] : attr[k]);
             }

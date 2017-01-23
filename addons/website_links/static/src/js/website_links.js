@@ -1,22 +1,172 @@
+odoo.define("website_links.instances", function (require) {
+    "use strict";
+
+    var ajax = require('web.ajax');
+    var core = require('web.core');
+    var base = require("web_editor.base");
+    require('website.website');
+    var websiteLinksClasses = require("website_links.website_links");
+
+    if (!$('.o_website_links_create_tracked_url').length) {
+        return $.Deferred().reject("DOM doesn't contain '.o_website_links_create_tracked_url'");
+    }
+
+    ajax.loadXML('/website_links/static/src/xml/recent_link.xml', core.qweb);
+
+    var _t = core._t;
+    var ZeroClipboard = window.ZeroClipboard;
+
+    base.ready().then(function () {
+        ZeroClipboard.config({swfPath: window.location.origin + "/website_links/static/lib/zeroclipboard/ZeroClipboard.swf" });
+
+        // UTMS selects widgets
+        var campaign_select = new websiteLinksClasses.SelectBox('utm.campaign');
+        campaign_select.start($("#campaign-select"), _t('e.g. Promotion of June, Winter Newsletter, ..'));
+
+        var medium_select = new websiteLinksClasses.SelectBox('utm.medium');
+        medium_select.start($("#channel-select"), _t('e.g. Newsletter, Social Network, ..'));
+
+        var source_select = new websiteLinksClasses.SelectBox('utm.source');
+        source_select.start($("#source-select"), _t('e.g. Search Engine, Website page, ..'));
+
+        // Recent Links Widgets
+        var recent_links = new websiteLinksClasses.RecentLinks();
+            recent_links.appendTo($("#o_website_links_recent_links"));
+            recent_links.get_recent_links('newest');
+
+        $('#filter-newest-links').click(function() {
+            recent_links.remove_links();
+            recent_links.get_recent_links('newest');
+        });
+
+        $('#filter-most-clicked-links').click(function() {
+            recent_links.remove_links();
+            recent_links.get_recent_links('most-clicked');
+        });
+
+        $('#filter-recently-used-links').click(function() {
+            recent_links.remove_links();
+            recent_links.get_recent_links('recently-used');
+        });
+
+        // Clipboard Library
+        new ZeroClipboard($("#btn_shorten_url"));
+
+        $("#generated_tracked_link a").click(function() {
+            $("#generated_tracked_link a").text("Copied").removeClass("btn-primary").addClass("btn-success");
+            setTimeout(function() {
+                $("#generated_tracked_link a").text("Copy").removeClass("btn-success").addClass("btn-primary");
+            }, '5000');
+        });
+
+        $('#url').on('keyup', function(e) {
+            if($('#btn_shorten_url').hasClass('btn-copy') && e.which !== 13) {
+                $('#btn_shorten_url').removeClass('btn-success btn-copy').addClass('btn-primary').html('Get tracked link');
+                $('#generated_tracked_link').css('display', 'none');
+                $('.o_website_links_utm_forms').show();
+            }
+        });
+
+        var url_copy_animating = false;
+        $('#btn_shorten_url').click(function() {
+            if($('#btn_shorten_url').hasClass('btn-copy')) {
+                if(!url_copy_animating) {
+                    url_copy_animating = true;
+
+                    $('#generated_tracked_link').clone()
+                        .css('position', 'absolute')
+                        .css('left', '78px')
+                        .css('bottom', '8px')
+                        .css('z-index', 2)
+                        .removeClass('#generated_tracked_link')
+                        .addClass('url-animated-link')
+                        .appendTo($('#generated_tracked_link'))
+                        .animate({
+                            opacity: 0,
+                            bottom: "+=20",
+                        }, 500, function() {
+                            $('.url-animated-link').remove();
+                            url_copy_animating = false;
+                        });
+                }
+            }
+        });
+
+        // Add the RecentLinkBox widget and send the form when the user generate the link
+        $("#o_website_links_link_tracker_form").submit(function(event) {
+
+            if($('#btn_shorten_url').hasClass('btn-copy')) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            // Get URL and UTMs
+            var campaign_id = $('#campaign-select').attr('value');
+            var medium_id = $('#channel-select').attr('value');
+            var source_id = $('#source-select').attr('value');
+
+            var params = {};
+            params.url = $("#url").val();
+            if(campaign_id !== '') { params.campaign_id = parseInt(campaign_id); }
+            if(medium_id !== '') { params.medium_id = parseInt(medium_id); }
+            if(source_id !== '') { params.source_id = parseInt(source_id); }
+
+            $('#btn_shorten_url').text(_t('Generating link...'));
+
+            ajax.jsonRpc("/website_links/new", 'call', params)
+                .then(function (result) {
+                    if('error' in result) {
+                        // Handle errors
+                        if(result.error === 'empty_url')  {
+                            $('.notification').html("<div class='alert alert-danger'>The URL is empty.</div>");
+                        }
+                        else if(result.error === 'url_not_found') {
+                            $('.notification').html("<div class='alert alert-danger'>URL not found (404)</div>");
+                        }
+                        else {
+                            $('.notification').html("<div class='alert alert-danger'>An error occur while trying to generate your link. Try again later.</div>");
+                        }
+                    }
+                    else {
+                        // Link generated, clean the form and show the link
+                        var link = result[0];
+
+                        $('#btn_shorten_url').removeClass('btn-primary').addClass('btn-success btn-copy').html('Copy');
+                        $('#btn_shorten_url').attr('data-clipboard-text', link.short_url);
+
+                        $('.notification').html('');
+                        $('#generated_tracked_link').html(link.short_url);
+                        $('#generated_tracked_link').css('display', 'inline');
+
+                        recent_links.add_link(link);
+
+                        // Clean URL and UTM selects
+                        $('#campaign-select').select2('val', '');
+                        $('#channel-select').select2('val', '');
+                        $('#source-select').select2('val', '');
+
+                        $('.o_website_links_utm_forms').hide();
+                    }
+                });
+        });
+
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+});
+
 odoo.define('website_links.website_links', function (require) {
 'use strict';
 
-var ajax = require('web.ajax');
-var core = require('web.core');
-var Widget = require('web.Widget');
-var base = require('web_editor.base');
-var website = require('website.website');
-var Model = require('web.Model');
+    var ajax = require('web.ajax');
+    var core = require('web.core');
+    var Widget = require('web.Widget');
+    var Model = require('web.Model');
 
-var qweb = core.qweb;
-var _t = core._t;
-var ZeroClipboard = window.ZeroClipboard;
-
-var exports = {};
-
-if(!$('.o_website_links_create_tracked_url').length) {
-    return $.Deferred().reject("DOM doesn't contain '.o_website_links_create_tracked_url'");
-}
+    var _t = core._t;
+    var ZeroClipboard = window.ZeroClipboard;
 
     var SelectBox = Widget.extend({
         init: function(obj) {
@@ -74,7 +224,7 @@ if(!$('.o_website_links_create_tracked_url').length) {
             });
         },
     });
-    
+
     var RecentLinkBox = Widget.extend({
         template: 'website_links.RecentLink',
         events: {
@@ -150,7 +300,7 @@ if(!$('.o_website_links_create_tracked_url').length) {
             this.$('#code-error').remove();
             this.$('#o_website_links_code form').remove();
         },
-        submit_code: function() {
+        submit_code: function () {
             var self = this;
 
             var init_code = this.$('#o_website_links_edit_code_form #init_code').val();
@@ -174,14 +324,14 @@ if(!$('.o_website_links_create_tracked_url').length) {
 
                 // Update button copy to clipboard
                 self.$('.btn_shorten_url_clipboard').attr('data-clipboard-text', host + new_code);
-                
+
                 // Show action again
                 self.$('.o_website_links_edit_code').show();
                 self.$('.copy-to-clipboard').show();
                 self.$('.o_website_links_edit_tools').hide();
             }
 
-            if(init_code == new_code) {
+            if (init_code === new_code) {
                 show_new_code(new_code);
             }
             else {
@@ -215,7 +365,7 @@ if(!$('.o_website_links_create_tracked_url').length) {
                 .fail(function() {
                     var message = _t("Unable to get recent links");
                     self.$el.append("<div class='alert alert-danger'>" + message + "</div>");
-                });            
+                });
         },
         add_link: function(link) {
             var nb_links = this.getChildren().length;
@@ -245,155 +395,9 @@ if(!$('.o_website_links_create_tracked_url').length) {
         },
     });
 
-    ajax.loadXML('/website_links/static/src/xml/recent_link.xml', qweb);
-
-    base.ready().done(function() {
-
-        ZeroClipboard.config({swfPath: location.origin + "/website_links/static/lib/zeroclipboard/ZeroClipboard.swf" });
-
-        // UTMS selects widgets
-        var campaign_select = new SelectBox('utm.campaign');
-        campaign_select.start($("#campaign-select"), _t('e.g. Promotion of June, Winter Newsletter, ..'));
-
-        var medium_select = new SelectBox('utm.medium');
-        medium_select.start($("#channel-select"), _t('e.g. Newsletter, Social Network, ..'));
-
-        var source_select = new SelectBox('utm.source');
-        source_select.start($("#source-select"), _t('e.g. Search Engine, Website page, ..'));
-
-        // Recent Links Widgets
-        var recent_links = new RecentLinks();
-            recent_links.appendTo($("#o_website_links_recent_links"));
-            recent_links.get_recent_links('newest');
-
-        $('#filter-newest-links').click(function() {
-            recent_links.remove_links();
-            recent_links.get_recent_links('newest');
-        });
-
-        $('#filter-most-clicked-links').click(function() {
-            recent_links.remove_links();
-            recent_links.get_recent_links('most-clicked');
-        });
-
-        $('#filter-recently-used-links').click(function() {
-            recent_links.remove_links();
-            recent_links.get_recent_links('recently-used');
-        });
-        
-        // Clipboard Library
-        var client = new ZeroClipboard($("#btn_shorten_url"));
-
-        $("#generated_tracked_link a").click(function() {
-            $("#generated_tracked_link a").text("Copied").removeClass("btn-primary").addClass("btn-success");
-            setTimeout(function() {
-                $("#generated_tracked_link a").text("Copy").removeClass("btn-success").addClass("btn-primary");
-            }, '5000');
-        });
-
-        $('#url').on('keyup', function(e) {
-            if($('#btn_shorten_url').hasClass('btn-copy') && e.which != 13) {
-                $('#btn_shorten_url').removeClass('btn-success btn-copy').addClass('btn-primary').html('Get tracked link');
-                $('#generated_tracked_link').css('display', 'none');
-                $('.o_website_links_utm_forms').show();
-            }
-        });
-
-        var url_copy_animating = false;
-        $('#btn_shorten_url').click(function() {
-            if($('#btn_shorten_url').hasClass('btn-copy')) {
-                if(!url_copy_animating) {
-                    url_copy_animating = true;
-
-                    $('#generated_tracked_link').clone()
-                        .css('position', 'absolute')
-                        .css('left', '78px')
-                        .css('bottom', '8px')
-                        .css('z-index', 2)
-                        .removeClass('#generated_tracked_link')
-                        .addClass('url-animated-link')
-                        .appendTo($('#generated_tracked_link'))
-                        .animate({
-                            opacity: 0,
-                            bottom: "+=20",
-                        }, 500, function() {
-                            $('.url-animated-link').remove();
-                            url_copy_animating = false;
-                        });
-                }
-            }
-        });
-        
-        // Add the RecentLinkBox widget and send the form when the user generate the link
-        $("#o_website_links_link_tracker_form").submit(function(event) {
-
-            if($('#btn_shorten_url').hasClass('btn-copy')) {
-                event.preventDefault();
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            // Get URL and UTMs
-            var url = $("#url").val();
-            var campaign_id = $('#campaign-select').attr('value');
-            var medium_id = $('#channel-select').attr('value');
-            var source_id = $('#source-select').attr('value');
-
-            var params = {};
-            params.url = $("#url").val();
-            if(campaign_id !== '') { params.campaign_id = parseInt(campaign_id); }
-            if(medium_id !== '') { params.medium_id = parseInt(medium_id); }
-            if(source_id !== '') { params.source_id = parseInt(source_id); }
-
-            $('#btn_shorten_url').text(_t('Generating link...'));
-
-            ajax.jsonRpc("/website_links/new", 'call', params)
-                .then(function (result) {
-                    if('error' in result) {
-                        // Handle errors
-                        if(result.error === 'empty_url')  {
-                            $('.notification').html("<div class='alert alert-danger'>The URL is empty.</div>");
-                        }
-                        else if(result.error == 'url_not_found') {
-                            $('.notification').html("<div class='alert alert-danger'>URL not found (404)</div>");
-                        }
-                        else {
-                            $('.notification').html("<div class='alert alert-danger'>An error occur while trying to generate your link. Try again later.</div>");
-                        }
-                    }
-                    else {
-                        // Link generated, clean the form and show the link
-                        var link = result[0];
-
-                        $('#btn_shorten_url').removeClass('btn-primary').addClass('btn-success btn-copy').html('Copy');
-                        $('#btn_shorten_url').attr('data-clipboard-text', link.short_url);
-
-                        $('.notification').html('');
-                        $('#generated_tracked_link').html(link.short_url);
-                        $('#generated_tracked_link').css('display', 'inline');
-
-                        recent_links.add_link(link);
-
-                        // Clean URL and UTM selects
-                        $('#campaign-select').select2('val', '');
-                        $('#channel-select').select2('val', '');
-                        $('#source-select').select2('val', '');
-
-                        $('.o_website_links_utm_forms').hide();
-                    }
-                });
-        });
-
-        $(function () {
-          $('[data-toggle="tooltip"]').tooltip();
-        });
-    });
-
-    exports.SelectBox = SelectBox;
-    exports.RecentLinkBox = RecentLinkBox;
-    exports.RecentLinks = RecentLinks;
-
-return exports;
+    return {
+        SelectBox: SelectBox,
+        RecentLinkBox: RecentLinkBox,
+        RecentLinks: RecentLinks,
+    };
 });

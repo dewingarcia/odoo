@@ -3,7 +3,7 @@ odoo.define('web_editor.rte.summernote', function (require) {
 
 var core = require('web.core');
 var ajax = require('web.ajax');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 var widgets = require('web_editor.widget');
 var rte = require('web_editor.rte');
 
@@ -15,7 +15,7 @@ var _t = core._t;
 ajax.jsonRpc('/web/dataset/call', 'call', {
     'model': 'ir.ui.view',
     'method': 'read_template',
-    'args': ['web_editor.colorpicker', base.get_context()]
+    'args': ['web_editor.colorpicker', webEditorContext.get()]
 }).done(function (data) {
     QWeb.add_template(data);
 });

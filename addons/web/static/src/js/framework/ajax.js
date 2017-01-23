@@ -358,7 +358,7 @@ var loadXML = (function () {
     var qwebs = [];
     var templates_def = $.Deferred();
 
-    var load = function loadXML(url, qweb) {
+    return function _load(url, qweb) {
         if (url) {
             urls.push(url);
             qwebs.push(qweb);
@@ -374,15 +374,14 @@ var loadXML = (function () {
                 loading = false;
                 if (!urls.length) {
                     templates_def.resolve();
+                } else {
+                    _load(null);
                 }
-                load(null);
             });
         }
 
         return templates_def;
     };
-
-    return load;
 })();
 
 return {

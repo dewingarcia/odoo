@@ -1,13 +1,11 @@
 odoo.define('survey.result', function (require) {
-'use strict';
+    'use strict';
 
-var website = require('website.website');
+    require('website.website');
 
-if(!$('.js_surveyresult').length) {
-    return $.Deferred().reject("DOM doesn't contain '.js_surveyresult'");
-}
-
-    console.debug("[survey] Survey Result JS is loading...");
+    if (!$('.js_surveyresult').length) {
+        return $.Deferred().reject("DOM doesn't contain '.js_surveyresult'");
+    }
 
     //Script For Pagination
     var survey_pagination = $('.pagination');
@@ -163,7 +161,4 @@ if(!$('.js_surveyresult').length) {
             $(this)[0].style.cursor = 'default';
         }
     });
-
-    console.debug("[survey] Survey Result JS loaded!");
-
 });

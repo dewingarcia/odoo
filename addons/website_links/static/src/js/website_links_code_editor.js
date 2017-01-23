@@ -1,14 +1,12 @@
 odoo.define('website_links.code_editor', function (require) {
-'use strict';
+    'use strict';
 
-var ajax = require('web.ajax');
-var base = require('web_editor.base');
-var website = require('website.website');
+    var ajax = require('web.ajax');
+    require('website.website');
 
-
-if(!$('.o_website_links_edit_code').length) {
-    return $.Deferred().reject("DOM doesn't contain '.o_website_links_edit_code'");
-}
+    if(!$('.o_website_links_edit_code').length) {
+        return $.Deferred().reject("DOM doesn't contain '.o_website_links_edit_code'");
+    }
 
     // Edit the short URL code
     $('.o_website_links_edit_code').on('click', function(e) {
@@ -26,8 +24,8 @@ if(!$('.o_website_links_edit_code').length) {
 
             $('.o_website_links_edit_code').show();
             $('.copy-to-clipboard').show();
-            $('.o_website_links_edit_tools').hide();  
-            $('.o_website_links_code_error').hide();             
+            $('.o_website_links_edit_tools').hide();
+            $('.o_website_links_code_error').hide();
 
             var old_code = $('#edit-code-form #init_code').val();
             $('#o_website_links_code').html(old_code);
@@ -58,7 +56,7 @@ if(!$('.o_website_links_edit_code').length) {
 
                 // Update button copy to clipboard
                 $('.copy-to-clipboard').attr('data-clipboard-text', host + new_code);
-                
+
                 // Show action again
                 $('.o_website_links_edit_code').show();
                 $('.copy-to-clipboard').show();
@@ -90,6 +88,4 @@ if(!$('.o_website_links_edit_code').length) {
             submit_code();
         });
     });
-
 });
-

@@ -1,16 +1,142 @@
-odoo.define('website_links.charts', function (require) {
-'use strict';
+odoo.define("website_links.charts.instances", function (require) {
+    "use strict";
 
-var Widget = require('web.Widget');
-var base = require('web_editor.base');
-var website = require('website.website');
-var Model = require('web.Model');
+    var Model = require("web.Model");
+    var base = require("web_editor.base");
+    require("website.website");
+    var chartClasses = require("website_links.charts");
 
-var exports = {};
+    base.ready().done(function() {
+        // Resize the chart when a tab is opened, because NVD3 automatically reduce the size
+        // of the chart to 5px width when the bootstrap tab is closed.
+        var charts = {};
+        $(".graph-tabs li a").click(function (e) {
+            e.preventDefault();
+            $(this).tab('show');
+            _.chain(charts).pluck('chart').invoke('update'); // Force NVD3 to redraw the chart
+        });
 
-if(!$('.o_website_links_chart').length) {
-    return $.Deferred().reject("DOM doesn't contain '.o_website_links_chart'");
-}
+        // Get the code of the link
+        var link_id = $('#link_id').val();
+
+        var clicks = new Model('link.tracker.click');
+        var links_domain = ['link_id', '=', parseInt(link_id)];
+
+        var total_clicks = function() {
+            return clicks.call('search_count', [[links_domain]]);
+        };
+
+        var clicks_by_day = function() {
+            return clicks.call('read_group', [[links_domain], ['create_date']],
+                               {'groupby':'create_date:day'});
+        };
+
+        var clicks_by_country = function() {
+            return clicks.call('read_group',  [[links_domain], ['country_id']],
+                               {'groupby':'country_id'});
+        };
+
+        var last_week_clicks_by_country = function() {
+            var interval = moment().subtract(7, 'days').format("YYYY-MM-DD");
+            return clicks.call('read_group', [[links_domain, ['create_date', '>', interval]], ['country_id']],
+                               {'groupby':'country_id'});
+        };
+
+        var last_month_clicks_by_country = function() {
+            var interval = moment().subtract(30, 'days').format("YYYY-MM-DD");
+            return clicks.call('read_group', [[links_domain, ['create_date', '>', interval]], ['country_id']],
+                               {'groupby':'country_id'});
+        };
+
+        $.when(total_clicks(),
+               clicks_by_day(),
+               clicks_by_country(),
+               last_week_clicks_by_country(),
+               last_month_clicks_by_country())
+        .done(function(total_clicks, clicks_by_day, clicks_by_country, last_week_clicks_by_country, last_month_clicks_by_country) {
+
+            if(total_clicks) {
+                var formatted_clicks_by_day = {};
+                var begin_date, end_date;
+                for(var i = 0 ; i < clicks_by_day.length ; i++) {
+                    var date = moment(clicks_by_day[i]['create_date:day'], "DD MMMM YYYY");
+                    if (i === 0) { begin_date = date; }
+                    if (i == clicks_by_day.length - 1) { end_date = date; }
+                    formatted_clicks_by_day[date.format("YYYY-MM-DD")] = clicks_by_day[i]['create_date_count'];
+                }
+
+                // Process all time line chart data
+                var now = moment();
+
+                charts.all_time_bar = new chartClasses.BarChart('#all_time_clicks_chart', begin_date, now, formatted_clicks_by_day);
+
+                // Process month line chart data
+                begin_date = moment().subtract(30, 'days');
+                charts.last_month_bar = new chartClasses.BarChart('#last_month_clicks_chart', begin_date, now, formatted_clicks_by_day);
+
+                // Process week line chart data
+                begin_date = moment().subtract(7, 'days');
+                charts.last_week_bar = new chartClasses.BarChart('#last_week_clicks_chart', begin_date, now, formatted_clicks_by_day);
+
+                // Process pie charts
+                charts.all_time_pie = new chartClasses.PieChart('#all_time_countries_charts', clicks_by_country);
+                charts.last_month_pie = new chartClasses.PieChart('#last_month_countries_charts', last_month_clicks_by_country);
+                charts.last_week_pie = new chartClasses.PieChart('#last_week_countries_charts', last_week_clicks_by_country);
+
+                var row_width = $('#all_time_countries_charts').parent().width();
+                var charts_svg = $('#all_time_countries_charts,last_month_countries_charts,last_week_countries_charts').find('svg');
+                charts_svg.css('height', Math.max(clicks_by_country.length * (row_width > 750 ? 1 : 2), 20) + 'em');
+
+                _.invoke(charts, 'start');
+
+                nv.utils.windowResize(function () {
+                    _.chain(charts).pluck('chart').invoke('update');
+                });
+            }
+            else {
+                $('#all_time_charts').prepend('There is no data to show');
+                $('#last_month_charts').prepend('There is no data to show');
+                $('#last_week_charts').prepend('There is no data to show');
+            }
+        });
+
+        // Copy to clipboard link
+        ZeroClipboard.config({swfPath: location.origin + "/website_links/static/lib/zeroclipboard/ZeroClipboard.swf" });
+        new ZeroClipboard($('.copy-to-clipboard'));
+
+        var animating_copy = false;
+
+        $('.copy-to-clipboard').on('click', function(e) {
+
+            e.preventDefault();
+
+            if(!animating_copy) {
+                animating_copy = true;
+
+                $('.o_website_links_short_url').clone()
+                    .css('position', 'absolute')
+                    .css('left', '15px')
+                    .css('bottom', '10px')
+                    .css('z-index', 2)
+                    .removeClass('.o_website_links_short_url')
+                    .addClass('animated-link')
+                    .appendTo($('.o_website_links_short_url'))
+                    .animate({
+                        opacity: 0,
+                        bottom: "+=20",
+                    }, 500, function() {
+                        $('.animated-link').remove();
+                        animating_copy = false;
+                    });
+                }
+        });
+    });
+});
+
+odoo.define("website_links.charts", function (require) {
+    "use strict";
+
+    var Widget = require("web.Widget");
 
     var BarChart = Widget.extend({
         init: function($element, begin_date, end_date, dates) {
@@ -117,134 +243,8 @@ if(!$('.o_website_links_chart').length) {
         },
     });
 
-    base.ready().done(function() {
-        // Resize the chart when a tab is opened, because NVD3 automatically reduce the size
-        // of the chart to 5px width when the bootstrap tab is closed.
-        var charts = {};
-        $(".graph-tabs li a").click(function (e) {
-            e.preventDefault();
-            $(this).tab('show');
-            _.chain(charts).pluck('chart').invoke('update'); // Force NVD3 to redraw the chart
-        });
-
-        // Get the code of the link
-        var link_id = $('#link_id').val();
-
-        var clicks = new Model('link.tracker.click');
-        var links_domain = ['link_id', '=', parseInt(link_id)];
-
-        var total_clicks = function() {
-            return clicks.call('search_count', [[links_domain]]);
-        };
-
-        var clicks_by_day = function() {
-            return clicks.call('read_group', [[links_domain], ['create_date']],
-                               {'groupby':'create_date:day'});
-        };
-
-        var clicks_by_country = function() {
-            return clicks.call('read_group',  [[links_domain], ['country_id']], 
-                               {'groupby':'country_id'});
-        };
-
-        var last_week_clicks_by_country = function() {
-            var interval = moment().subtract(7, 'days').format("YYYY-MM-DD");
-            return clicks.call('read_group', [[links_domain, ['create_date', '>', interval]], ['country_id']],
-                               {'groupby':'country_id'});
-        };
-
-        var last_month_clicks_by_country = function() {
-            var interval = moment().subtract(30, 'days').format("YYYY-MM-DD");
-            return clicks.call('read_group', [[links_domain, ['create_date', '>', interval]], ['country_id']],
-                               {'groupby':'country_id'});
-        };
-
-        $.when(total_clicks(), 
-               clicks_by_day(),
-               clicks_by_country(),
-               last_week_clicks_by_country(),
-               last_month_clicks_by_country())
-        .done(function(total_clicks, clicks_by_day, clicks_by_country, last_week_clicks_by_country, last_month_clicks_by_country) {
-
-            if(total_clicks) {
-                var formatted_clicks_by_day = {};
-                var begin_date, end_date;
-                for(var i = 0 ; i < clicks_by_day.length ; i++) {
-                    var date = moment(clicks_by_day[i]['create_date:day'], "DD MMMM YYYY");
-                    if (i === 0) { begin_date = date; }
-                    if (i == clicks_by_day.length - 1) { end_date = date; }
-                    formatted_clicks_by_day[date.format("YYYY-MM-DD")] = clicks_by_day[i]['create_date_count'];
-                }
-
-                // Process all time line chart data
-                var now = moment();
-
-                charts.all_time_bar = new BarChart('#all_time_clicks_chart', begin_date, now, formatted_clicks_by_day);
-
-                // Process month line chart data
-                begin_date = moment().subtract(30, 'days');
-                charts.last_month_bar = new BarChart('#last_month_clicks_chart', begin_date, now, formatted_clicks_by_day);
-
-                // Process week line chart data
-                begin_date = moment().subtract(7, 'days');
-                charts.last_week_bar = new BarChart('#last_week_clicks_chart', begin_date, now, formatted_clicks_by_day);
-
-                // Process pie charts
-                charts.all_time_pie = new PieChart('#all_time_countries_charts', clicks_by_country);
-                charts.last_month_pie = new PieChart('#last_month_countries_charts', last_month_clicks_by_country);
-                charts.last_week_pie = new PieChart('#last_week_countries_charts', last_week_clicks_by_country);
-
-                var row_width = $('#all_time_countries_charts').parent().width();
-                var charts_svg = $('#all_time_countries_charts,last_month_countries_charts,last_week_countries_charts').find('svg');
-                charts_svg.css('height', Math.max(clicks_by_country.length * (row_width > 750 ? 1 : 2), 20) + 'em');
-
-                _.invoke(charts, 'start');
-
-                nv.utils.windowResize(function () {
-                    _.chain(charts).pluck('chart').invoke('update');
-                });
-            }
-            else {
-                $('#all_time_charts').prepend('There is no data to show');
-                $('#last_month_charts').prepend('There is no data to show');
-                $('#last_week_charts').prepend('There is no data to show');
-            }
-        });
-
-        // Copy to clipboard link
-        ZeroClipboard.config({swfPath: location.origin + "/website_links/static/lib/zeroclipboard/ZeroClipboard.swf" });
-        new ZeroClipboard($('.copy-to-clipboard'));
-
-        var animating_copy = false;
-
-        $('.copy-to-clipboard').on('click', function(e) {
-
-            e.preventDefault();
-
-            if(!animating_copy) {
-                animating_copy = true;
-
-                $('.o_website_links_short_url').clone()
-                    .css('position', 'absolute')
-                    .css('left', '15px')
-                    .css('bottom', '10px')
-                    .css('z-index', 2)
-                    .removeClass('.o_website_links_short_url')
-                    .addClass('animated-link')
-                    .appendTo($('.o_website_links_short_url'))
-                    .animate({
-                        opacity: 0,
-                        bottom: "+=20",
-                    }, 500, function() {
-                        $('.animated-link').remove();
-                        animating_copy = false;
-                    });
-                }
-        });
-    });
-
-    exports.BarChart = BarChart;
-    exports.PieChart = PieChart;
-
-return exports;
+    return {
+        BarChart: BarChart,
+        PieChart: PieChart,
+    };
 });

@@ -2,7 +2,7 @@ odoo.define('crm.partner_assign', function (require) {
 'use strict';
 
 var Model = require('web.Model');
-var website = require('website.website');
+require('website.website');
 /*
  * This file is intended to add interactivity to survey forms rendered by
  * the website engine.

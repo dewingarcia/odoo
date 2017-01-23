@@ -4,8 +4,8 @@ odoo.define('website_forum.share', function (require) {
 var ajax = require('web.ajax');
 var core = require('web.core');
 var base = require('web_editor.base');
-var SocialShare = require('website.share');
-var website = require('website.website');
+var SocialShare = require("website.content.share");
+require('website.website');
 var qweb = core.qweb;
 var tmpl = ajax.loadXML('/website_forum/static/src/xml/website_forum_share_templates.xml', qweb);
 

@@ -2,7 +2,7 @@ odoo.define('website_crm.backend', function (require) {
 "use strict";
 
 var core = require('web.core');
-var WebsiteBackend = require('website.backendDashboard');
+var WebsiteBackend = require("website.backend.dashboard");
 
 var QWeb = core.qweb;
 

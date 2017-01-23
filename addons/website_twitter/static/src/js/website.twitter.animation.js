@@ -3,8 +3,7 @@ odoo.define('website_twitter.animation', function (require) {
 
 var ajax = require('web.ajax');
 var core = require('web.core');
-require('web_editor.base');
-var animation = require('web_editor.snippets.animation');
+var animation = require('website.content.snippets.animation');
 
 var qweb = core.qweb;
 
@@ -128,13 +127,13 @@ animation.registry.twitter = animation.Class.extend({
     start_scrolling: function(wrapper){
         var self = this;
         wrapper.data("getNextElementWidth", true);
-        wrapper.data("autoScrollingInterval", setInterval(function () {
+        wrapper.data("autoScrollingInterval", window.setInterval(function () {
             wrapper.scrollLeft(wrapper.scrollLeft() + 1);
             self.swap_right(wrapper);
         }, 20));
     },
     stop_scrolling: function(wrapper){
-        clearInterval(wrapper.data('autoScrollingInterval'));
+        window.clearInterval(wrapper.data('autoScrollingInterval'));
     },
     swap_right: function(wrapper){
         if (wrapper.data("getNextElementWidth")) {

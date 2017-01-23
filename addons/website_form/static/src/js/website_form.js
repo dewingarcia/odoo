@@ -4,7 +4,7 @@ odoo.define('website_form.animation', function (require) {
     var core = require('web.core');
     var time = require('web.time');
     var ajax = require('web.ajax');
-    var snippet_animation = require('web_editor.snippets.animation');
+    var snippet_animation = require('website.content.snippets.animation');
 
     var _t = core._t;
     var qweb = core.qweb;

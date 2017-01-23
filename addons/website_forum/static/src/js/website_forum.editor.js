@@ -2,14 +2,14 @@ odoo.define('website_forum.editor', function (require) {
 "use strict";
 
 var core = require('web.core');
-var contentMenu = require('website.contentMenu');
-var website = require('website.website');
+var wUtils = require('website.utils');
+var WebsiteNewMenu = require("website.newMenu");
 
 var _t = core._t;
 
-contentMenu.TopBar.include({
+WebsiteNewMenu.include({
     new_forum: function() {
-        website.prompt({
+        wUtils.prompt({
             id: "editor_new_forum",
             window_title: _t("New Forum"),
             input: "Forum Name",init: function () {
@@ -27,7 +27,7 @@ contentMenu.TopBar.include({
             }
         }).then(function (forum_name, field, $dialog) {
             var add_menu = ($dialog.find('input[type="checkbox"]').is(':checked'));
-            website.form('/forum/new', 'POST', {
+            wUtils.form('/forum/new', 'POST', {
                 forum_name: forum_name,
                 add_menu: add_menu || ""
             });

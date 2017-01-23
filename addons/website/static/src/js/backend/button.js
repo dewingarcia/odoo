@@ -1,4 +1,4 @@
-odoo.define('website.backend', function (require) {
+odoo.define("website.backend.button", function (require) {
 "use strict";
 
 var core = require('web.core');

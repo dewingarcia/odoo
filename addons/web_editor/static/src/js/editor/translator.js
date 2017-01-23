@@ -1,11 +1,29 @@
+odoo.define("web_editor.translator.instance", function (require) {
+    "use strict";
+
+    var base = require("web_editor.base");
+    var translate = require("web_editor.translate");
+
+    if (translate.edit_translations) {
+        return base.ready().then(function () {
+            var instance = new translate.Class(this, $('#wrapwrap'));
+            instance.prependTo(document.body).then(function () {
+                return instance;
+            });
+        });
+    }
+    return null;
+});
+
 odoo.define('web_editor.translate', function (require) {
 'use strict';
 
+require("web.dom_ready");
 var core = require('web.core');
 var Model = require('web.Model');
 var ajax = require('web.ajax');
 var Widget = require('web.Widget');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 var rte = require('web_editor.rte');
 var editor_widget = require('web_editor.widget');
 
@@ -46,7 +64,7 @@ var RTE_Translate = rte.Class.extend({
                 args: [
                     [+$el.data('oe-translation-id')],
                     translation_content,
-                    context || base.get_context()
+                    context || webEditorContext.get()
                 ],
             });
         } else {
@@ -59,7 +77,7 @@ var RTE_Translate = rte.Class.extend({
                     $el.data('oe-id'),
                     markup,
                     $el.data('oe-xpath') || null,
-                    context || base.get_context()
+                    context || webEditorContext.get()
                 ],
             });
         }
@@ -107,7 +125,7 @@ var Translate = Widget.extend({
     init: function (parent, $target, lang) {
         this.parent = parent;
         this.ir_translation = new Model('ir.translation');
-        this.lang = lang || base.get_context().lang;
+        this.lang = lang || webEditorContext.get().lang;
         this.setTarget($target);
         this._super.apply(this, arguments);
 
@@ -253,7 +271,7 @@ var Translate = Widget.extend({
         });
     },
     save: function () {
-        var context = base.get_context();
+        var context = webEditorContext.get();
         context.lang = this.lang;
         return this.rte.save(context);
     },
@@ -309,28 +327,20 @@ var Translate = Widget.extend({
     }
 });
 
-
-if (edit_translations) {
-    base.ready().then(function () {
-        data.instance = new Translate(this, $('#wrapwrap'));
-        data.instance.prependTo(document.body);
-
-        $('a[href*=edit_translations]').each(function () {
-            this.href = this.href.replace(/[$?]edit_translations[^&?]+/, '');
-        });
-        $('form[action*=edit_translations]').each(function () {
-            this.action = this.action.replace(/[$?]edit_translations[^&?]+/, '');
-        });
-
-        $('title').html($('title').html().replace(/&lt;span data-oe-model.+?&gt;(.+?)&lt;\/span&gt;/, '\$1'));
+$(function () {
+    $('a[href*=edit_translations]').each(function () {
+        this.href = this.href.replace(/[$?]edit_translations[^&?]+/, '');
     });
-}
+    $('form[action*=edit_translations]').each(function () {
+        this.action = this.action.replace(/[$?]edit_translations[^&?]+/, '');
+    });
 
-var data = {
-    'translatable': translatable,
-    'edit_translations': edit_translations,
-    'Class': Translate,
+    $('title').html($('title').html().replace(/&lt;span data-oe-model.+?&gt;(.+?)&lt;\/span&gt;/, '\$1'));
+});
+
+return {
+    translatable: translatable,
+    edit_translations: edit_translations,
+    Class: Translate,
 };
-return data;
-
 });

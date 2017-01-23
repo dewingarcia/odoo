@@ -2,8 +2,7 @@ odoo.define('website_mail_channel.snippet', function (require) {
 'use strict';
 
 var ajax = require('web.ajax');
-var base = require('web_editor.base');
-var animation = require('web_editor.snippets.animation');
+var animation = require('website.content.snippets.animation');
 
 animation.registry.follow_alias = animation.Class.extend({
     selector: ".js_follow_alias",
@@ -24,11 +23,17 @@ animation.registry.follow_alias = animation.Class.extend({
 
         // not if editable mode to allow designer to edit alert field
         if (!editable_mode) {
-            $('.js_follow_alias > .alert').addClass("hidden");
-            $('.js_follow_alias > .input-group-btn.hidden').removeClass("hidden");
-            this.$target.find('.js_follow_btn, .js_unfollow_btn').on('click', function (event) {
+            this.$('> .alert').addClass("hidden");
+            this.$('> .input-group-btn.hidden').removeClass("hidden");
+            this.$('.js_follow_btn, .js_unfollow_btn').on('click', function (event) {
                 event.preventDefault();
                 self.on_click();
+            });
+
+            this.$('.js_follow_btn').on('click', function (ev) {
+                if ($(ev.currentTarget).closest('.js_mg_follow_form').length) {
+                    self.$('.js_follow_email').val($(ev.currentTarget).closest('.js_mg_follow_form').find('.js_follow_email').val());
+                }
             });
         }
         return;
@@ -44,7 +49,7 @@ animation.registry.follow_alias = animation.Class.extend({
         this.$target.removeClass('has-error');
 
         var subscription_action = this.$target.attr("data-follow") || "off";
-        if (location.search.slice(1).split('&').indexOf("unsubscribe") >= 0) {
+        if (window.location.search.slice(1).split('&').indexOf("unsubscribe") >= 0) {
             // force unsubscribe mode via URI /groups?unsubscribe
             subscription_action = 'on';
         }
@@ -78,7 +83,7 @@ animation.registry.follow_alias = animation.Class.extend({
             this.$target.find(".js_mg_details").addClass("hidden");
             this.$target.find(".js_mg_confirmation").removeClass("hidden");
         } else {
-            console.error("Unknown subscription action", follow)
+            console.error("Unknown subscription action", follow);
         }
         this.$target.find('input.js_follow_email')
             .val(email ? email : "")
@@ -102,12 +107,4 @@ animation.registry.follow_alias = animation.Class.extend({
         });
     }
 });
-
-
-$('.js_follow_btn').on('click', function (ev) {
-    if ($(ev.currentTarget).closest('.js_mg_follow_form').length) {
-        $('.js_follow_email').val($(ev.currentTarget).closest('.js_mg_follow_form').find('.js_follow_email').val());
-    }
-});
-
 });

@@ -1,4 +1,4 @@
-(function ($) {
+odoo.define("website.content.zoomodoo", function (require) {
     /**
         This code has been more that widely inspired by easyZoom library.
 
@@ -279,14 +279,4 @@
             }
         });
     };
-
-    // AMD and CommonJS module compatibility
-    if (typeof define === 'function' && define.amd){
-        define(function() {
-            return ZoomOdoo;
-        });
-    } else if (typeof module !== 'undefined' && module.exports) {
-        module.exports = ZoomOdoo;
-    }
-
-})(jQuery);
+});

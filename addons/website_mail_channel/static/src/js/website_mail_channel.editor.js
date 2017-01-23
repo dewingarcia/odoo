@@ -3,9 +3,9 @@ odoo.define('website_mail_channel.editor', function (require) {
 
 var core = require('web.core');
 var Model = require('web.Model');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 var options = require('web_editor.snippets.options');
-var website = require('website.website');
+var wUtils = require('website.utils');
 
 var _t = core._t;
 
@@ -13,13 +13,13 @@ options.registry.subscribe = options.Class.extend({
     select_mailing_list: function (type, value) {
         var self = this;
         if (type !== "click") return;
-        return website.prompt({
+        return wUtils.prompt({
             id: "editor_new_subscribe_button",
             window_title: _t("Add a Subscribe Button"),
             select: _t("Discussion List"),
             init: function (field) {
                 return new Model('mail.channel')
-                        .call('name_search', ['', [['public','=','public']]], { context: base.get_context() });
+                        .call('name_search', ['', [['public','=','public']]], { context: webEditorContext.get() });
             },
         }).then(function (mail_channel_id) {
             self.$target.attr("data-id", mail_channel_id);

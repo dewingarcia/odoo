@@ -4,10 +4,10 @@ odoo.define('website_mass_mailing.editor', function (require) {
 var Model = require('web.Model');
 var ajax = require('web.ajax');
 var core = require('web.core');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 var web_editor = require('web_editor.editor');
 var options = require('web_editor.snippets.options');
-var website = require('website.website');
+var wUtils = require('website.utils');
 var _t = core._t;
 
 var mass_mailing_common = options.Class.extend({
@@ -16,12 +16,12 @@ var mass_mailing_common = options.Class.extend({
     select_mailing_list: function (type, value) {
         var self = this;
         if (type !== "click") return;
-        var def = website.prompt({
+        var def = wUtils.prompt({
             'id': this.popup_template_id,
             'window_title': this.popup_title,
             'select': _t("Newsletter"),
             'init': function (field) {
-                return new Model('mail.mass_mailing.list').call('name_search', ['', []], { context: base.get_context() });
+                return new Model('mail.mass_mailing.list').call('name_search', ['', []], { context: webEditorContext.get() });
             },
         });
         def.then(function (mailing_list_id) {
@@ -54,7 +54,7 @@ options.registry.newsletter_popup = mass_mailing_common.extend({
             ajax.jsonRpc('/web/dataset/call', 'call', {
                 model: 'mail.mass_mailing.list',
                 method: 'read',
-                args: [[parseInt(mailing_list_id)], ['popup_content'], base.get_context()],
+                args: [[parseInt(mailing_list_id)], ['popup_content'], webEditorContext.get()],
             }).then(function (data) {
                 self.$target.find(".o_popup_content_dev").empty();
                 if (data && data[0].popup_content) {
@@ -87,7 +87,7 @@ web_editor.Class.include({
                 args: [
                     parseInt(newsletter_id),
                     {'popup_content':content},
-                    base.get_context()
+                    webEditorContext.get()
                 ],
             });
         }

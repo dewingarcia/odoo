@@ -6,7 +6,7 @@ var core = require('web.core');
 var utils = require('web.utils');
 var Widget = require('web.Widget');
 var summernote = require('web_editor.summernote');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 
 var _t = core._t;
 
@@ -442,7 +442,7 @@ var RTE = Widget.extend({
                 $el.data('oe-id'),
                 markup,
                 $el.data('oe-xpath') || null,
-                _.omit(context || base.get_context(), 'lang')
+                _.omit(context || webEditorContext.get(), 'lang')
             ],
         });
     },

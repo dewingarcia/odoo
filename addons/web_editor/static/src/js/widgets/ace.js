@@ -5,7 +5,7 @@ var ajax = require('web.ajax');
 var core = require('web.core');
 var Dialog = require("web.Dialog");
 var Widget = require('web.Widget');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 var local_storage = require('web.local_storage');
 var session = require("web.session");
 
@@ -599,7 +599,7 @@ var ViewEditor = Widget.extend({
         ajax.jsonRpc('/web/dataset/call', 'call', {
             model: 'ir.ui.view',
             method: 'write',
-            args: [[session.id], {arch: session.text}, _.extend(base.get_context(), {lang: null})],
+            args: [[session.id], {arch: session.text}, _.extend(webEditorContext.get(), {lang: null})],
         }).then(function () {
             self._toggleDirtyInfo(session.id, "xml", false);
             def.resolve();

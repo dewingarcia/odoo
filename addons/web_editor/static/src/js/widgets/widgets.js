@@ -5,7 +5,7 @@ var core = require('web.core');
 var ajax = require('web.ajax');
 var Dialog = require('web.Dialog');
 var Widget = require('web.Widget');
-var base = require('web_editor.base');
+var webEditorContext = require("web_editor.context");
 var rte = require('web_editor.rte');
 
 var QWeb = core.qweb;
@@ -435,7 +435,7 @@ var ImageDialog = Widget.extend({
                 domain: domain,
                 fields: ['name', 'mimetype', 'checksum', 'url', 'type'],
                 order: 'id desc',
-                context: base.get_context()
+                context: webEditorContext.get()
             }
         }).then(this.proxy('fetched_existing'));
     },

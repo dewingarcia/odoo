@@ -1,13 +1,30 @@
+odoo.define("website_mail.thread.instance", function(require) {
+    "use strict";
+
+    var base = require("web_editor.base");
+    var WebsiteMailThread = require("website_mail.thread");
+
+    return base.ready().then(function () {
+        var $thread = $('.o_website_mail_thread');
+        if ($thread.length) {
+            var instance = new WebsiteMailThread();
+            return instance.attachTo($thread).then(function () {
+                return instance;
+            });
+        }
+        return null;
+    });
+});
+
 odoo.define('website_mail.thread', function(require) {
     'use strict';
 
-    var web_editor_base = require('web_editor.base');
     var ajax = require('web.ajax');
     var core = require('web.core');
     var Widget = require('web.Widget');
 
     var qweb = core.qweb;
-    
+
     // load qweb template
     ajax.loadXML('/website_mail/static/src/xml/chatter_message.xml', qweb);
 
@@ -18,7 +35,7 @@ odoo.define('website_mail.thread', function(require) {
      * the page. Its DOM already exists on the page (The class of root element is
      * '.o_website_mail_thread').
      */
-    var WebsiteMailThread = Widget.extend({
+    return Widget.extend({
         events:{
             "click .o_website_chatter_json": "on_click",
         },
@@ -67,14 +84,4 @@ odoo.define('website_mail.thread', function(require) {
             return indexed_array;
         },
     });
-
-    web_editor_base.ready().then(function(){
-        if($('.o_website_mail_thread').length) {
-            var mail_thread = new WebsiteMailThread($('body')).setElement($('.o_website_mail_thread'));
-        }
-    });
-
-    return {
-        WebsiteMailThread: WebsiteMailThread,
-    }
 });

@@ -4,9 +4,9 @@ odoo.define('website.translator', function (require) {
 var core = require('web.core');
 var ajax = require('web.ajax');
 var Widget = require('web.Widget');
-var base = require('web_editor.base');
 var translate = require('web_editor.translate');
-var website = require('website.website');
+var translatorInstance = require('web_editor.translator.instance');
+var WebsiteNavbar = require('website.navbar');
 var local_storage = require('web.local_storage');
 
 var qweb = core.qweb;
@@ -15,18 +15,17 @@ if (!translate.translatable) {
     return;
 }
 
-
-website.TopBar.include({
-    events: _.extend({}, website.TopBar.prototype.events, {
+WebsiteNavbar.include({
+    events: _.extend({}, WebsiteNavbar.prototype.events, {
         'click [data-action="edit_master"]': 'edit_master',
         'click [data-action="translate"]': 'translate',
     }),
     translate: function (ev) {
         ev.preventDefault();
         if (translate.edit_translations) {
-            translate.instance.edit();
+            translatorInstance.edit();
         } else {
-            location.search += '&edit_translations';
+            window.location.search += '&edit_translations';
         }
     },
     edit_master: function (ev) {
@@ -45,7 +44,6 @@ website.TopBar.include({
     },
 });
 
-
 if (!translate.edit_translations) {
     return;
 }
@@ -54,7 +52,7 @@ ajax.loadXML('/website/static/src/xml/website.translator.xml', qweb);
 
 var nodialog = 'website_translator_nodialog';
 
-var Translate = translate.Class.include({
+translate.Class.include({
     onTranslateReady: function () {
         if(this.gengo_translate) {
             this.translation_gengo_display();
@@ -84,7 +82,7 @@ var Translate = translate.Class.include({
 });
 
 var TranslatorDialog = Widget.extend({
-    events: _.extend({}, website.TopBar.prototype.events, {
+    events: _.extend({}, WebsiteNavbar.prototype.events, {
         'hidden.bs.modal': 'destroy',
         'click button[data-action=activate]': function (ev) {
             this.trigger('activate');
@@ -95,5 +93,4 @@ var TranslatorDialog = Widget.extend({
         this.$el.modal();
     },
 });
-
 });

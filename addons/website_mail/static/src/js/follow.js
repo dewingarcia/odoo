@@ -2,7 +2,7 @@ odoo.define('website_mail.follow', function (require) {
 'use strict';
 
 var ajax = require('web.ajax');
-var animation = require('web_editor.snippets.animation');
+var animation = require('website.content.snippets.animation');
 
 animation.registry.follow = animation.Class.extend({
     selector: ".js_follow",

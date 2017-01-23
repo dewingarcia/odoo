@@ -1,7 +1,7 @@
 odoo.define('website_payment.website_payment', function (require) {
 "use strict";
 
-var website = require('website.website');
+require('website.website');
 var ajax = require('web.ajax');
 
 if(!$('.o_website_payment').length) {
@@ -33,6 +33,4 @@ $payment.on("click", 'button[type="submit"],button[name="submit"]', function (ev
       return indexed_array;
   }
 });
-
-
 });

@@ -1,11 +1,29 @@
+odoo.define("web_editor.editor.instance", function (require) {
+    "use strict";
+
+    var base = require("web_editor.base");
+    var editor = require("web_editor.editor");
+
+    return base.ready().then(function () {
+        if (editor.editable && window.location.search.indexOf("enable_editor") >= 0) {
+            var instance = new editor.Class(null);
+            return instance.prependTo(document.body).then(function () {
+                return instance;
+            });
+        } else {
+            return null;
+        }
+    });
+});
+
 odoo.define('web_editor.editor', function (require) {
 "use strict";
 
+require("web.dom_ready");
 var ajax = require('web.ajax');
 var Dialog = require('web.Dialog');
 var Widget = require('web.Widget');
 var core = require('web.core');
-var base = require('web_editor.base');
 var rte = require('web_editor.rte');
 
 var qweb = core.qweb;
@@ -40,8 +58,8 @@ $(document).on('hide.bs.dropdown', '.dropdown', function (ev) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 editor.reload = function () {
-    location.hash = "scrollTop=" + window.document.body.scrollTop;
-    if (location.search.indexOf("enable_editor") > -1) {
+    window.location.hash = "scrollTop=" + window.document.body.scrollTop;
+    if (window.location.search.indexOf("enable_editor") > -1) {
         window.location.href = window.location.href.replace(/&?enable_editor(=[^&]*)?/g, '');
     } else {
         window.location.reload(true);
@@ -50,15 +68,7 @@ editor.reload = function () {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/* ----- TOP EDITOR BAR FOR ADMIN ---- */
-
-base.ready().then(function () {
-    if (editor.editable && location.search.indexOf("enable_editor") >= 0) {
-        editor.editor_bar = new editor.Class();
-        editor.editor_bar.prependTo(document.body);
-    }
-});
-
+// Editor bar
 editor.Class = Widget.extend({
     template: 'web_editor.editorbar',
     events: {

@@ -6,7 +6,6 @@ var ajax = require('web.ajax');
 var core = require('web.core');
 var Widget = require('web.Widget');
 var editor = require('web_editor.editor');
-var animation = require('web_editor.snippets.animation');
 var options = require('web_editor.snippets.options');
 
 var qweb = core.qweb;
@@ -285,7 +284,8 @@ data.Class = Widget.extend({
         this.associate_snippet_names(this.$snippets);
 
         this.show_blocks();
-        this.$el.on("snippet-dropped snippet-removed", this.show_blocks.bind(this));
+        this.$el.on("snippet-removed", this.show_blocks.bind(this));
+        this.on("snippet_dropped", this, this.show_blocks);
     },
 
     associate_snippet_names: function ($snippets) {
@@ -547,13 +547,10 @@ data.Class = Widget.extend({
 
                     $toInsert.closest(".o_editable").trigger("content_changed");
 
-                    var $target = false;
-                    $target = $toInsert;
+                    var $target = $toInsert;
 
-                    setTimeout(function () {
-                        self.$el.trigger('snippet-dropped', $target);
-
-                        animation.start(true, $target);
+                    _.defer(function () {
+                        self.trigger_up("snippet_dropped", {$target: $target});
 
                         self.call_for_all_snippets($target, function (editor, $snippet) {
                             _.defer(function () { editor.drop_and_build_snippet(); });
@@ -563,7 +560,7 @@ data.Class = Widget.extend({
                         $target.closest(".o_editable").trigger("content_changed");
 
                         self.make_active($target);
-                    },0);
+                    });
                 } else {
                     $toInsert.remove();
                 }
@@ -1133,24 +1130,14 @@ editor.Class.include({
         return res;
     },
     start: function () {
-        this.buildingBlock.insertAfter(this.$el);
+        var defs = [this._super.apply(this, arguments)];
+        defs.push(this.buildingBlock.insertAfter(this.$el));
         this.rte.editable().find("*").off('mousedown mouseup click');
-        return this._super.apply(this, arguments);
+        return $.when.apply($, defs);
     },
     save: function () {
         this.buildingBlock.clean_for_save();
         return this._super.apply(this, arguments);
-    },
-});
-
-/**
- * Add the ability the restart the animations
- */
-editor.Class.include({
-    start: function () {
-        return this._super.apply(this, arguments).then(function () {
-            animation.start(true);
-        });
     },
 });
 

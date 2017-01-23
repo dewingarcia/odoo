@@ -1,7 +1,7 @@
 odoo.define('website_sale.backend', function (require) {
 "use strict";
 
-var WebsiteBackend = require('website.backendDashboard');
+var WebsiteBackend = require("website.backend.dashboard");
 
 WebsiteBackend.include({
 

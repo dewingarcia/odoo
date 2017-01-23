@@ -1,4 +1,4 @@
-odoo.define('website.share', function (require) {
+odoo.define("website.content.share", function (require) {
 "use strict";
 
 var ajax = require('web.ajax');
@@ -6,7 +6,6 @@ var core = require('web.core');
 var Widget = require('web.Widget');
 var base = require('web_editor.base');
 
-var _t = core._t;
 var qweb = core.qweb;
 
 ajax.loadXML('/website/static/src/xml/website.share.xml', qweb);

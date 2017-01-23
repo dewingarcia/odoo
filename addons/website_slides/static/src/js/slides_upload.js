@@ -1,13 +1,12 @@
-/*global $, _, PDFJS */
 odoo.define('website_slides.upload', function (require) {
 "use strict";
 
 var ajax = require('web.ajax');
 var core = require('web.core');
 var Widget = require('web.Widget');
-var base = require('web_editor.base');
+require('web.dom_ready');
+var webEditorContext = require("web_editor.context");
 var slides = require('website_slides.slides');
-var website = require('website.website');
 
 var qweb = core.qweb;
 var _t = core._t;
@@ -257,7 +256,7 @@ var SlideDialog = Widget.extend({
                     kwargs: {
                         fields: ['name'],
                         domain: [['channel_id', '=', self.channel_id]],
-                        context: base.get_context()
+                        context: webEditorContext.get()
                     }
                 });
             }));
@@ -278,7 +277,7 @@ var SlideDialog = Widget.extend({
                 args: [],
                 kwargs: {
                     fields: ['name'],
-                    context: base.get_context()
+                    context: webEditorContext.get()
                 }
             });
         }));
@@ -377,5 +376,4 @@ var SlideDialog = Widget.extend({
         var channel_id = $(this).attr('channel_id');
         slides.page_widgets['upload_dialog'] = new SlideDialog(this, channel_id).appendTo(document.body);
     });
-
 });

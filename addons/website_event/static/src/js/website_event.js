@@ -1,11 +1,24 @@
+odoo.define("website_event.registration_form.instance", function (require) {
+    "use strict";
+
+    var base = require("web_editor.base");
+    var EventRegistrationForm = require("website_event.website_event");
+
+    return base.ready().then(function () {
+        var instance = new EventRegistrationForm();
+        return instance.appendTo($('#registration_form')).then(function () {
+            return instance;
+        });
+    });
+});
+
 odoo.define('website_event.website_event', function (require) {
 
 var ajax = require('web.ajax');
 var Widget = require('web.Widget');
-var web_editor_base = require('web_editor.base')
 
 // Catch registration form event, because of JS for attendee details
-var EventRegistrationForm = Widget.extend({
+return Widget.extend({
     start: function() {
         var self = this;
         var res = this._super.apply(this.arguments).then(function() {
@@ -16,7 +29,7 @@ var EventRegistrationForm = Widget.extend({
                     self.on_click(ev);
                 });
         });
-        return res
+        return res;
     },
     on_click: function(ev) {
         ev.preventDefault();
@@ -35,11 +48,4 @@ var EventRegistrationForm = Widget.extend({
         });
     },
 });
-
-web_editor_base.ready().then(function(){
-    var event_registration_form = new EventRegistrationForm().appendTo($('#registration_form'));
-});
-
-return { EventRegistrationForm: EventRegistrationForm };
-
 });

@@ -1,29 +1,34 @@
-odoo.define('website_sale.editor', function (require) {
+odoo.define('website_sale.add_product', function (require) {
 "use strict";
 
-var ajax = require('web.ajax');
 var core = require('web.core');
-var Model = require('web.Model');
-var contentMenu = require('website.contentMenu');
-var options = require('web_editor.snippets.options');
-
-var website = require('website.website');
+var wUtils = require('website.utils');
+var WebsiteNewMenu = require("website.newMenu");
 
 var _t = core._t;
 
-contentMenu.TopBar.include({
+WebsiteNewMenu.include({
     new_product: function() {
-        website.prompt({
+        wUtils.prompt({
             id: "editor_new_product",
             window_title: _t("New Product"),
             input: "Product Name",
         }).then(function (name) {
-            website.form('/shop/add_product', 'POST', {
+            wUtils.form('/shop/add_product', 'POST', {
                 name: name
             });
         });
     },
 });
+});
+
+odoo.define('website_sale.editor', function (require) {
+"use strict";
+
+var ajax = require('web.ajax');
+var Model = require('web.Model');
+var options = require('web_editor.snippets.options');
+require('website.website');
 
 if(!$('.js_sale').length) {
     return $.Deferred().reject("DOM doesn't contain '.js_sale'");
@@ -59,10 +64,10 @@ options.registry.website_sale = options.Class.extend({
         this.bind_resize();
     },
     reload: function () {
-        if (location.href.match(/\?enable_editor/)) {
-            location.reload();
+        if (window.location.href.match(/\?enable_editor/)) {
+            window.location.reload();
         } else {
-            location.href = location.href.replace(/\?(enable_editor=1&)?|#.*|$/, '?enable_editor=1&');
+            window.location.href = window.location.href.replace(/\?(enable_editor=1&)?|#.*|$/, '?enable_editor=1&');
         }
     },
     bind_resize: function () {
@@ -107,5 +112,4 @@ options.registry.website_sale = options.Class.extend({
             .then(this.reload);
     }
 });
-
 });

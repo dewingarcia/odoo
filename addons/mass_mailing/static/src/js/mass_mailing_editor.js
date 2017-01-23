@@ -1,6 +1,7 @@
 odoo.define('mass_mailing.editor', function (require) {
 "use strict";
 
+require("web.dom_ready");
 var ajax = require("web.ajax");
 var core = require("web.core");
 var rte = require('web_editor.rte');

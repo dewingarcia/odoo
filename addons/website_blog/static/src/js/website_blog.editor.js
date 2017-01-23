@@ -1,46 +1,47 @@
 odoo.define('website_blog.new_blog_post', function (require) {
-"use strict";
+    "use strict";
 
-var core = require('web.core');
-var base = require('web_editor.base');
-var Model = require('web.Model');
-var website = require('website.website');
-var contentMenu = require('website.contentMenu');
+    var core = require('web.core');
+    var webEditorContext = require("web_editor.context");
+    var Model = require('web.Model');
+    var wUtils = require('website.utils');
+    var WebsiteNewMenu = require("website.newMenu");
 
-var _t = core._t;
+    var _t = core._t;
 
-contentMenu.TopBar.include({
-    new_blog_post: function () {
-        var model = new Model('blog.blog');
-        model.call('name_search', [], { context: base.get_context() }).then(function (blog_ids) {
-            if (blog_ids.length === 1) {
-                document.location = '/blog/' + blog_ids[0][0] + '/post/new';
-            } else if (blog_ids.length > 1) {
-                website.prompt({
-                    id: "editor_new_blog",
-                    window_title: _t("New Blog Post"),
-                    select: "Select Blog",
-                    init: function (field) {
-                        return blog_ids;
-                    },
-                }).then(function (blog_id) {
-                    document.location = '/blog/' + blog_id + '/post/new';
-                });
-            }
-        });
-    },
-});
+    WebsiteNewMenu.include({
+        new_blog_post: function () {
+            var model = new Model('blog.blog');
+            model.call('name_search', [], { context: webEditorContext.get() }).then(function (blog_ids) {
+                if (blog_ids.length === 1) {
+                    document.location = '/blog/' + blog_ids[0][0] + '/post/new';
+                } else if (blog_ids.length > 1) {
+                    wUtils.prompt({
+                        id: "editor_new_blog",
+                        window_title: _t("New Blog Post"),
+                        select: "Select Blog",
+                        init: function (field) {
+                            return blog_ids;
+                        },
+                    }).then(function (blog_id) {
+                        document.location = '/blog/' + blog_id + '/post/new';
+                    });
+                }
+            });
+        },
+    });
 });
 
 odoo.define('website_blog.editor', function (require) {
     "use strict";
 
+    require("web.dom_ready");
     var ajax = require('web.ajax');
     var widget = require('web_editor.widget');
     var options = require('web_editor.snippets.options');
     var rte = require('web_editor.rte');
 
-    if(!$('.website_blog').length) {
+    if (!$('.website_blog').length) {
         return $.Deferred().reject("DOM doesn't contain '.website_blog'");
     }
 
@@ -55,7 +56,7 @@ odoo.define('website_blog.editor', function (require) {
                 return ajax.jsonRpc("/blog/post_change_background", 'call', {
                     'post_id' : parseInt($el.closest("[name=\"blog_post\"], .website_blog").find("[data-oe-model=\"blog.post\"]").first().data("oe-id"), 10),
                     'cover_properties' : {
-                        "background-image": $el.children(".o_blog_cover_image").css("background-image").replace(/"/g, '').replace(location.protocol + "//" + location.host, ''),
+                        "background-image": $el.children(".o_blog_cover_image").css("background-image").replace(/"/g, '').replace(window.location.protocol + "//" + window.location.host, ''),
                         "background-color": $el.data("filter_color"),
                         "opacity": $el.data("filter_value"),
                         "resize_class": $el.data("cover_class"),

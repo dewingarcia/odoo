@@ -3,8 +3,7 @@ odoo.define('mass_mailing.website_integration', function (require) {
 
 var ajax = require('web.ajax');
 var utils = require('web.utils');
-var animation = require('web_editor.snippets.animation');
-require('web_editor.base');
+var animation = require('website.content.snippets.animation');
 
 animation.registry.subscribe = animation.Class.extend({
     selector: ".js_subscribe",
@@ -125,7 +124,7 @@ animation.registry.newsletter_popup = animation.Class.extend({
 odoo.define('mass_mailing.unsubscribe', function (require) {
     var ajax = require('web.ajax');
     var core = require('web.core');
-    require('web_editor.base'); // wait for implicit dependencies to load
+    require('web.dom_ready');
 
     var _t = core._t;
 

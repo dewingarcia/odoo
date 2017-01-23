@@ -1,6 +1,7 @@
 odoo.define('report.editor', function (require) {
 'use strict';
 
+require("web.dom_ready");
 var utils = require('report.utils');
 var editor = require('web_editor.editor');
 var options = require('web_editor.snippets.options');
