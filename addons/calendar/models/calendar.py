@@ -538,7 +538,7 @@ class Meeting(models.Model):
                 val = pytz.UTC.localize(val)
             return val.astimezone(timezone)
 
-        timezone = pytz.timezone(self._context.get('tz') or 'UTC')
+        timezone = pytz.timezone(self.event_tz) if self.event_tz else pytz.timezone(self._context.get('tz') or 'UTC')
         startdate = pytz.UTC.localize(fields.Datetime.from_string(self.start))  # Add "+hh:mm" timezone
         if not startdate:
             startdate = datetime.now()
@@ -551,7 +551,7 @@ class Meeting(models.Model):
 
         for meeting in recurring_meetings:
             rset1._exdate.append(todate(meeting.recurrent_id_date))
-        return [d.astimezone(pytz.UTC) for d in rset1]
+        return [timezone.localize(d.replace(tzinfo=None), is_dst=True).astimezone(pytz.UTC) for d in rset1]
 
     @api.multi
     def _get_recurrency_end_date(self):
@@ -738,6 +738,11 @@ class Meeting(models.Model):
     partner_ids = fields.Many2many('res.partner', 'calendar_event_res_partner_rel', string='Attendees', states={'done': [('readonly', True)]}, default=_default_partners)
     alarm_ids = fields.Many2many('calendar.alarm', 'calendar_alarm_calendar_event_rel', string='Reminders', ondelete="restrict", copy=False)
     is_highlighted = fields.Boolean(compute='_compute_is_highlighted', string='# Meetings Highlight')
+    event_tz = fields.Selection('_tz_get', string='Timezone', default=lambda self: self.env.user.tz)
+
+    @api.model
+    def _tz_get(self):
+        return [(x, x) for x in pytz.all_timezones]
 
     @api.multi
     def _compute_attendee(self):
