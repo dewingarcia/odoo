@@ -17,7 +17,7 @@ var _lt = core._lt;
 var SalesTeamDashboardView = KanbanView.extend({
     display_name: _lt('Dashboard'),
     icon: 'fa-dashboard',
-    searchview_hidden: true,
+    searchview_hidden: false,
     events: {
         'click .o_dashboard_action': 'on_dashboard_action_clicked',
         'click .o_target_to_set': 'on_dashboard_target_clicked',

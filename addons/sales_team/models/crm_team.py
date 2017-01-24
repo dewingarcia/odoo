@@ -35,6 +35,9 @@ class CrmTeam(models.Model):
                 team_id = default_team_id
         return team_id
 
+    def _get_default_favorite_user_ids(self):
+        return [(6, 0, [self.env.uid])]
+
     name = fields.Char('Sales Channel', required=True, translate=True)
     active = fields.Boolean(default=True, help="If the active field is set to false, it will allow you to hide the sales channel without removing it.")
     company_id = fields.Many2one('res.company', string='Company',
@@ -68,6 +71,14 @@ class CrmTeam(models.Model):
         ('year', 'This Year'),
     ], string='Period', default='month', help="The time period this channel's dashboard graph will consider.")
 
+    favorite_user_ids = fields.Many2many(
+        'res.users', 'team_favorite_user_rel', 'team_id', 'user_id',
+        default=_get_default_favorite_user_ids,
+        string='Favorite Members')
+
+    is_favorite = fields.Boolean(compute='_compute_is_favorite', string='Show team on dashboard',
+        help="Whether this team should be displayed on the dashboard or not")
+
     @api.depends('dashboard_graph_group', 'dashboard_graph_model', 'dashboard_graph_period')
     def _compute_dashboard_graph(self):
         for team in self.filtered('dashboard_graph_model'):
@@ -77,6 +88,10 @@ class CrmTeam(models.Model):
             else:
                 team.dashboard_graph_type = 'line'
             team.dashboard_graph_data = json.dumps(team._get_graph())
+
+    def _compute_is_favorite(self):
+        for team in self:
+            team.is_favorite = self.env.user in team.favorite_user_ids
 
     def _graph_get_dates(self, today):
         """ return a coherent start and end date for the dashboard graph according to the graph settings.
@@ -234,6 +249,20 @@ class CrmTeam(models.Model):
         for team in self:
             team.dashboard_button_name = _("Big Pretty Button :)") # placeholder
 
+    @api.multi
+    def toggle_favorite(self):
+        favorite_team = not_fav_team = self.env['crm.team'].sudo()
+        for team in self:
+            if self.env.user in team.favorite_user_ids:
+                favorite_team |= team
+            else:
+                not_fav_team |= team
+
+        # team User has no write access for team.
+        not_fav_team.write({'favorite_user_ids': [(4, self.env.uid)]})
+        favorite_team.write({'favorite_user_ids': [(3, self.env.uid)]})
+
+
     def action_primary_channel_button(self):
         """ skeleton function to be overloaded
             It will return the adequate action depending on the sales channel's options
@@ -247,4 +276,15 @@ class CrmTeam(models.Model):
 
     @api.model
     def create(self, values):
-        return super(CrmTeam, self.with_context(mail_create_nosubscribe=True)).create(values)
+        team  = super(CrmTeam, self.with_context(mail_create_nosubscribe=True)).create(values)
+        if values.get('member_ids'):
+            team.favorite_user_ids  = [(4, member.id) for member in team.member_ids]
+        return team
+
+    @api.multi
+    def write(self, values):
+        res = super(CrmTeam, self).write(values)
+        if values.get('member_ids'):
+            for team in self:
+                team.favorite_user_ids = [(4, member.id) for member in team.member_ids]
+        return res
