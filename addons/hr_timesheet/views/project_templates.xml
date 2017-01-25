@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="project_plan" inherit_id="project.project_plan" name="Project Plan (Timesheet)" priority="25">
+        <xpath expr="//div[contains(@class, 'o_project_plan_buttons')]" position="inside">
+            <button t-if="project.allow_timesheets" name="%(act_hr_timesheet_line_by_project)d" type="action" class="btn btn-sm oe_stat_button o_project_plan_btn_timesheet">
+                <div class="fa fa-fw fa-calendar o_button_icon"></div>
+                <div class="o_form_field o_stat_info">
+                    <span class="o_stat_text">Timesheet</span>
+                </div>
+            </button>
+        </xpath>
+
+        <xpath expr="//div[contains(@class, 'o_project_plan_todo')]" position="after">
+            <div class="o_project_plan_timesheet">
+                See <a t-if="project.allow_timesheets" name="%(act_hr_timesheet_line_by_project)d" type="action">
+                    <span class="o_label">Timesheets</span>
+                </a>
+            </div>
+        </xpath>
+    </template>
+
+</odoo>

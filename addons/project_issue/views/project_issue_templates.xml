@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="project_plan" inherit_id="project.project_plan" name="Project Plan (Issues)" priority="20">
+        <xpath expr="//div[contains(@class, 'o_project_plan_buttons')]" position="inside">
+            <button t-if="project.use_issues" name="%(act_project_project_2_project_issue_all)d" type="action" class="btn btn-sm oe_stat_button o_project_plan_btn_issue">
+                <div class="fa fa-fw fa-archive o_button_icon"></div>
+                <div class="o_form_field o_stat_info">
+                    <span class="o_stat_value"><t t-esc="project.issue_count"/></span>
+                    <span class="o_stat_text"><t t-esc="project.label_issues"/></span>
+                </div>
+            </button>
+        </xpath>
+
+        <xpath expr="//td[@name='todo_task_my']" position="after">
+            <td t-if="project.use_issues" name="todo_issue_my">
+                <a name="%(act_project_project_2_project_issue_all)d" type="action" data-context='{"search_default_my_issues":1}'>
+                    <h2><t t-esc="todo.get('issue_my', 0)"/></h2>
+                    <h3><t t-esc="project.label_issues"/></h3>
+                </a>
+                <div>
+                    <a name="%(act_project_project_2_project_issue_all)d" type="action" data-context='{"search_default_message_needaction":1}'>
+                        <i class="fa fa-comments"/>
+                        <t t-esc="todo.get('issue_my_needaction', 0)"/> Messages
+                    </a><br/>
+                    <a name="%(project_issue_action_activity)d" type="action" data-context='{"search_default_my_issues":1}'>
+                        <i class="fa fa-list-ul"/>
+                        <t t-esc="todo.get('issue_my_activities', 0)"/> Activities
+                    </a>
+                </div>
+            </td>
+        </xpath>
+
+        <xpath expr="//td[@name='todo_task_all']" position="after">
+            <td t-if="project.use_issues" name="todo_issue_all">
+                <a name="%(act_project_project_2_project_issue_all)d" type="action">
+                    <h2><t t-esc="todo.get('issue_all', 0)"/></h2>
+                    <h3><t t-esc="project.label_issues"/></h3>
+                </a>
+                <div>
+                    <a name="%(project_issue_action_activity)d" type="action">
+                        <i class="fa fa-list-ul"/>
+                        <t t-esc="todo.get('issue_all_activities', 0)"/> Activities
+                    </a>
+                </div>
+            </td>
+        </xpath>
+    </template>
+
+</odoo>

@@ -6,8 +6,78 @@
                 <script type="text/javascript" src="/project/static/src/js/project.js"></script>
                 <script type="text/javascript" src="/project/static/src/js/tour.js"></script>
                 <link rel="stylesheet" href="/project/static/src/less/project_dashboard.less"/>
+                <link rel="stylesheet" href="/project/static/src/less/project_plan.less"/>
 
                 <script type="text/javascript" src="/project/static/src/js/web_planner_project.js"></script>
+                <script type="text/javascript" src="/project/static/src/js/project_plan.js"></script>
             </xpath>
         </template>
+
+
+    <template id="project_plan" name="Project Plan">
+        <div class="o_form_view o_form_readonly o_project_plan">
+            <div class="o_form_sheet_bg">
+                <div class="o_form_sheet">
+                    <h2><t t-esc="project.name"/></h2>
+
+                    <div class="o_project_plan_buttons">
+                        <button t-if="project.use_tasks" name="%(project.act_project_project_2_project_task_all)d" type="action" class="btn btn-sm oe_stat_button o_project_plan_btn_task">
+                            <div class="fa fa-fw fa-tasks o_button_icon"></div>
+                            <div class="o_form_field o_stat_info">
+                                <span class="o_stat_value"><t t-esc="project.task_count"/></span>
+                                <span class="o_stat_text"><t t-esc="project.label_tasks"/></span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="o_project_plan_todo">
+                        <table class="table table-striped">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">
+                                        <p class="lead">My Todo</p>
+                                    </th>
+                                    <td t-if="project.use_tasks" name="todo_task_my">
+                                        <a name="%(project.act_project_project_2_project_task_all)d" type="action" data-context='{"search_default_my_tasks":1}'>
+                                            <h2><t t-esc="todo.get('task_my', 0)"/></h2>
+                                            <h3><t t-esc="project.label_tasks"/></h3>
+                                        </a>
+                                        <div>
+                                            <a name="%(project.act_project_project_2_project_task_all)d" type="action" data-context='{"search_default_message_needaction":1}'>
+                                                <i class="fa fa-comments"/>
+                                                <t t-esc="todo.get('task_my_needaction', 0)"/> Messages
+                                            </a><br/>
+                                            <a name="%(project.project_task_action_activity)d" type="action" data-context='{"search_default_my_tasks":1}'>
+                                                <i class="fa fa-list-ul"/>
+                                                <t t-esc="todo.get('task_my_activities', 0)"/> Activities
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">
+                                        <p class="lead">All Todo</p>
+                                    </th>
+                                    <td t-if="project.use_tasks" name="todo_task_all">
+                                        <a name="%(project.act_project_project_2_project_task_all)d" type="action">
+                                            <h2><t t-esc="todo.get('task_all', 0)"/></h2>
+                                            <h3><t t-esc="project.label_tasks"/></h3>
+                                        </a>
+                                        <div>
+                                            <a name="%(project.project_task_action_activity)d" type="action">
+                                                <i class="fa fa-list-ul"/>
+                                                <t t-esc="todo.get('task_all_activities', 0)"/> Activities
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </template>
+
 </odoo>

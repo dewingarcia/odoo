@@ -5,3 +5,4 @@ import hr_timesheet
 import hr_timesheet_config_settings
 import project_timesheet
 import report
+import controllers

@@ -228,6 +228,13 @@
             <field name="target">new</field>
         </record>
 
+        <record id="project_plan_action" model="ir.actions.client">
+            <field name="name">Plan</field>
+            <field name="tag">project.plan</field>
+            <field name="res_model">project.project</field>
+            <field name="params">{}</field>
+        </record>
+
         <record model="ir.ui.view" id="view_project_kanban">
             <field name="name">project.project.kanban</field>
             <field name="model">project.project</field>
@@ -261,6 +268,9 @@
                                         <div class="o_kanban_card_manage_section o_kanban_manage_reports">
                                             <div groups="project.group_project_manager">
                                                 <a type="edit">Settings</a>
+                                            </div>
+                                            <div groups="project.group_project_manager">
+                                                <a name="%(project.project_plan_action)d" type="action">Plan</a>
                                             </div>
                                             <div attrs="{'invisible': [('use_tasks', '=', False)]}">
                                                 <a name="%(project.action_project_task_user_tree_filtered)d" type="action">Tasks</a>
