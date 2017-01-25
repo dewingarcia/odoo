@@ -386,9 +386,9 @@ class ResPartner(models.Model):
     currency_id = fields.Many2one('res.currency', compute='_get_company_currency', readonly=True,
         string="Currency", help='Utility field to express amount currency')
 
-    contracts_count = fields.Integer(compute='_journal_item_count', string="Contracts", type='integer')
+    contracts_count = fields.Integer(compute='_journal_item_count', string="Contracts Count", type='integer')
     journal_item_count = fields.Integer(compute='_journal_item_count', string="Journal Items", type="integer")
-    issued_total = fields.Monetary(compute='_compute_issued_total', string="Journal Items")
+    issued_total = fields.Monetary(compute='_compute_issued_total', string="Journal Items Total")
     property_account_payable_id = fields.Many2one('account.account', company_dependent=True,
         string="Account Payable", oldname="property_account_payable",
         domain="[('internal_type', '=', 'payable'), ('deprecated', '=', False)]",

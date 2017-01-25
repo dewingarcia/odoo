@@ -23,7 +23,7 @@ class Team(models.Model):
         string='Number of open opportunities', readonly=True)
     opportunities_amount = fields.Integer(
         compute='_compute_opportunities',
-        string='Amount of quotations to invoice', readonly=True)
+        string='Amount of opportunities to invoice', readonly=True)
     dashboard_graph_model = fields.Selection(selection_add=[('pipeline', 'Pipeline')])
 
     def _compute_unassigned_leads_count(self):

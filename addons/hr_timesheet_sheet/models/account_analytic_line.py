@@ -8,7 +8,7 @@ from odoo.exceptions import UserError
 class AccountAnalyticLine(models.Model):
     _inherit = "account.analytic.line"
 
-    sheet_id_computed = fields.Many2one('hr_timesheet_sheet.sheet', string='Sheet', compute='_compute_sheet', index=True, ondelete='cascade',
+    sheet_id_computed = fields.Many2one('hr_timesheet_sheet.sheet', string='Computed Sheet', compute='_compute_sheet', index=True, ondelete='cascade',
         search='_search_sheet')
     sheet_id = fields.Many2one('hr_timesheet_sheet.sheet', compute='_compute_sheet', string='Sheet', store=True)
 
