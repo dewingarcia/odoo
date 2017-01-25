@@ -12,10 +12,10 @@ class AccountInvoice(models.Model):
     _inherit = "account.invoice"
 
     @api.model
-    def invoice_line_move_line_get(self):
-        res = super(AccountInvoice, self).invoice_line_move_line_get()
+    def invoice_line_move_line_get(self, invoice_line_ids):
+        res = super(AccountInvoice, self).invoice_line_move_line_get(invoice_line_ids)
         if self.company_id.anglo_saxon_accounting and self.type in ('out_invoice', 'out_refund'):
-            for i_line in self.invoice_line_ids:
+            for i_line in invoice_line_ids:
                 res.extend(self._anglo_saxon_sale_move_lines(i_line))
         return res
 

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="rounding_list_action" model="ir.actions.act_window">
+			<field name="name">account.rounding.actions</field>
+			<field name="res_model">account.rounding</field>
+			<field name="view_type">form</field>
+			<field name="view_mode">tree,form</field>
+			<field name="help" type="html">
+				<p class="oe_view_nocontent_create">Create the first rounding</p>
+			</field>
+		</record>
+
+		<record id="rounding_form_view" model="ir.ui.view">
+			<field name="name">account.rounding.form</field>
+			<field name="model">account.rounding</field>
+			<field name="arch" type="xml">
+				<form string="Rounding Form">
+					<sheet>
+						<group>
+							<field name="name"/>
+							<field name="rounding"/>
+							<field name="account_id"/>
+							<field name="rounding_method"/>
+						</group>
+					</sheet>
+				</form>
+			</field>
+		</record>
+
+		<record id="rounding_search_view" model="ir.ui.view">
+			<field name="name">account.rounding.search</field>
+			<field name="model">account.rounding</field>
+			<field name="arch" type="xml">
+				<search>
+					<field name="name"/>
+				</search>
+			</field>
+		</record>
+
+		<record id="rounding_tree_view" model="ir.ui.view">
+			<field name="name">account.rounding.tree</field>
+			<field name="model">account.rounding</field>
+			<field name="arch" type="xml">
+				<tree string="Rounding Tree">
+					<field name="name"/>
+                    <field name="rounding"/>
+                    <field name="account_id"/>
+                    <field name="rounding_method"/>
+				</tree>
+			</field>
+		</record>
+    </data>
+</odoo>

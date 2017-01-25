@@ -43,7 +43,7 @@ You could use this simplified accounting in case you work with an (external) acc
         'views/report_invoice.xml',
         'report/account_invoice_report_view.xml',
         'views/report_overdue.xml',
-        'views/report_overdue.xml',
+        'views/account_rounding_view.xml',
         'wizard/account_report_common_view.xml',
         'wizard/account_report_print_journal_view.xml',
         'views/report_journal.xml',

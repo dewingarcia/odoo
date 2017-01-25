@@ -526,9 +526,8 @@ class AccountInvoice(models.Model):
             # When no payment terms defined
             self.date_due = self.date_due or self.date_invoice
         else:
-            pterm = self.payment_term_id
-            pterm_list = pterm.with_context(currency_id=self.company_id.currency_id.id).compute(value=1, date_ref=date_invoice)[0]
-            self.date_due = max(line[0] for line in pterm_list)
+            res_pay_term = self.payment_term_id.with_context(currency_id=self.currency_id.id).compute(value=1, date_ref=date_invoice)
+            self.date_due = res_pay_term['max_date']
 
     @api.multi
     def action_invoice_draft(self):
@@ -698,9 +697,9 @@ class AccountInvoice(models.Model):
         return total, total_currency, invoice_move_lines
 
     @api.model
-    def invoice_line_move_line_get(self):
+    def invoice_line_move_line_get(self, invoice_line_ids):
         res = []
-        for line in self.invoice_line_ids:
+        for line in invoice_line_ids:
             if line.quantity==0:
                 continue
             tax_ids = []
@@ -817,7 +816,7 @@ class AccountInvoice(models.Model):
             company_currency = inv.company_id.currency_id
 
             # create move lines (one per invoice line + eventual taxes and analytic lines)
-            iml = inv.invoice_line_move_line_get()
+            iml = inv.invoice_line_move_line_get(inv.invoice_line_ids)
             iml += inv.tax_line_move_line_get()
 
             diff_currency = inv.currency_id != company_currency
@@ -826,7 +825,31 @@ class AccountInvoice(models.Model):
 
             name = inv.name or '/'
             if inv.payment_term_id:
-                totlines = inv.with_context(ctx).payment_term_id.with_context(currency_id=company_currency.id).compute(total, date_invoice)[0]
+                res_pay_term = inv.with_context(ctx).payment_term_id.with_context(currency_id=inv.currency_id.id).compute(total, date_invoice)
+                totlines = res_pay_term['lines']
+                rounding = res_pay_term['rounding_lines']
+
+                # Create additional invoice line to catch the rounding
+                if rounding:
+                    add_invoice_line_ids = []
+                    for acc_id, rounding_balance in rounding:
+                        account_id = self.env['account.account'].browse(acc_id)
+                        # Create additional invoice lines
+                        add_invoice_line_id = self.env['account.invoice.line'].create({
+                            'name': _('Rounding'),
+                            'invoice_id': inv.id,
+                            'account_id': account_id.id,
+                            'price_unit': rounding_balance,
+                            'sequence': 9999 # always last line
+                        })
+                        add_invoice_line_ids.append(add_invoice_line_id)
+                    # Adjust total, total_currency, iml to balance again debit/credit
+                    add_iml = inv.invoice_line_move_line_get(add_invoice_line_ids)
+                    add_total, add_total_currency, add_iml = inv.with_context(ctx).compute_invoice_totals(company_currency, add_iml)
+                    total += add_total
+                    total_currency += add_total_currency
+                    iml += add_iml
+
                 res_amount_currency = total_currency
                 ctx['date'] = date_invoice
                 for i, t in enumerate(totlines):
@@ -1406,16 +1429,26 @@ class AccountPaymentTerm(models.Model):
         if len(lines) > 1:
             raise ValidationError(_('A Payment Terms should have only one line of type Balance.'))
 
-    @api.one
+    @api.multi
     def compute(self, value, date_ref=False):
+        """Compute the value according the payment term lines.
+        :param value: The amount to compute
+        :param date_ref: The reference date
+        :return: a dictionary containing:
+            'list': a list of tuple (date, amount)
+            'rounding_lines': a list of tuple (account, amount)
+            'max_date': the maximum date found
+        """
         date_ref = date_ref or fields.Date.today()
         amount = value
         result = []
+        rounding = []
         if self.env.context.get('currency_id'):
             currency = self.env['res.currency'].browse(self.env.context['currency_id'])
         else:
             currency = self.env.user.company_id.currency_id
         prec = currency.decimal_places
+        max_date = date_ref
         for line in self.line_ids:
             if line.value == 'fixed':
                 amt = round(line.value_amount, prec)
@@ -1424,6 +1457,17 @@ class AccountPaymentTerm(models.Model):
             elif line.value == 'balance':
                 amt = round(amount, prec)
             if amt:
+                # Compute the remaining rounding that the customer have to paid additionally.
+                # For example, if amt = 100.5, term = 50% and rounding = 1:
+                # amt: 50.25 and remaining_rounding: 51 - 50.25 = 0.75
+                # So, the customer will pay 51 and the remaining amount will be 100.5 - 51 = 49.5
+                if line.rounding_id:
+                    amt_rounded = line.rounding_id.round(amt)
+                    rounding_balance = round((amt_rounded - amt), prec)
+                else:
+                    rounding_balance = 0
+
+                # Compute the next date
                 next_date = fields.Date.from_string(date_ref)
                 if line.option == 'day_after_invoice_date':
                     next_date += relativedelta(days=line.days)
@@ -1434,14 +1478,23 @@ class AccountPaymentTerm(models.Model):
                     next_date += relativedelta(day=31, months=1)  # Getting last day of next month
                 elif line.option == 'last_day_current_month':
                     next_date += relativedelta(day=31, months=0)  # Getting last day of next month
-                result.append((fields.Date.to_string(next_date), amt))
+                next_date_str = fields.Date.to_string(next_date)
+
+                # Append the next amount to pay. If a rounding has been done, an additional amount is reported
+                result.append((next_date_str, amt + rounding_balance))
+                if rounding_balance:
+                    account_id = line.rounding_id.account_id
+                    rounding.append((account_id.id, rounding_balance))
+
+                # Update values
+                max_date = max(max_date, next_date_str)
                 amount -= amt
-        amount = reduce(lambda x, y: x + y[1], result, 0.0)
-        dist = round(value - amount, prec)
+        dist = round(amount, prec)
         if dist:
             last_date = result and result[-1][0] or fields.Date.today()
             result.append((last_date, dist))
-        return result
+            max(max_date, last_date)
+        return {'lines': result, 'rounding_lines': rounding, 'max_date': max_date}
 
 
 class AccountPaymentTermLine(models.Model):
@@ -1467,6 +1520,7 @@ class AccountPaymentTermLine(models.Model):
         )
     payment_id = fields.Many2one('account.payment.term', string='Payment Terms', required=True, index=True, ondelete='cascade')
     sequence = fields.Integer(default=10, help="Gives the sequence order when displaying a list of payment terms lines.")
+    rounding_id = fields.Many2one('account.rounding', string='Rounding method', help='The smallest coinage of the currency')
 
     @api.one
     @api.constrains('value', 'value_amount')
