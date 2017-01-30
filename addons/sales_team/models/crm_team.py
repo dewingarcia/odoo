@@ -146,17 +146,28 @@ class CrmTeam(models.Model):
                       AND DATE(%(date_column)s) <= %(end_date)s
                       %(extra_conditions)s
                     GROUP BY x_value;"""
+
+        # apply rules
+        graph_sql_table = self._graph_sql_table()
+        extra_conditions = self._extra_sql_conditions()
+        GraphModel = self.env[".".join(graph_sql_table.split("_"))]
+        where_query = GraphModel._where_calc([])
+        GraphModel._apply_ir_rules(where_query, 'read')
+        from_clause, where_clause, where_clause_params = where_query.get_sql()
+        if where_clause:
+            extra_conditions += " AND " + where_clause
+
         query = query % {
             'x_query': self._graph_x_query(),
             'y_query': self._graph_y_query(),
-            'table': self._graph_sql_table(),
+            'table': graph_sql_table,
             'team_id': "%s",
             'date_column': self._graph_date_column(),
             'start_date': "%s",
             'end_date': "%s",
-            'extra_conditions': self._extra_sql_conditions(),
+            'extra_conditions': extra_conditions
         }
-        self._cr.execute(query, [self.id, start_date, end_date])
+        self._cr.execute(query, [self.id, start_date, end_date] + where_clause_params)
         return self.env.cr.dictfetchall()
 
     def _get_graph(self):
