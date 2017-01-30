@@ -144,3 +144,39 @@ class SaleOrderLine(models.Model):
             # To filter on analyic lines linked to an expense
             domain = [('so_line', 'in', self.ids), '|', ('amount', '<=', 0.0), ('project_id', '!=', False)]
         return super(SaleOrderLine, self)._compute_analytic(domain=domain)
+
+    @api.multi
+    def invoice_line_create(self, invoice_id, qty):
+        invoice_lines = super(SaleOrderLine, self).invoice_line_create(invoice_id, qty)
+        uninvoiced_timesheet_lines = self.env['account.analytic.line'].sudo().search([
+            ('so_line', 'in', self.ids),
+            ('project_id', '!=', False),
+            ('timesheet_invoice_id', '=', False),
+            ('timesheet_invoice_type', '!=', False)
+        ])
+        uninvoiced_timesheet_lines.write({
+            'timesheet_invoice_id': invoice_id
+        })
+        return invoice_lines
+
+    #     # TODO JEM
+    #     print uninvoiced_timesheet_lines
+    #     print "KKKK", self.env['account.analytic.line'].search([('so_line', 'in', self.ids)])
+    #     for so_line in self:
+    #         timesheets = uninvoiced_timesheet_lines.filtered(lambda t: t.so_line == so_line)
+    #         timesheet_hours = sum(timesheets.mapped('unit_amount'))
+    #         revenue = 0.0
+    #         if so_line.product_id.invoice_policy == 'delivery':
+    #             revenue = timesheet_hours * (so_line.price_unit) * (1-so_line.discount)
+
+    #         elif so_line.product_id.invoice_policy == 'order' and so_line.product_id.track_service == 'task':
+    #             revenue = timesheet_hours * (so_line.price_unit) * (1-so_line.discount)
+
+    #         print "------ INV ", invoice_id, "  QTY=", qty
+    #         print "revenue =", revenue
+    #         print 'SO line ', so_line.id
+    #         print so_line.product_id.invoice_policy
+    #         print so_line.invoice_lines
+    #         for timesheet in timesheets:
+    #             print timesheet.name, timesheet.unit_amount
+    #     return invoice_lines

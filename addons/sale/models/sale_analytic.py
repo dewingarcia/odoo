@@ -99,7 +99,6 @@ class AccountAnalyticLine(models.Model):
                 ('order_id', '=', order.id),
                 ('price_unit', '=', price),
                 ('product_id', '=', self.product_id.id)])
-
             if so_lines:
                 result.update({'so_line': so_lines[0].id})
             else:
