@@ -578,6 +578,18 @@ var RTE = Widget.extend({
         _.defer(function () {
             self.historyRecordUndo($target, 'activate',  true);
         });
+
+        // To Fix Google Chrome Issue Tripleclick
+        // http://stackoverflow.com/questions/38467334/why-does-google-chrome-always-add-space-after-selected-text
+        if($.browser.chrome == true && event.originalEvent.detail === 3){
+            var current_selection = range.create();
+            if(current_selection.sc.parentNode === current_selection.ec){
+                range.create(current_selection.sc, current_selection.so, current_selection.sc, current_selection.sc.length).select();
+            } else {
+                var next = dom.lastChild(event.target);
+                range.create(current_selection.sc, current_selection.so, next, next.textContent.length).select();
+            }
+        }
     },
 
     editable: function () {
