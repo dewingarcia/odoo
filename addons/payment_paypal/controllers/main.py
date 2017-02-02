@@ -27,22 +27,19 @@ class PaypalController(http.Controller):
             return_url = custom.get('return_url', '/')
         return return_url
 
-    def _parse_pdt_response(self, response):
-        """ Parse a text response for a PDT verification .
+    def _parse_pdt_response(self, lines):
+        """ Parse a list of response data for a PDT verification.
 
-            :param response str: text response, structured in the following way:
-                STATUS\nkey1=value1\nkey2=value2...\n
-            :rtype tuple(str, dict)
-            :return: tuple containing the STATUS str and the key/value pairs
-                     parsed as a dict
+            :param Lines list: list of response data, structured in the following way:
+                ['key1=value1', 'key2=value2', ...]
+            :rtype dict
+            :return: the key/value pairs parsed as a dict
         """
-        lines = filter(None, response.split('\n'))
-        status = lines.pop(0)
         pdt_post = dict(line.split('=', 1) for line in lines)
         # html unescape
         for post in pdt_post:
             pdt_post[post] = urllib.unquote_plus(pdt_post[post]).decode('utf8')
-        return status, pdt_post
+        return pdt_post
 
     def paypal_validate_data(self, **post):
         """ Paypal IPN: three steps validation to ensure data correctness
@@ -62,25 +59,24 @@ class PaypalController(http.Controller):
         if reference:
             tx = request.env['payment.transaction'].search([('reference', '=', reference)])
         paypal_urls = request.env['payment.acquirer']._get_paypal_urls(tx and tx.acquirer_id.environment or 'prod')
-        pdt_request = bool(new_post.get('amt'))  # check for spefific pdt param
-        if pdt_request:
+        if bool(new_post.get('amt')):  # check for spefific pdt param
             # this means we are in PDT instead of DPN like before
             # fetch the PDT token
-            new_post['at'] = request.env['ir.config_parameter'].sudo().get_param('payment_paypal.pdt_token')
+            new_post['at'] = tx and tx.acquirer_id.pdt_token or ''
             new_post['cmd'] = '_notify-synch'  # command is different in PDT than IPN/DPN
-        validate_url = paypal_urls['paypal_form_url']
-        urequest = urllib2.Request(validate_url, werkzeug.url_encode(new_post))
+        urequest = urllib2.Request(paypal_urls['paypal_form_url'], werkzeug.url_encode(new_post))
         uopen = urllib2.urlopen(urequest)
-        resp = uopen.read()
-        if pdt_request:
-            resp, post = self._parse_pdt_response(resp)
-        if resp == 'VERIFIED' or pdt_request and resp == 'SUCCESS':
+        lines = filter(None, uopen.read().split('\n'))
+        resp = lines.pop(0)
+        if resp == 'SUCCESS': # check resp for wrong PDT token
+            post = self._parse_pdt_response(lines)
+        if resp in ['VERIFIED','SUCCESS']:
             _logger.info('Paypal: validated data')
             res = request.env['payment.transaction'].sudo().form_feedback(post, 'paypal')
-        elif resp == 'INVALID' or pdt_request and resp == 'FAIL':
+        elif resp in ['INVALID', 'FAIL']:
             _logger.warning('Paypal: answered INVALID/FAIL on data verification')
         else:
-            _logger.warning('Paypal: unrecognized paypal answer, received %s instead of VERIFIED/SUCCESS or INVALID/FAIL (validation: %s)' % (resp, 'PDT' if pdt_request else 'IPN/DPN'))
+            _logger.warning('Paypal: unrecognized paypal answer, received %s instead of VERIFIED/SUCCESS or INVALID/FAIL (validation: %s)' % (resp, 'PDT'))
         return res
 
     @http.route('/payment/paypal/ipn/', type='http', auth='none', methods=['POST'], csrf=False)
