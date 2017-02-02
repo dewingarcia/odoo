@@ -70,7 +70,7 @@ class AccountInvoiceLine(models.Model):
                 'invoice_id': self.invoice_id.id,
             }
             changed_vals = self.env['account.asset.asset'].onchange_category_id_values(vals['category_id'])
-            vals.update(changed_vals['value'])
+            vals.update(changed_vals)
             asset = self.env['account.asset.asset'].create(vals)
             if self.asset_category_id.open_asset:
                 asset.validate()
