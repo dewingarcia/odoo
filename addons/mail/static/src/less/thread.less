@@ -71,7 +71,7 @@
         }
 
 
-        i.o_thread_message_star, i.o_thread_message_needaction, i.o_thread_message_reply, i.o_thread_message_email  {
+        i.o_thread_message_star, i.o_thread_message_moderation, i.o_thread_message_reply, i.o_thread_message_email, i.o_thread_message_moderation  {
             cursor: pointer;
             opacity: 0;
             &.fa-star {
@@ -85,7 +85,7 @@
                 opacity: @mail-thread-side-date-opacity;
             }
 
-            i.o_thread_message_star, i.o_thread_message_needaction, i.o_thread_message_reply, i.o_thread_message_email {
+            i.o_thread_message_star, i.o_thread_message_moderation, i.o_thread_message_reply, i.o_thread_message_email, i.o_thread_message_moderation {
                 opacity: @mail-thread-icon-opacity;
                 &:hover {
                     opacity: 1;

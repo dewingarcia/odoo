@@ -86,6 +86,11 @@ class Channel(models.Model):
         help="The email address associated with this group. New emails received will automatically create new topics.")
     is_subscribed = fields.Boolean(
         'Is Subscribed', compute='_compute_is_subscribed')
+    is_moderate = fields.Boolean(string='Moderate this channel')
+    moderator_ids = fields.Many2many('res.users', string='Moderators')
+    moderated_email_ids = fields.One2many('channel.moderated.email', 'channel_id', string="Emails")
+    auto_notification = fields.Boolean(string="Automatic Notification", help="people receive an automatic notification about their message being waiting for moderation.")
+    notification_message = fields.Text(string="Notification Message")
 
     @api.one
     @api.depends('channel_partner_ids')
@@ -597,6 +602,24 @@ class Channel(models.Model):
             channel['last_message'] = message
         return channels_preview.values()
 
+    def add_to_moderated_email_list(self, email, moderator_action):
+        """ This method will add a email address into either white list of emails or ban list of emails
+            according to the moderator action.
+        """
+        email_from = tools.email_split(email)
+        email = email_from[0] if email_from else False
+        #search if already exist
+        email_id = self.env['channel.moderated.email'].search([('email', '=', email), ('channel_id', 'in', self.ids)], limit=1).id
+        vals = [(1, email_id, {'moderator_action': moderator_action})] if email_id else [(0, 0, {'email': email, 'moderator_action': moderator_action})]
+        self.write({'moderated_email_ids': vals})
+
+    def is_moderated_email(self, email, moderator_action):
+        """ This method will returns true if email address is present either in ban list or always allow list according to moderator_action.
+        """
+        email_from = tools.email_split(email)
+        email = email_from[0] if email_from else False
+        return email in self.mapped('moderated_email_ids').filtered(lambda e: e.moderator_action == moderator_action).mapped('email')
+
     #------------------------------------------------------
     # Commands
     #------------------------------------------------------
@@ -678,3 +701,14 @@ class Channel(models.Model):
             msg = _("Users in this channel: %s %s and you.") % (", ".join(members), dots)
 
         self._send_transient_message(partner, msg)
+
+
+class ChannelModeratedEmail(models.Model):
+    """ This model will handle the white & black list email addresses of specific channel
+    """
+
+    _name = 'channel.moderated.email'
+
+    email = fields.Char()
+    moderator_action = fields.Selection([('allow', 'Allow'), ('ban', 'Ban')])
+    channel_id = fields.Many2one('mail.channel', string="Channel")

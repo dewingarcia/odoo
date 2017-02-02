@@ -85,6 +85,44 @@ var PartnerInviteDialog = Dialog.extend({
     },
 });
 
+var ModeratorRejectMessageDialog = Dialog.extend({
+    template: "mail.ModeratorRejectMessageDialog",
+    init: function(parent, message_ids) {
+        this.message_ids = message_ids;
+        this._super(parent, {
+            title: _t('Send Mail to Author'),
+            size: "medium",
+            buttons: [{
+                text: _t("Send"),
+                close: true,
+                classes: "btn-primary",
+                click: _.bind(this.on_click_send, this),
+            }],
+        });
+    },
+    on_click_send: function() {
+        var self = this;
+        var message = this.$('#reject_message').val();
+        var title = this.$('#message_title').val();
+        if (message && title) {
+            return new Model('mail.message').call('create_notification_email', [{
+                subject: title,
+                body_html: message,
+                email_to: this.get_email_to(),
+                auto_delete: true
+            }]).then(function() {
+                chat_manager.moderate_selected_messages(self.message_ids, 'reject');
+            });
+        }
+    },
+    get_email_to: function() {
+        var messages = _.map(this.message_ids, function(msg_id) {
+            return chat_manager.get_message(msg_id);
+        });
+        return _.pluck(messages, 'email_from').join(',');
+    }
+});
+
 var ChatAction = Widget.extend(ControlPanelMixin, {
     template: 'mail.client_action',
 
@@ -218,6 +256,16 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
         });
         this.$buttons.on('click', '.o_mail_chat_button_unstar_all', chat_manager.unstar_all);
 
+        this.$buttons.on('click', '.o_mail_chat_button_moderate_all', function() {
+            var moderator_action = $(this).data('moderator-action');
+            var message_ids = self.thread.$('.moderation_checkbox:checked').map(function(){ return $(this).data('message-id')} ).get();
+            if (moderator_action == 'reject' && message_ids.length) {
+                self.on_reject_message(message_ids);
+            } else {
+                chat_manager.moderate_selected_messages(message_ids, moderator_action);
+            }
+        });
+
         this.thread.on('redirect', this, function (res_model, res_id) {
             chat_manager.redirect(res_model, res_id, this.set_channel.bind(this));
         });
@@ -230,6 +278,20 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
         });
         this.thread.on('toggle_star_status', this, function (message_id) {
             chat_manager.toggle_star_status(message_id);
+        });
+        this.thread.on('toggle_moderator_action_button', this, function(display_button) {
+            if (this.thread.$('.moderation_checkbox:checked').length) {
+                this.$buttons.find('.o_mail_chat_button_moderate_all').show();
+            } else {
+                this.$buttons.find('.o_mail_chat_button_moderate_all').hide();
+            }
+        });
+        this.thread.on('moderator_action', this, function (message_id, moderator_action) {
+            if (moderator_action == 'reject') {
+                self.on_reject_message([message_id]);
+            } else {
+                chat_manager.moderator_action([message_id], moderator_action);
+            }
         });
         this.thread.on('select_message', this, this.select_message);
         this.thread.on('unselect_message', this, this.unselect_message);
@@ -261,6 +323,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
                 chat_manager.bus.on('unsubscribe_from_channel', self, self.on_channel_unsubscribed);
                 chat_manager.bus.on('update_needaction', self, self.throttled_render_sidebar);
                 chat_manager.bus.on('update_starred', self, self.throttled_render_sidebar);
+                chat_manager.bus.on('update_moderation_counter', self, self.throttled_render_sidebar);
                 chat_manager.bus.on('update_channel_unread_counter', self, self.throttled_render_sidebar);
                 chat_manager.bus.on('update_dm_presence', self, self.throttled_render_sidebar);
                 self.thread.$el.on("scroll", null, _.debounce(function () {
@@ -304,6 +367,8 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
             channels: chat_manager.get_channels(),
             needaction_counter: chat_manager.get_needaction_counter(),
             starred_counter: chat_manager.get_starred_counter(),
+            moderation_counter: chat_manager.get_moderation_counter(),
+            is_moderator: chat_manager.is_moderator,
         });
         this.$(".o_mail_chat_sidebar").html($sidebar.contents());
 
@@ -436,6 +501,8 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
                 .find('.o_mail_chat_button_unstar_all')
                 .toggle(channel.id === "channel_starred");
 
+            self.$buttons.find('.o_mail_chat_button_moderate_all').hide();
+
             self.$('.o_mail_chat_channel_item')
                 .removeClass('o_active')
                 .filter('[data-channel-id=' + channel.id + ']')
@@ -509,6 +576,9 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
             this.$buttons
                 .find('.o_mail_chat_button_unstar_all')
                 .toggleClass('disabled', disabled);
+        }
+        if (this.channel.id === "channel_moderation") {
+            this.thread.trigger('toggle_moderator_action_button');
         }
     },
 
@@ -608,6 +678,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
         var self = this;
         var current_channel_id = this.channel.id;
         if ((current_channel_id === "channel_starred" && !message.is_starred) ||
+            (current_channel_id === "channel_moderation" && !message.is_moderation) ||
             (current_channel_id === "channel_inbox" && !message.is_needaction)) {
             chat_manager.get_messages({channel_id: this.channel.id, domain: this.domain}).then(function (messages) {
                 var options = self.get_thread_rendering_options(messages);
@@ -638,6 +709,9 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
         var partners = chat_manager.get_mention_partner_suggestions(this.channel);
         composer.mention_set_enabled_commands(commands);
         composer.mention_set_prefetched_partners(partners);
+    },
+    on_reject_message: function(message_ids) {
+        new ModeratorRejectMessageDialog(this, message_ids).open();
     },
 
     on_click_button_invite: function () {

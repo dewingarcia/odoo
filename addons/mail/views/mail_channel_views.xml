@@ -128,6 +128,24 @@
                                     </tree>
                                 </field>
                             </page>
+                            <page string="Moderation" attrs="{'invisible': [('email_send', '=', False)]}">
+                                <group>
+                                    <field name="is_moderate"/>
+                                </group>
+                                <group attrs="{'invisible': [('is_moderate', '=', False)]}">
+                                    <field name="moderator_ids" widget="many2many_tags"/>
+                                    <field name="auto_notification"/>
+                                    <field name="notification_message" attrs="{'invisible': [('auto_notification', '=', False)]}"/>
+                                </group>
+                                <group string="Emails" attrs="{'invisible': [('is_moderate', '=', False)]}">
+                                    <field name="moderated_email_ids" nolabel="1">
+                                        <tree editable="bottom" string="Emails">
+                                            <field name="email"/>
+                                            <field name="moderator_action"/>
+                                        </tree>
+                                    </field>
+                                </group>
+                            </page>
                             <page string="Integrations" invisible="0" name="mail_channel_integrations"></page>
                         </notebook>
                         <div class="oe_chatter" groups="base.group_no_one">
