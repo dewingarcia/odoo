@@ -249,8 +249,9 @@
                             <field name="hide_payment_method" invisible="1"/>
                             <field name="payment_method_id" widget="radio" attrs="{'invisible': [('hide_payment_method', '=', True)]}"/>
                             <field name="payment_method_code" invisible="1"/>
-                            <field name="amount"/>
                             <field name="currency_id" invisible="1"/>
+                            <field name="multi" invisible="1"/>
+                            <field name="amount" attrs="{'readonly': [('multi', '=', True)]}"/>
                         </group>
                         <group>
                             <field name="payment_date"/>
@@ -276,5 +277,22 @@
             key2="client_action_multi"
         />
 
+        <!-- Action confirm_payments for multi -->
+        <record id="action_account_confirm_payments" model="ir.actions.server">
+            <field name="name">Confirm Payments</field>
+            <field name="model_id" ref="account.model_account_payment"/>
+            <field name="code">
+records.post()
+            </field>
+        </record>
+
+        <record id="account_confirm_payments" model="ir.values">
+            <field name="model_id" ref="account.model_account_payment" />
+            <field name="name">Confirm Payments</field>
+            <field name="key2">client_action_multi</field>
+            <field name="value" eval="'ir.actions.server,' +str(ref('action_account_confirm_payments'))" />
+            <field name="key">action</field>
+            <field name="model">account.payment</field>
+        </record>
     </data>
 </odoo>

@@ -81,7 +81,6 @@ class account_abstract_payment(models.AbstractModel):
     @api.model
     def _compute_total_invoices_amount(self, invoice_ids):
         """ Compute the sum of the residual of invoices, expressed in the payment currency """
-        self.ensure_one()
         payment_currency = self.currency_id or self.journal_id.currency_id or self.journal_id.company_id.currency_id
 
         total = 0
@@ -99,71 +98,111 @@ class account_register_payments(models.TransientModel):
     _inherit = 'account.abstract.payment'
     _description = "Register payments on multiple invoices"
 
+    invoice_ids = fields.Many2many('account.invoice', string='Invoices', copy=False)
+    multi = fields.Boolean(string='Multi', help='Indicate if mixin multiple partner or partner_type.')
+
     @api.onchange('payment_type')
     def _onchange_payment_type(self):
         if self.payment_type:
             return {'domain': {'payment_method_id': [('payment_type', '=', self.payment_type)]}}
 
-    def _get_invoices(self):
-        return self.env['account.invoice'].browse(self._context.get('active_ids'))
-
     @api.model
     def default_get(self, fields):
         rec = super(account_register_payments, self).default_get(fields)
-        context = dict(self._context or {})
-        active_model = context.get('active_model')
-        active_ids = context.get('active_ids')
+        active_ids = self._context.get('active_ids')
 
-        # Checks on context parameters
-        if not active_model or not active_ids:
-            raise UserError(_("Programmation error: wizard action executed without active_model or active_ids in context."))
-        if active_model != 'account.invoice':
-            raise UserError(_("Programmation error: the expected model for this action is 'account.invoice'. The provided one is '%d'.") % active_model)
+        # Check for selected invoices ids
+        if not active_ids:
+            raise UserError(_("Programmation error: wizard action executed without active_ids in context."))
 
-        # Checks on received invoice records
-        invoices = self.env[active_model].browse(active_ids)
-        if any(invoice.state != 'open' for invoice in invoices):
+        invoice_ids = self.env['account.invoice'].browse(active_ids)
+
+        # Check all invoices are open
+        if any(invoice.state != 'open' for invoice in invoice_ids):
             raise UserError(_("You can only register payments for open invoices"))
-        if any(inv.commercial_partner_id != invoices[0].commercial_partner_id for inv in invoices):
-            raise UserError(_("In order to pay multiple invoices at once, they must belong to the same commercial partner."))
-        if any(MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type] != MAP_INVOICE_TYPE_PARTNER_TYPE[invoices[0].type] for inv in invoices):
-            raise UserError(_("You cannot mix customer invoices and vendor bills in a single payment."))
-        if any(inv.currency_id != invoices[0].currency_id for inv in invoices):
+        # Check all invoices have the same currency
+        if any(inv.currency_id != invoice_ids[0].currency_id for inv in invoice_ids):
             raise UserError(_("In order to pay multiple invoices at once, they must use the same currency."))
 
-        total_amount = sum(inv.residual * MAP_INVOICE_TYPE_PAYMENT_SIGN[inv.type] for inv in invoices)
-        communication = ' '.join([ref for ref in invoices.mapped('reference') if ref])
+        # Look if we are mixin multiple commercial_partner or customer invoices with vendor bills
+        multi = any(inv.commercial_partner_id != invoice_ids[0].commercial_partner_id
+            or MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type] != MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
+            for inv in invoice_ids)
 
-        rec.update({
-            'amount': abs(total_amount),
-            'currency_id': invoices[0].currency_id.id,
-            'payment_type': total_amount > 0 and 'inbound' or 'outbound',
-            'partner_id': invoices[0].commercial_partner_id.id,
-            'partner_type': MAP_INVOICE_TYPE_PARTNER_TYPE[invoices[0].type],
-            'communication': communication,
-        })
+        total_amount = self._compute_total_invoices_amount(invoice_ids)
+
+        rec['partner_id'] = False if multi else invoice_ids[0].commercial_partner_id.id
+        rec['partner_type'] = False if multi else MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
+        rec['invoice_ids'] = [(6, 0, invoice_ids.ids)]
+        rec['multi'] = multi
+        rec['amount'] = abs(total_amount)
+        rec['currency_id'] = invoice_ids[0].currency_id.id
+        rec['payment_type'] = total_amount > 0 and 'inbound' or 'outbound'
+        rec['communication'] = ' '.join([ref for ref in invoice_ids.mapped('reference') if ref])
         return rec
 
+    @api.model
     def get_payment_vals(self):
-        """ Hook for extension """
+        '''Return the a values dictionary to create a new payment object.
+
+        :param invoice_ids: Optional invoice_ids to apply a restriction.
+        :return: Payment values as a dict.
+        '''
+        invoice_ids = self._context.get('invoice_ids', self.invoice_ids)
+        total_amount = self._compute_total_invoices_amount(invoice_ids)
+        payment_type = total_amount > 0 and 'inbound' or 'outbound'
+        partner_id = invoice_ids[0].commercial_partner_id.id
+        partner_type = MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
         return {
             'journal_id': self.journal_id.id,
             'payment_method_id': self.payment_method_id.id,
             'payment_date': self.payment_date,
             'communication': self.communication,
-            'invoice_ids': [(4, inv.id, None) for inv in self._get_invoices()],
-            'payment_type': self.payment_type,
-            'amount': self.amount,
+            'invoice_ids': [(6, 0, invoice_ids.ids)],
+            'payment_type': payment_type,
+            'amount': abs(total_amount),
             'currency_id': self.currency_id.id,
-            'partner_id': self.partner_id.id,
-            'partner_type': self.partner_type,
+            'partner_id': partner_id,
+            'partner_type': partner_type,
         }
 
     @api.multi
     def create_payment(self):
-        payment = self.env['account.payment'].create(self.get_payment_vals())
-        payment.post()
-        return {'type': 'ir.actions.act_window_close'}
+        '''Create payments according to the invoices.
+        Having invoices with different commercial_partner_id or different type (Vendor bills with customer invoices)
+        leads to multiple payments.
+        In case of all the invoices are related to the same commercial_partner_id and have the same type,
+        only one payment will be created.
+        :return: The ir.actions.act_window to show created payments.
+        '''
+        self.ensure_one()
+        payment_ids = []
+        values = {}
+        # Create a dict dispatching invoices according to their commercial_partner_id and type
+        for inv in self.invoice_ids:
+            partner_id = inv.commercial_partner_id.id
+            partner_type = MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type]
+            if partner_id not in values:
+                values[partner_id] = {}
+            if partner_type not in values[partner_id]:
+                values[partner_id][partner_type] = inv
+            else:
+                values[partner_id][partner_type] += inv
+        # Create payments
+        for p_invoice_ids in values.values():
+            for t_invoice_ids in p_invoice_ids.values():
+                payment_vals = self.with_context(invoice_ids=t_invoice_ids).get_payment_vals()
+                payment_id = self.env['account.payment'].create(payment_vals)
+                payment_ids.append(payment_id.id)
+        return {
+            'name': _('Payments'),
+            'domain': [('id', 'in', payment_ids), ('state', '=', 'draft')],
+            'view_type': 'form',
+            'view_mode': 'tree',
+            'res_model': 'account.payment',
+            'view_id': False,
+            'type': 'ir.actions.act_window',
+        }
 
 
 class account_payment(models.Model):
