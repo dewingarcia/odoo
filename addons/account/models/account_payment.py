@@ -161,8 +161,8 @@ class account_register_payments(models.TransientModel):
 
         :return: Payment values as a dict.
         '''
-        invoice_ids = self._context.get('invoice_ids', self.invoice_ids)
-        amount = self._context.get('amount', self._compute_payment_amount(invoice_ids))
+        invoice_ids = self._context.get('invoice_ids') or self.invoice_ids
+        amount = self._context.get('amount') or self._compute_payment_amount(invoice_ids)
         payment_type = amount > 0 and 'inbound' or 'outbound'
         partner_id = invoice_ids[0].commercial_partner_id.id
         partner_type = MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]

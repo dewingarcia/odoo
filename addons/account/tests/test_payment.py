@@ -188,7 +188,7 @@ class TestPayment(AccountingTestCase):
         ])
 
     def test_multiple_payments(self):
-        """ Create feature to pay several vendor bills/invoices at once """
+        """ Create test to pay several vendor bills/invoices at once """
         # One payment for inv_1 and inv_2 (same partner)
         inv_1 = self.create_invoice(amount=100, currency_id=self.currency_eur_id)
         inv_2 = self.create_invoice(amount=500, currency_id=self.currency_eur_id)
@@ -198,8 +198,7 @@ class TestPayment(AccountingTestCase):
         inv_4 = self.create_invoice(amount=50, currency_id=self.currency_eur_id, type='in_invoice')
 
         ids = [inv_1.id, inv_2.id, inv_3.id, inv_4.id]
-        ctx = {'active_model': 'account.invoice', 'active_ids': ids}
-        register_payments = self.register_payments_model.with_context(ctx).create({
+        register_payments = self.register_payments_model.with_context(active_ids=ids).create({
             'payment_date': time.strftime('%Y') + '-07-15',
             'journal_id': self.bank_journal_euro.id,
             'payment_method_id': self.payment_method_manual_in.id,
@@ -248,3 +247,30 @@ class TestPayment(AccountingTestCase):
             {'account_id': self.account_eur.id, 'debit': 0.0, 'credit': 50.0, 'amount_currency': 0.0, 'currency_id': False},
             {'account_id': inv_1.account_id.id, 'debit': 50.0, 'credit': 0.0, 'amount_currency': 0.0, 'currency_id': False},
         ])
+
+    def test_partial_payment(self):
+        """ Create test to pay invoices with same partner but partial payment """
+        inv_1 = self.create_invoice(amount=100, currency_id=self.currency_eur_id)
+        inv_2 = self.create_invoice(amount=500, currency_id=self.currency_eur_id)
+
+        ids = [inv_1.id, inv_2.id]
+        register_payments = self.register_payments_model.with_context(active_ids=ids).create({
+            'payment_date': time.strftime('%Y') + '-07-15',
+            'journal_id': self.bank_journal_euro.id,
+            'payment_method_id': self.payment_method_manual_in.id,
+        })
+
+        self.assertEqual(register_payments.amount, 600)
+
+        register_payments.amount = 550
+
+        self.assertEqual(register_payments.amount, 550)
+
+        register_payments.create_payment()
+        payment_ids = self.payment_model.search([('invoice_ids', 'in', ids)], order="id desc")
+
+        self.assertEqual(len(payment_ids), 1)
+
+        payment_id = payment_ids[0]
+
+        self.assertAlmostEquals(payment_id.amount, 550)
