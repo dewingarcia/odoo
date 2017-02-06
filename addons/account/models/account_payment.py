@@ -107,6 +107,20 @@ class account_register_payments(models.TransientModel):
             return {'domain': {'payment_method_id': [('payment_type', '=', self.payment_type)]}}
 
     @api.model
+    def _compute_payment_amount(self, invoice_ids):
+        payment_currency = self.currency_id or self.journal_id.currency_id or self.journal_id.company_id.currency_id
+
+        total = 0
+        for inv in invoice_ids:
+            if inv.currency_id == payment_currency:
+                total += MAP_INVOICE_TYPE_PAYMENT_SIGN[inv.type] * inv.residual_company_signed
+            else:
+                amount_residual = inv.company_currency_id.with_context(date=self.payment_date).compute(
+                    inv.residual_company_signed, payment_currency)
+                total += MAP_INVOICE_TYPE_PAYMENT_SIGN[inv.type] * amount_residual
+        return total
+
+    @api.model
     def default_get(self, fields):
         rec = super(account_register_payments, self).default_get(fields)
         active_ids = self._context.get('active_ids')
@@ -129,7 +143,7 @@ class account_register_payments(models.TransientModel):
             or MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type] != MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
             for inv in invoice_ids)
 
-        total_amount = self._compute_total_invoices_amount(invoice_ids)
+        total_amount = self._compute_payment_amount(invoice_ids)
 
         rec['partner_id'] = False if multi else invoice_ids[0].commercial_partner_id.id
         rec['partner_type'] = False if multi else MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
@@ -145,12 +159,11 @@ class account_register_payments(models.TransientModel):
     def get_payment_vals(self):
         '''Return the a values dictionary to create a new payment object.
 
-        :param invoice_ids: Optional invoice_ids to apply a restriction.
         :return: Payment values as a dict.
         '''
         invoice_ids = self._context.get('invoice_ids', self.invoice_ids)
-        total_amount = self._compute_total_invoices_amount(invoice_ids)
-        payment_type = total_amount > 0 and 'inbound' or 'outbound'
+        amount = self._context.get('amount', self._compute_payment_amount(invoice_ids))
+        payment_type = amount > 0 and 'inbound' or 'outbound'
         partner_id = invoice_ids[0].commercial_partner_id.id
         partner_type = MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
         return {
@@ -160,7 +173,7 @@ class account_register_payments(models.TransientModel):
             'communication': self.communication,
             'invoice_ids': [(6, 0, invoice_ids.ids)],
             'payment_type': payment_type,
-            'amount': abs(total_amount),
+            'amount': abs(amount),
             'currency_id': self.currency_id.id,
             'partner_id': partner_id,
             'partner_type': partner_type,
@@ -173,6 +186,7 @@ class account_register_payments(models.TransientModel):
         leads to multiple payments.
         In case of all the invoices are related to the same commercial_partner_id and have the same type,
         only one payment will be created.
+
         :return: The ir.actions.act_window to show created payments.
         '''
         self.ensure_one()
@@ -191,7 +205,9 @@ class account_register_payments(models.TransientModel):
         # Create payments
         for p_invoice_ids in values.values():
             for t_invoice_ids in p_invoice_ids.values():
-                payment_vals = self.with_context(invoice_ids=t_invoice_ids).get_payment_vals()
+                amount = None if self.multi else self.amount
+                ctx = dict(self._context, invoice_ids=t_invoice_ids, amount=amount)
+                payment_vals = self.with_context(ctx).get_payment_vals()
                 payment_id = self.env['account.payment'].create(payment_vals)
                 payment_ids.append(payment_id.id)
         return {
