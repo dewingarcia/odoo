@@ -54,14 +54,17 @@ class account_abstract_payment(models.AbstractModel):
         if not self.amount > 0.0:
             raise ValidationError('The payment amount must be strictly positive.')
 
-    @api.one
+    @api.multi
     @api.depends('payment_type', 'journal_id')
     def _compute_hide_payment_method(self):
-        if not self.journal_id:
-            self.hide_payment_method = True
-            return
-        journal_payment_methods = self.payment_type == 'inbound' and self.journal_id.inbound_payment_method_ids or self.journal_id.outbound_payment_method_ids
-        self.hide_payment_method = len(journal_payment_methods) == 1 and journal_payment_methods[0].code == 'manual'
+        for record in self:
+            if not record.journal_id:
+                record.hide_payment_method = True
+                continue
+            journal_payment_methods = record.payment_type == 'inbound'\
+                and record.journal_id.inbound_payment_method_ids\
+                or record.journal_id.outbound_payment_method_ids
+            record.hide_payment_method = len(journal_payment_methods) == 1 and journal_payment_methods[0].code == 'manual'
 
     @api.onchange('journal_id')
     def _onchange_journal(self):
@@ -75,24 +78,19 @@ class account_abstract_payment(models.AbstractModel):
             return {'domain': {'payment_method_id': [('payment_type', '=', payment_type), ('id', 'in', payment_methods.ids)]}}
         return {}
 
-    def _get_invoices(self):
-        """ Return the invoices of the payment. Must be overridden """
-        raise NotImplementedError
-
-    def _compute_total_invoices_amount(self):
+    @api.model
+    def _compute_total_invoices_amount(self, invoice_ids):
         """ Compute the sum of the residual of invoices, expressed in the payment currency """
+        self.ensure_one()
         payment_currency = self.currency_id or self.journal_id.currency_id or self.journal_id.company_id.currency_id
-        invoices = self._get_invoices()
 
-        if all(inv.currency_id == payment_currency for inv in invoices):
-            total = sum(invoices.mapped('residual_signed'))
-        else:
-            total = 0
-            for inv in invoices:
-                if inv.company_currency_id != payment_currency:
-                    total += inv.company_currency_id.with_context(date=self.payment_date).compute(inv.residual_company_signed, payment_currency)
-                else:
-                    total += inv.residual_company_signed
+        total = 0
+        for inv in invoice_ids:
+            if inv.currency_id == payment_currency:
+                total += inv.residual_company_signed
+            else:
+                total += inv.company_currency_id.with_context(date=self.payment_date).compute(
+                    inv.residual_company_signed, payment_currency)
         return abs(total)
 
 
