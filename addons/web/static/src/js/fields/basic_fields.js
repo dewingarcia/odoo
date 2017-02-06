@@ -1567,6 +1567,7 @@ var FieldDomain = AbstractField.extend({
     isValid: function () {
         return (
             this._super.apply(this, arguments)
+            && (!this.domainSelector || this.domainSelector.isValid())
             && this._isValidForModel
         );
     },
