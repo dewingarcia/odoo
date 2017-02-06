@@ -28,10 +28,10 @@
                     <field name="product_packaging" context="{'default_product_tmpl_id': product_tmpl_id, 'partner_id':parent.partner_id, 'quantity':product_uom_qty, 'pricelist':parent.pricelist_id, 'uom':product_uom, 'company_id': parent.company_id}" domain="[('product_tmpl_id','=',product_tmpl_id)]" groups="product.group_stock_packaging" />
                 </xpath>
                 <xpath expr="//field[@name='order_line']/form/group/group/field[@name='price_unit']" position="before">
-                    <field name="route_id" groups="sale_stock.group_route_so_lines"/>
+                    <field name="route_id" groups="sale_stock.group_route_so_lines" options="{'no_create': True}"/>
                 </xpath>
                 <xpath expr="//field[@name='order_line']/tree/field[@name='price_unit']" position="before">
-                    <field name="route_id" groups="sale_stock.group_route_so_lines"/>
+                    <field name="route_id" groups="sale_stock.group_route_so_lines" options="{'no_create': True}"/>
                 </xpath>
            </field>
         </record>
@@ -42,7 +42,7 @@
             <field name="model">sale.order.line</field>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='price_subtotal']" position="before">
-                    <field name="route_id" groups="sale_stock.group_route_so_lines"/>
+                    <field name="route_id" groups="sale_stock.group_route_so_lines" options="{'no_create': True}"/>
                 </xpath>
             </field>
         </record>
