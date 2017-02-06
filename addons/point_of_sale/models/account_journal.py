@@ -7,7 +7,7 @@ from odoo import fields, models, api
 class AccountJournal(models.Model):
     _inherit = 'account.journal'
 
-    journal_user = fields.Boolean('Active in Point of Sale',
+    journal_user = fields.Boolean('Use in Point of Sale',
         help="Check this box if this journal define a payment method that can be used in a point of sale.")
     amount_authorized_diff = fields.Float('Amount Authorized Difference',
         help="This field depicts the maximum difference allowed between the ending balance and the theoretical cash when "

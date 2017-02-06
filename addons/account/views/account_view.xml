@@ -294,17 +294,6 @@
                                     </group>
                                 </group>
                             </page>
-                            <page name="bank_account" string="Bank Account" attrs="{'invisible': [('type', '!=', 'bank')]}">
-                                <group>
-                                    <group>
-                                        <field name="bank_acc_number"/>
-                                        <field name="bank_id"/>
-                                    </group>
-                                    <group >
-                                        <field name="bank_statements_source" widget="radio" attrs="{'required': [('type', '=', 'bank')]}"/>
-                                    </group>
-                                </group>
-                            </page>
                         </notebook>
                     </sheet>
                 </form>
@@ -332,15 +321,29 @@
                     <sheet>
                         <field name="type" invisible="1"/>
                         <div class="oe_title">
-                            <label for="bank_acc_number" required="1" class="oe_edit_only"/>
+                            <label for="bank_acc_number"/>
                             <h1><field name="bank_acc_number" required="1"/></h1>
                         </div>
-                        <group col="4">
-                            <field name="bank_id"/>
-                            <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
-                            <field name="currency_id" options="{'no_create': True}" groups="base.group_multi_currency"/>
-                            <field name="inbound_payment_method_ids" widget="many2many_checkboxes"/>
-                            <field name="outbound_payment_method_ids" widget="many2many_checkboxes"/>
+                        <group>
+                            <group>
+                                <field name="bank_id"/>
+                                <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                                <field name="currency_id" options="{'no_create': True}" groups="base.group_multi_currency"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group string="Receivables">
+                                <field name="inbound_payment_method_ids" widget="many2many_checkboxes"/>
+                            </group>
+                            <group string="Payables">
+                                <field name="outbound_payment_method_ids" widget="many2many_checkboxes"/>
+                            </group>
+                            <group name="bank_statement" string="Bank Statements">
+                                <label for="bank_statements_source"/>
+                                <div name="bank_source">
+                                    <field name="bank_statements_source" widget="radio" attrs="{'required': [('type', '=', 'bank')]}"/>
+                                </div>
+                            </group>
                         </group>
                     </sheet>
                 </form>

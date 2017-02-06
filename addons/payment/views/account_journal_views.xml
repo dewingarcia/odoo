@@ -6,7 +6,7 @@
         <field name="model">account.journal</field>
         <field name="inherit_id" ref="account.view_account_bank_journal_form"/>
         <field name="arch" type="xml">
-            <xpath expr='//field[@name="bank_id"]' position="after">
+            <xpath expr='//field[@name="currency_id"]' position="after">
                 <field name="use_in_payment"/>
             </xpath>
         </field>
