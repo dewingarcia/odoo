@@ -144,8 +144,13 @@ class ReturnPicking(models.TransientModel):
 
     @api.multi
     def create_returns(self):
+        purchase = self.env['purchase.order']
+        picking = self.env['stock.picking']
         for wizard in self:
             new_picking_id, pick_type_id = wizard._create_returns()
+            # show all shipment
+            group_id = picking.browse(new_picking_id).group_id.id
+            purchase.search([('group_id', '=', group_id)])._compute_picking()
         # Override the context to disable all the potential filters that could have been set previously
         ctx = dict(self.env.context)
         ctx.update({
