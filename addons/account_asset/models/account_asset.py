@@ -304,7 +304,7 @@ class AccountAssetAsset(models.Model):
                 depreciation_date = depreciation_date + relativedelta(months=+self.method_period)
 
                 # datetime doesn't take into account that the number of days is not the same for each month
-                if self.date_first_depreciation == 'last_day_period':
+                if not self.prorata and self.date_first_depreciation == 'last_day_period':
                     max_day_in_month = calendar.monthrange(depreciation_date.year, depreciation_date.month)[1]
                     depreciation_date = depreciation_date.replace(day=max_day_in_month)
 
