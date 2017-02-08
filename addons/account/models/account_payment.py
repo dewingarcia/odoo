@@ -161,11 +161,18 @@ class account_register_payments(models.TransientModel):
 
         :return: Payment values as a dict.
         '''
-        invoice_ids = self._context.get('invoice_ids') or self.invoice_ids
-        amount = self._context.get('amount') or self._compute_payment_amount(invoice_ids)
-        payment_type = amount > 0 and 'inbound' or 'outbound'
-        partner_id = invoice_ids[0].commercial_partner_id.id
-        partner_type = MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
+        if self.multi:
+            invoice_ids = self._context.get('invoice_ids') or self.invoice_ids
+            amount = self._compute_payment_amount(invoice_ids)
+            payment_type = 'inbound' if amount > 0 else 'outbound'
+            partner_id = invoice_ids[0].commercial_partner_id
+            partner_type = MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
+        else:
+            invoice_ids = self.invoice_ids
+            amount = self.amount
+            payment_type = self.payment_type
+            partner_id = self.partner_id
+            partner_type = self.partner_type
         return {
             'journal_id': self.journal_id.id,
             'payment_method_id': self.payment_method_id.id,
@@ -175,7 +182,7 @@ class account_register_payments(models.TransientModel):
             'payment_type': payment_type,
             'amount': abs(amount),
             'currency_id': self.currency_id.id,
-            'partner_id': partner_id,
+            'partner_id': partner_id.id,
             'partner_type': partner_type,
         }
 
@@ -205,8 +212,9 @@ class account_register_payments(models.TransientModel):
         # Create payments
         for p_invoice_ids in values.values():
             for t_invoice_ids in p_invoice_ids.values():
-                amount = None if self.multi else self.amount
-                ctx = dict(self._context, invoice_ids=t_invoice_ids, amount=amount)
+                ctx = self._context
+                if self.multi:
+                    ctx = dict(ctx, invoice_ids=t_invoice_ids)
                 payment_vals = self.with_context(ctx).get_payment_vals()
                 payment_id = self.env['account.payment'].create(payment_vals)
                 payment_ids.append(payment_id.id)
