@@ -863,7 +863,7 @@ class AccountMoveLine(models.Model):
             all_accounts.append(line.account_id)
             if (line.account_id.internal_type in ('receivable', 'payable')):
                 partners.add(line.partner_id.id)
-            if line.reconciled:
+            if line.full_reconcile_id or (not self._context.get('skip_full_reconcile_check') and line.reconciled):
                 raise UserError(_('You are trying to reconcile some entries that are already reconciled!'))
         if len(company_ids) > 1:
             raise UserError(_('To reconcile the entries company should be the same for all entries!'))
