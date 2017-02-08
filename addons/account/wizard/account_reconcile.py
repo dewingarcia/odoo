@@ -131,5 +131,7 @@ class AccountMoveLineReconcileWriteoff(models.TransientModel):
         move_lines_filtered = move_lines.filtered(lambda aml: not aml.reconciled)
         if move_lines_filtered:
             move_lines_filtered.with_context(skip_full_reconcile_check='amount_currency_only', manual_full_reconcile_currency=currency).reconcile()
-        (move_lines + writeoff).compute_full_after_batch_reconcile()
+        if not isinstance(writeoff, bool):
+            move_lines += writeoff
+        move_lines.compute_full_after_batch_reconcile()
         return {'type': 'ir.actions.act_window_close'}
