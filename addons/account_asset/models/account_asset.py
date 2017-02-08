@@ -217,31 +217,30 @@ class AccountAssetAsset(models.Model):
     @api.model
     def _compute_depreciation_date_purchase_date(self):
         '''Compute the first depreciation date using the purchase date.
+        The date will be the purchase_date, incremented by the method_period and set to the first day of the month.
 
         :return: first depreciation date
         '''
         self.ensure_one()
-        if self.method_period >= 12:
-            return datetime.strptime(self.date[:4] + '-01-01', DF).date()
-        else:
-            return datetime.strptime(self.date[:7] + '-01', DF).date()
+        asset_date = datetime.strptime(self.date[:7] + '-01', DF).date()
+        return asset_date + relativedelta(months=+self.method_period)
 
     @api.model
     def _compute_depreciation_date_last_day_period(self):
         '''Compute the first depreciation date as last day of the period.
+        The date will be the purchase_date, incremented by the method_period and set to the last day of the month.
 
         :return: first depreciation date
         '''
         self.ensure_one()
-        asset_date = datetime.strptime(self.date, DF).date()
-        # the period's number of the asset_date
-        period_number = math.ceil(float(asset_date.month) / self.method_period)
-        period_month = int(min(12, period_number * self.method_period))
-        return asset_date.replace(month=period_month, day=calendar.monthrange(asset_date.year, period_month)[1])
+        asset_date = datetime.strptime(self.date, DF).date() + relativedelta(months=+self.method_period)
+        days_in_month = calendar.monthrange(asset_date.year, asset_date.month)[1]
+        return asset_date.replace(day=days_in_month)
 
     @api.model
     def _compute_depreciation_date_manual(self):
         '''Compute the first depreciation date using the manual_date_first_depreciation field.
+        The date is set manually using the manual_date_first_depreciation field.
 
         :return: first depreciation date
         '''
