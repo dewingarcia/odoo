@@ -235,12 +235,13 @@ class account_payment(models.Model):
     @api.one
     @api.depends('invoice_ids', 'amount', 'payment_date', 'currency_id')
     def _compute_payment_difference(self):
-        if len(self.invoice_ids) == 0:
+        invoice_ids = self.invoice_ids
+        if len(invoice_ids) == 0:
             return
-        if self.invoice_ids[0].type in ['in_invoice', 'out_refund']:
-            self.payment_difference = self.amount - self._compute_total_invoices_amount()
+        if invoice_ids[0].type in ['in_invoice', 'out_refund']:
+            self.payment_difference = self.amount - self._compute_total_invoices_amount(invoice_ids)
         else:
-            self.payment_difference = self._compute_total_invoices_amount() - self.amount
+            self.payment_difference = self._compute_total_invoices_amount(invoice_ids) - self.amount
 
     company_id = fields.Many2one(store=True)
 
@@ -453,7 +454,7 @@ class account_payment(models.Model):
             # the writeoff debit and credit must be computed from the invoice residual in company currency
             # minus the payment amount in company currency, and not from the payment difference in the payment currency
             # to avoid loss of precision during the currency rate computations. See revision 20935462a0cabeb45480ce70114ff2f4e91eaf79 for a detailed example.
-            total_residual_company_signed = self._compute_total_invoices_amount()
+            total_residual_company_signed = self._compute_total_invoices_amount(self.invoice_ids)
             total_payment_company_signed = self.currency_id.with_context(date=self.payment_date).compute(self.amount, self.company_id.currency_id)
             if self.invoice_ids[0].type in ['in_invoice', 'out_refund']:
                 amount_wo = total_payment_company_signed - total_residual_company_signed
