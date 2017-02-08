@@ -87,6 +87,19 @@ class IrSequence(models.Model):
         for seq in self:
             seq.write({'number_next': seq.number_next_actual or 0})
 
+    @api.model
+    def get_current_sequence(self):
+        '''Return the current sequence
+
+        :return: an ir.sequence if use_date_range is not checked or an ir.sequence.date_range.
+        '''
+        if not self.use_date_range:
+            return self
+        now = datetime.now(pytz.timezone(self._context.get('tz') or 'UTC'))
+        seq_date = self.env['ir.sequence.date_range'].search(
+            [('sequence_id', '=', self.id), ('date_from', '<=', now), ('date_to', '>=', now)], limit=1)
+        return seq_date and seq_date[0] or self
+
     name = fields.Char(required=True)
     code = fields.Char(string='Sequence Code')
     implementation = fields.Selection([('standard', 'Standard'), ('no_gap', 'No gap')],

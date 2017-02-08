@@ -217,6 +217,13 @@ class AccountJournal(models.Model):
     refund_sequence_id = fields.Many2one('ir.sequence', string='Refund Entry Sequence',
         help="This field contains the information related to the numbering of the refund entries of this journal.", copy=False)
     sequence = fields.Integer(help='Used to order Journals in the dashboard view', default=10)
+    sequence_show_number_next = fields.Boolean(string='Show Next Sequence Number', readonly=True,
+        help='Should the Next Sequence Number be editable by the user',
+        compute='_compute_sequence_show_number_next')
+    sequence_number_next = fields.Integer(string='Next Sequence Number',
+        help='The next sequence number will be used for the next invoice.',
+        compute='_compute_sequence_number_next',
+        inverse='_inverse_sequence_number_next')
 
     #groups_id = fields.Many2many('res.groups', 'account_journal_group_rel', 'journal_id', 'group_id', string='Groups')
     currency_id = fields.Many2one('res.currency', help='The currency used to enter statement', string="Currency", oldname='currency')
@@ -249,6 +256,37 @@ class AccountJournal(models.Model):
     _sql_constraints = [
         ('code_company_uniq', 'unique (code, name, company_id)', 'The code and name of the journal must be unique per company !'),
     ]
+
+    @api.multi
+    @api.depends('sequence_id.use_date_range', 'sequence_id.implementation', 'sequence_id.date_range_ids')
+    def _compute_sequence_show_number_next(self):
+        '''Compute 'sequence_show_number_next' if the next number can be changed by the user.'''
+        for journal in self:
+            sequence = journal.sequence_id.get_current_sequence()
+            # May return ir.sequence or ir.sequence.date_range
+            if hasattr(sequence, 'implementation') and sequence.implementation == 'no_gap':
+                journal.sequence_show_number_next = False
+            else:
+                journal.sequence_show_number_next = True
+
+    @api.multi
+    @api.depends('sequence_id.use_date_range', 'sequence_id.implementation', 'sequence_id.date_range_ids',
+                 'sequence_id.date_range_ids.number_next_actual', 'sequence_id.number_next_actual')
+    def _compute_sequence_number_next(self):
+        '''Compute 'sequence_number_next' according to the current sequence in use,
+        an ir.sequence or an ir.sequence.date_range.
+        '''
+        for journal in self:
+            sequence = journal.sequence_id.get_current_sequence()
+            journal.sequence_number_next = sequence.number_next_actual
+
+    @api.multi
+    def _inverse_sequence_number_next(self):
+        '''Inverse 'sequence_number_next' to edit the current sequence next number.
+        '''
+        for journal in self:
+            sequence = journal.sequence_id.get_current_sequence()
+            sequence.number_next = journal.sequence_number_next
 
     @api.one
     @api.constrains('currency_id', 'default_credit_account_id', 'default_debit_account_id')
