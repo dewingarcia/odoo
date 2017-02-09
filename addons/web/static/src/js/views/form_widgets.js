@@ -897,6 +897,10 @@ var TimezoneMismatch = FieldSelection.extend({
             this.set({"tz_offset": this.field_manager.get_field_value(this.tz_offset_field)});
         });
     },
+    get_browser_tz: function(){
+        var tz = jstz.determine();
+        return tz.name();
+    },
     check_timezone: function() {
         var user_offset = this.get('tz_offset');
         if (user_offset) {
@@ -908,15 +912,33 @@ var TimezoneMismatch = FieldSelection.extend({
         }
         return false;
     },
+    set_value: function(value_){
+        if (value_ === 'get_browser_tz'){
+            value_ = this.get_browser_tz();
+        }
+        this._super(value_);
+    },
     render_value: function() {
+        var self = this;
         this._super.apply(this, arguments);
         this.$label.next('.o_tz_warning').remove();
         if(this.check_timezone()){
+            var title = _.str.sprintf("<div>%s</div><b>%s</b>",
+                _t("Timezone Mismatch : The timezone of your browser doesn't match the selected one. The time in Odoo is displayed according to your field timezone."),
+                _t("Click icon to set your browser timezone"));
             var options = _.extend({
                 delay: { show: 501, hide: 0 },
-                title: _t("Timezone Mismatch : The timezone of your browser doesn't match the selected one. The time in Odoo is displayed according to your field timezone."),
+                title: title,
             });
-            $('<span/>').addClass('fa fa-exclamation-triangle o_tz_warning').insertAfter(this.$label).tooltip(options);
+            var $warning = $('<span/>')
+            .addClass('fa fa-exclamation-triangle o_tz_warning')
+            .insertAfter(this.$label)
+            .tooltip(options);
+            if (!this.get("effective_readonly")) {
+                $warning.on('click', function(){
+                    self.set_value('get_browser_tz');
+                });
+            }
         }
     }
 });
