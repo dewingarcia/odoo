@@ -1837,4 +1837,21 @@
           </div>
         </t>
     </template>
+
+    <!-- When open cart from aboundant email template and already exiting diffrent cart then link in session, Ask for replce/merge the exiting cart with the new cart -->
+    <template id="aboundand_cart_restore" inherit_id="website_sale.cart" name="aboundand cart restore">
+        <xpath expr="//t[@t-call='website_sale.cart_lines']" position="before">
+            <div class="row">
+                <div t-if="proceed" class="mt8 bg-danger" style="padding: 15px;">
+                    <p>Your Previous Cart has been completed.</p>
+                    <p t-if="website_sale_order">Please proceed your current cart.</p>
+                </div>
+                <div t-if="token" class="mt8 bg-danger" style="padding: 15px;">
+                    <p>This is your Current cart.</p>
+                    <p><a t-attf-href="/shop/cart/#{token}?new=true">Click Here</a> if you want to restore your previous cart. Your Current cart will be replace with your previous cart.</p>
+                    <p><a t-attf-href="/shop/cart/#{token}?merge=true">Click Here</a> if you want to merge your previous cart into current cart.</p>
+                </div>
+            </div>
+        </xpath>
+    </template>
 </odoo>

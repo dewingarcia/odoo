@@ -5,3 +5,4 @@ import sale_order
 import crm_team
 import res_config
 import website
+import mail_compose_message
