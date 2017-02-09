@@ -263,9 +263,11 @@ options.registry["margin-x"] = options.registry.marginAndResize.extend({
 
         return this.grid;
     },
-    on_clone: function ($clone) {
-        var _class = $clone.attr("class").replace(/\s*(col-lg-offset-|col-md-offset-)([0-9-]+)/g, '');
-        $clone.attr("class", _class);
+    on_clone: function ($clone, auxiliary_options) {
+        if (auxiliary_options.is_current){
+            var _class = $clone.attr("class").replace(/\s*(col-lg-offset-|col-md-offset-)([0-9-]+)/g, '');
+            $clone.attr("class", _class);
+        }
         return false;
     },
     on_resize: function (compass, beginClass, current) {

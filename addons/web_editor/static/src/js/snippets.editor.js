@@ -994,7 +994,13 @@ data.Editor = Class.extend({
         this.$target.after($clone);
         this.buildingBlock.call_for_all_snippets($clone, function (editor, $snippet) {
             for (var i in editor.styles) {
-                editor.styles[i].on_clone($snippet);
+                var auxiliary_options = {'is_current': false};
+                // Below condition is added to remove offset of target element only
+                // and not its children to avoid design alteration of a container / block.
+                if ($snippet.is($clone)){
+                    auxiliary_options = {'is_current': true};
+                }
+                editor.styles[i].on_clone($snippet, auxiliary_options);
             }
         });
         return false;
