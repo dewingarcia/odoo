@@ -60,7 +60,6 @@ Dashboard / Reports for Inventory Management will include:
         'report/report_deliveryslip.xml',
         'report/report_stockinventory.xml',
 
-        'wizard/stock_change_product_qty_views.xml',
         'wizard/stock_picking_return_views.xml',
         'wizard/make_procurement_views.xml',
         'wizard/procurement_orderpoint_compute_views.xml',

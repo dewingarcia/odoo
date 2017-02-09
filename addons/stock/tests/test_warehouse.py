@@ -7,13 +7,7 @@ class TestInventory(TestStockCommon):
 
     def test_inventory_product(self):
         # TDE NOTE: replaces test/inventory.yml present until saas-10
-        inventory = self.env['stock.inventory'].sudo(self.user_stock_manager).create({
-            'name': 'Starting for product_1',
-            'filter': 'product',
-            'location_id': self.warehouse_1.lot_stock_id.id,
-            'product_id': self.product_1.id,
-        })
-        inventory.prepare_inventory()
+        inventory = self._create_inventory(location_id=self.warehouse_1.lot_stock_id.id, product_id=self.product_1.id)
 
         # As done in common.py, there is already an inventory line existing
         self.assertEqual(len(inventory.line_ids), 1)
