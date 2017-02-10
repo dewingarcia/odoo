@@ -580,7 +580,7 @@ odoo.define('web_editor.snippets.options', function (require) {
                         .on("background-color-event.background-option", (function (e, type) {
                             e.stopPropagation();
                             if (e.currentTarget !== e.target) return;
-                            this.$el.find("li:first > a").trigger(type);
+                            this.$el.find("li[data-background=''] > a").trigger(type);
                         }).bind(this));
             return res;
         },
