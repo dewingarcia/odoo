@@ -758,8 +758,13 @@ eventHandler.attach = function (oLayoutInfo, options) {
      * Open Link Dialog on double click on a link/button.
      * Shows a tooltip on click to say to the user he can double click.
      */
-    create_dblclick_feature("a[href], .btn", function () {
-        eventHandler.modules.linkDialog.show(oLayoutInfo);
+    create_dblclick_feature("a[href], .btn", function (e) {
+        var link_dialog = _.some(['media_iframe_video', 'fa', 'o_image', 'media_iframe_video'], function(has_class) {
+            return $(e.target).hasClass(has_class);
+        });
+        if(!(link_dialog || e.target.tagName == "IMG")){
+            eventHandler.modules.linkDialog.show(oLayoutInfo);
+        }
     });
 
     if(oLayoutInfo.editor().is('[data-oe-model][data-oe-type="image"]')) {
@@ -835,7 +840,7 @@ eventHandler.attach = function (oLayoutInfo, options) {
         oLayoutInfo.editor().on("dblclick", selector, function (e) {
             if ($(e.target).closest(".note-toolbar").length) return; // prevent icon edition of top bar for default summernote
             show_tooltip = false;
-            callback();
+            callback(e);
         });
 
         oLayoutInfo.editor().on("click", selector, function (e) {
