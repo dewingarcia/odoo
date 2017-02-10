@@ -1052,6 +1052,7 @@ var LinkDialog = Dialog.extend({
         this.bind_data();
         this.$('input.url-source:eq(1)').closest('.list-group-item').addClass('active');
         this.$('#o_link_dialog_label_input').focus();
+        this.$('input.window-new').closest("div").show();
         return this._super.apply(this, arguments);
     },
     get_data: function (test) {
@@ -1152,7 +1153,7 @@ var LinkDialog = Dialog.extend({
     },
     onkeyup: function (e) {
         var $e = $(e.target);
-        var is_link = ($e.val()||'').length && $e.val().indexOf("@") === -1;
+        var is_link = ($e.val()||'').length >= 0 && $e.val().indexOf("@") === -1;
         this.$('input.window-new').closest("div").toggle(is_link);
         this.preview();
     },
