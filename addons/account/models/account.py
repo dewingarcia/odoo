@@ -258,19 +258,19 @@ class AccountJournal(models.Model):
     ]
 
     @api.multi
-    @api.depends('sequence_id.use_date_range', 'sequence_id.implementation', 'sequence_id.date_range_ids')
+    @api.depends('sequence_id', 'sequence_id.use_date_range', 'sequence_id.implementation', 'sequence_id.date_range_ids')
     def _compute_sequence_show_number_next(self):
         '''Compute 'sequence_show_number_next' if the next number can be changed by the user.'''
         for journal in self:
             sequence = journal.sequence_id.get_current_sequence()
             # May return ir.sequence or ir.sequence.date_range
-            if hasattr(sequence, 'implementation') and sequence.implementation == 'no_gap':
+            if not sequence or hasattr(sequence, 'implementation') and sequence.implementation == 'no_gap':
                 journal.sequence_show_number_next = False
             else:
                 journal.sequence_show_number_next = True
 
     @api.multi
-    @api.depends('sequence_id.use_date_range', 'sequence_id.implementation', 'sequence_id.date_range_ids',
+    @api.depends('sequence_id', 'sequence_id.use_date_range', 'sequence_id.implementation', 'sequence_id.date_range_ids',
                  'sequence_id.date_range_ids.number_next_actual', 'sequence_id.number_next_actual')
     def _compute_sequence_number_next(self):
         '''Compute 'sequence_number_next' according to the current sequence in use,
@@ -285,8 +285,9 @@ class AccountJournal(models.Model):
         '''Inverse 'sequence_number_next' to edit the current sequence next number.
         '''
         for journal in self:
-            sequence = journal.sequence_id.get_current_sequence()
-            sequence.number_next = journal.sequence_number_next
+            if journal.sequence_number_next:
+                sequence = journal.sequence_id.get_current_sequence()
+                sequence.number_next = journal.sequence_number_next
 
     @api.one
     @api.constrains('currency_id', 'default_credit_account_id', 'default_debit_account_id')

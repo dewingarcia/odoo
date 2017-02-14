@@ -222,6 +222,7 @@ class IrSequence(models.Model):
             'date_from': date_from,
             'date_to': date_to,
             'sequence_id': self.id,
+            'number_next_actual': self.number_next,
         })
         return seq_date_range
 
