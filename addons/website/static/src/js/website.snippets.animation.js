@@ -328,7 +328,7 @@ animation.registry.parallax = animation.Class.extend({
         if (!this.$bg || !this.$bg.length) {
             this.$bg = this.$("> .s_parallax_bg");
             if (!this.$bg.length) {
-                this.$bg = $("<span/>", {"class": "s_parallax_bg"}).prependTo(this.$target);
+                this.$bg = $("<span/>", {"class": this.$target.hasClass('oe_custom_bg') ? "s_parallax_bg oe_custom_bg" : "s_parallax_bg"}).prependTo(this.$target);
             }
         }
         var urlTarget = this.$target.css("background-image");
