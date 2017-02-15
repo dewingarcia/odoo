@@ -10,6 +10,7 @@ var dom_utils = require('web.dom_utils');
 var Model = require('web.Model');
 var session = require('web.session');
 var Widget = require('web.Widget');
+var document_viewer = require('mail.attachment.popup');
 
 var QWeb = core.qweb;
 var _t = core._t;
@@ -356,6 +357,11 @@ var BasicComposer = Widget.extend({
         "click .o_composer_button_send": "send_message",
         "click .o_composer_button_add_attachment": "on_click_add_attachment",
         "click .o_attachment_delete": "on_attachment_delete",
+        "click .o_attachment_popup": function(event) {
+            event.preventDefault();
+            var attachment_id = $(event.target).data('id');
+            this.document_viewer.on_attachment_popup(attachment_id);
+        },
     },
 
     init: function (parent, options) {
@@ -661,6 +667,7 @@ var BasicComposer = Widget.extend({
         this.$attachments_list.html(QWeb.render('mail.ChatComposer.Attachments', {
             attachments: this.get('attachment_ids'),
         }));
+        this.document_viewer = new document_viewer(this);
     },
 
     // Mention
