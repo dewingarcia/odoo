@@ -96,9 +96,9 @@ class CrmTeam(models.Model):
 
     def _graph_title_and_key(self):
         if self.dashboard_graph_model == 'sales':
-            return ['', _('Untaxed Total')] # no more title
+            return ['', _('Sales: Untaxed Total')] # no more title
         elif self.dashboard_graph_model == 'invoices':
-            return ['', _('Untaxed Total')]
+            return ['', _('Invoices: Untaxed Total')]
         return super(CrmTeam, self)._graph_title_and_key()
 
     def _compute_dashboard_button_name(self):
