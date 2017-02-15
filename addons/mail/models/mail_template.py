@@ -161,9 +161,9 @@ class MailTemplate(models.Model):
     report_template = fields.Many2one('ir.actions.report.xml', 'Optional report to print and attach')
     ref_ir_act_window = fields.Many2one('ir.actions.act_window', 'Sidebar action', readonly=True, copy=False,
                                         help="Sidebar action to make this template available on records "
-                                             "of the related document model")
+                                             "of the related document model", groups="base.group_system")
     ref_ir_value = fields.Many2one('ir.values', 'Sidebar Button', readonly=True, copy=False,
-                                   help="Sidebar button to open the sidebar action")
+                                   help="Sidebar button to open the sidebar action", groups="base.group_system")
     attachment_ids = fields.Many2many('ir.attachment', 'email_template_attachment_rel', 'email_template_id',
                                       'attachment_id', 'Attachments',
                                       help="You may attach files to this template, to be added to all "
