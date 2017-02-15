@@ -650,7 +650,7 @@ var ChatAction = Widget.extend(ControlPanelMixin, {
     },
 
     on_click_button_invite: function () {
-        var title = _.str.sprintf(_t('Invite people to #%s'), this.channel.name);
+        var title = _.str.sprintf(_t('Invite people to #%s'), _.str.escapeHTML(this.channel.name));
         new PartnerInviteDialog(this, title, this.channel.id).open();
     },
 

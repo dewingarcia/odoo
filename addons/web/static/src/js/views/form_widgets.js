@@ -1192,10 +1192,11 @@ var FieldBinaryFile = FieldBinary.extend({
         if (this.get("effective_readonly")) {
             this.do_toggle(!!this.get('value'));
             if (this.get('value')) {
-                this.$el.empty().append($("<span/>").addClass('fa fa-download'));
+                var $label = $('<span/>').addClass('fa fa-download')
                 if (filename) {
-                    this.$el.append(" " + filename);
+                    $label.text(" " + filename);
                 }
+                this.$el.empty().append($label);
             }
         } else {
             if(this.get('value')) {
