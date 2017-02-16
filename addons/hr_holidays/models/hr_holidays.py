@@ -453,25 +453,7 @@ class Holidays(models.Model):
             else:
                 holiday.write({'first_approver_id': current_employee.id})
             if holiday.holiday_type == 'employee' and holiday.type == 'remove':
-                meeting_values = {
-                    'name': holiday.display_name,
-                    'categ_ids': [(6, 0, [holiday.holiday_status_id.categ_id.id])] if holiday.holiday_status_id.categ_id else [],
-                    'duration': holiday.number_of_days_temp * HOURS_PER_DAY,
-                    'description': holiday.notes,
-                    'user_id': holiday.user_id.id,
-                    'start': holiday.date_from,
-                    'stop': holiday.date_to,
-                    'allday': False,
-                    'state': 'open',            # to block that meeting date in the calendar
-                    'privacy': 'confidential'
-                }
-                #Add the partner_id (if exist) as an attendee
-                if holiday.user_id and holiday.user_id.partner_id:
-                    meeting_values['partner_ids'] = [(4, holiday.user_id.partner_id.id)]
-
-                meeting = self.env['calendar.event'].with_context(no_mail_to_attendees=True).create(meeting_values)
-                holiday._create_resource_leave()
-                holiday.write({'meeting_id': meeting.id})
+                holiday._validate_leave_request()
             elif holiday.holiday_type == 'category':
                 leaves = self.env['hr.holidays']
                 for employee in holiday.category_id.employee_ids:
@@ -493,6 +475,33 @@ class Holidays(models.Model):
                 if leaves and leaves[0].double_validation:
                     leaves.action_validate()
         return True
+
+    @api.multi
+    def _validate_leave_request(self):
+        """ Validate the leave request (should be apply only on holiday_type='employee'
+            and holiday.type='remove').
+            This will create a calendar event and a resource leaves.
+        """
+        for holiday in self:
+            meeting_values = {
+                'name': holiday.display_name,
+                'categ_ids': [(6, 0, [holiday.holiday_status_id.categ_id.id])] if holiday.holiday_status_id.categ_id else [],
+                'duration': holiday.number_of_days_temp * HOURS_PER_DAY,
+                'description': holiday.notes,
+                'user_id': holiday.user_id.id,
+                'start': holiday.date_from,
+                'stop': holiday.date_to,
+                'allday': False,
+                'state': 'open',            # to block that meeting date in the calendar
+                'privacy': 'confidential'
+            }
+            #Add the partner_id (if exist) as an attendee
+            if holiday.user_id and holiday.user_id.partner_id:
+                meeting_values['partner_ids'] = [(4, holiday.user_id.partner_id.id)]
+
+            meeting = self.env['calendar.event'].with_context(no_mail_to_attendees=True).create(meeting_values)
+            holiday.write({'meeting_id': meeting.id})
+            holiday._create_resource_leave()
 
     @api.multi
     def action_refuse(self):
