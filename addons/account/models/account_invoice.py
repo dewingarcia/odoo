@@ -1461,7 +1461,7 @@ class AccountPaymentTerm(models.Model):
                 # For example, if amt = 100.5, term = 50% and rounding = 1:
                 # amt: 50.25 and remaining_rounding: 51 - 50.25 = 0.75
                 # So, the customer will pay 51 and the remaining amount will be 100.5 - 51 = 49.5
-                if line.rounding_id:
+                if line.rounding_id and line.rounding_id.rounding > 0:
                     amt_rounded = line.rounding_id.round(amt)
                     rounding_balance = round((amt_rounded - amt), prec)
                 else:
