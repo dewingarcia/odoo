@@ -231,7 +231,7 @@
 </template>
 
 <template id="s_well" name="Well">
-    <div class="well s_well clearfix">
+    <div class="well s_well clearfix s_auto_height">
         <p>
             Explain the benefits you offer. Don't write about products or
             services here, write about solutions.
@@ -240,7 +240,7 @@
 </template>
 
 <template id="s_panel" name="Panel">
-    <div class="panel panel-default o_panel s_panel">
+    <div class="panel panel-default o_panel s_panel s_auto_height">
         <div class="panel-heading ">
             <h3 class="panel-title">Feature Title</h3>
         </div>
@@ -254,7 +254,7 @@
 </template>
 
 <template id="s_image_floating" name="Image Floating">
-    <div class="o_image_floating o_margin_l pull-right s_image_floating">
+    <div class="o_image_floating o_margin_l pull-right s_image_floating s_auto_height">
         <div class="o_container">
             <img class="img img-rounded img-responsive" src="/web/image/website.s_image_floating_default_image" alt="Odoo CMS- Sample image floating"/>
         </div>
@@ -265,7 +265,7 @@
 </template>
 
 <template id="s_share" name="Share">
-    <div class="oe_share s_share">
+    <div class="oe_share s_share s_auto_height">
         <h3>
             <span>Share</span>
             <a target="_Blank" class="oe_share_facebook" href="https://www.facebook.com/sharer/sharer.php?u={url}"><i class="fa fa-facebook-square"></i></a>
