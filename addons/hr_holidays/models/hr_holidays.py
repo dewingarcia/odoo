@@ -23,6 +23,7 @@ class HolidaysType(models.Model):
 
     _name = "hr.holidays.status"
     _description = "Leave Type"
+    _order = "expiration_date, id"
 
     name = fields.Char('Leave Type', required=True, translate=True)
     categ_id = fields.Many2one('calendar.event.type', string='Meeting Type',
@@ -49,9 +50,11 @@ class HolidaysType(models.Model):
         help='If you select this check box, the system allows the employees to take more leaves '
              'than the available ones for this type and will not take them into account for the '
              '"Remaining Legal Leaves" defined on the employee form.')
-    active = fields.Boolean('Active', default=True,
-        help="If the active field is set to false, it will allow you to hide the leave type without removing it.")
 
+    activation_date = fields.Date(string='Activation Date',
+        help="Optional, if set this leave type will be hidden until the activation date is reached.")
+    expiration_date = fields.Date(string='Expiration Date',
+        help="Optional, if set this leave type will be active until the expiration date is reached.")
     max_leaves = fields.Float(compute='_compute_leaves', string='Maximum Allowed',
         help='This value is given by the sum of all holidays requests with a positive value.')
     leaves_taken = fields.Float(compute='_compute_leaves', string='Leaves Already Taken',
@@ -174,12 +177,15 @@ class Holidays(models.Model):
     payslip_status = fields.Boolean('Reported in last payslips',
         help='Green this button when the leave has been taken into account in the payslip.')
     report_note = fields.Text('HR Comments')
-    user_id = fields.Many2one('res.users', string='User', related='employee_id.user_id', related_sudo=True, store=True, default=lambda self: self.env.uid, readonly=True)
+    user_id = fields.Many2one('res.users', string='User', related='employee_id.user_id', related_sudo=True, store=True, default=lambda self: self.env.uid, readonly=True) # why the fuck is there a default ?
     date_from = fields.Datetime('Start Date', readonly=True, index=True, copy=False,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, track_visibility='onchange')
     date_to = fields.Datetime('End Date', readonly=True, copy=False,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, track_visibility='onchange')
-    holiday_status_id = fields.Many2one("hr.holidays.status", string="Leave Type", required=True, readonly=True,
+    holiday_status_id = fields.Many2one(
+        "hr.holidays.status", string="Leave Type", required=True, readonly=True,
+        domain=lambda self: ['&', '|', ('activation_date', '<=', fields.Date.today()), ('activation_date', '=', False),
+                                  '|', ('expiration_date', '>=', fields.Date.today()), ('expiration_date', '=', False)], # would be even better to add virtual_remaining_leaves > 0 or limit=True but sadly it's computed
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     employee_id = fields.Many2one('hr.employee', string='Employee', index=True, readonly=True,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, default=_default_employee, track_visibility='onchange')
@@ -187,7 +193,7 @@ class Holidays(models.Model):
         help='This area is automatically filled by the user who validate the leave')
     notes = fields.Text('Reasons', readonly=True, states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     number_of_days_temp = fields.Float(
-        'Allocation', copy=False, readonly=True,
+        'Allocation', copy=False, readonly=True, # THIS NEEDS TO DO SOME ROUNDING OR WORK BETTER, I DON'T WANT TO HAVE .29999999999999 LEAVES LEFT !
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]},
         help='Number of days of the leave request according to your working schedule.')
     number_of_days = fields.Float('Number of Days', compute='_compute_number_of_days', store=True, track_visibility='onchange')
@@ -201,12 +207,15 @@ class Holidays(models.Model):
              "\nChoose 'Allocation Request' if you want to increase the number of leaves available for someone")
     parent_id = fields.Many2one('hr.holidays', string='Parent')
     linked_request_ids = fields.One2many('hr.holidays', 'parent_id', string='Linked Requests')
-    department_id = fields.Many2one('hr.department', related='employee_id.department_id', string='Department', readonly=True, store=True)
+    department_id = fields.Many2one(
+        'hr.department', string='Department', readonly=True,
+        states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     category_id = fields.Many2one('hr.employee.category', string='Employee Tag', readonly=True,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, help='Category of Employee')
     holiday_type = fields.Selection([
         ('employee', 'By Employee'),
-        ('category', 'By Employee Tag')
+        ('department', 'By Department'),
+        ('category', 'By Employee Tag'),
     ], string='Allocation Mode', readonly=True, required=True, default='employee',
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]},
         help='By Employee: Allocation/Request for individual Employee, By Employee Tag: Allocation/Request for group of employees in category')
@@ -270,13 +279,17 @@ class Holidays(models.Model):
     @api.onchange('holiday_type')
     def _onchange_type(self):
         if self.holiday_type == 'employee' and not self.employee_id:
-            self.employee_id = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
+            self.employee_id = self.env.user.employee_ids[0]
+        elif self.holiday_type == 'department':
+            self.employee_id = None
+            self.department_id = self.env.user.employee_ids[0].department_id
         elif self.holiday_type != 'employee':
             self.employee_id = None
 
     @api.onchange('employee_id')
     def _onchange_employee(self):
-        self.department_id = self.employee_id.department_id
+        if self.holiday_type != 'department':
+            self.department_id = self.employee_id.department_id
 
     def _get_number_of_days(self, date_from, date_to, employee_id):
         """ Returns a float equals to the timedelta between two dates given as string."""
@@ -320,6 +333,16 @@ class Holidays(models.Model):
             self.number_of_days_temp = self._get_number_of_days(date_from, date_to, self.employee_id.id)
         else:
             self.number_of_days_temp = 0
+
+    @api.constrains('date_from', 'date_to', 'holiday_status_id')
+    def _check_leave_dates(self):
+        if self.type == 'remove':
+            if self.holiday_status_id.expiration_date and self.holiday_status_id.expiration_date < self.date_to:
+                raise ValidationError(_('Leave Type expires before leave end date.'))
+            if self.holiday_status_id.activation_date and self.holiday_status_id.activation_date > self.date_from:
+                raise ValidationError(_('Leave Type activates after leave start date.'))
+
+
 
     ####################################################
     # ORM Overrides methods
@@ -474,9 +497,10 @@ class Holidays(models.Model):
                 meeting = self.env['calendar.event'].with_context(no_mail_to_attendees=True).create(meeting_values)
                 holiday._create_resource_leave()
                 holiday.write({'meeting_id': meeting.id})
-            elif holiday.holiday_type == 'category':
+            elif holiday.holiday_type in ['category', 'department']:
                 leaves = self.env['hr.holidays']
-                for employee in holiday.category_id.employee_ids:
+                employees = holiday.category_id.employee_ids if holiday.holiday_type == 'category' else holiday.department_id.member_ids
+                for employee in employees:
                     values = {
                         'name': holiday.name,
                         'type': holiday.type,

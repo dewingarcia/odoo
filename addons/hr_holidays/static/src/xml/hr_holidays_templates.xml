@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+    <!--
+        This template is the ribbon at the top of the Leaves dashboard that adds
+        some figures to it.
+    -->
+    <t t-name="hr_holidays.HrHolidaysDashboard">
+        <div t-if="data" class="o_hr_holidays_dashboard">
+            <table class="table table-condensed">
+                <tr><td style="width:180%">
+ <!-- THIS IS CSSSSSSSSSSSSSSSSSSSSSSSSSSSS !!!!!!!!!!!! -->
+                    <table class="table table-condensed">
+                        <tr>
+                            <td class="o_text">
+                                <span class="o_highlight">My Allocated Leaves</span>
+                            </td>
+                            <t t-foreach="data.allocated_leaves" t-as="leave_type">
+                                <td class="o_main">
+                                    <a class="o_dashboard_action o_main_button o_padding_small" name="hr_holidays.action_create_leave" t-att-data-context="'{&quot;default_holiday_status_id&quot;: ' + leave_type.id + '}'" title="New Leave Request">
+                                        <div class="o_leave_name">
+                                            <span><t t-esc="leave_type.virtual_remaining_leaves"/> <t t-esc="leave_type.name"/></span>
+                                        </div>
+                                        <div class="o_leave_expiration" t-if="leave_type.expiration_date">
+                                            <span><i>expiration date: <t t-esc="leave_type.expiration_date"/></i></span><!-- t-att-class green/orange/red relative to timedeltas -->
+                                        </div>
+                                        <div class="o_expiration_date_placeholder" t-else=""/>
+                                    </a>
+                                    <a class="fa fa-list fa-lg o_top_right o_padding_small o_dashboard_action" name="hr_holidays.action_hr_holidays_generic" t-att-data-context="'{&quot;search_default_holiday_status_id&quot;: ' + leave_type.id + ', &quot;search_default_my_leaves&quot;: 1}'" title="View Requests"/>
+                                    <a class="fa fa-plus fa-lg o_top_right_below o_padding_small o_dashboard_action" name="hr_holidays.action_create_allocation" t-att-data-context="'{&quot;default_holiday_status_id&quot;: ' + leave_type.id + '}'" title="Ask For More"/>
+                                </td>
+                            </t>
+                        </tr>
+                        <tr>
+                            <td class="o_text">
+                                <h3>Other Leaves</h3>
+                            </td>
+                            <t t-foreach="data.limitless_leaves" t-as="leave_type">
+                                <td class="o_main">
+                                    <a class="o_dashboard_action o_main_button o_padding_small" name="hr_holidays.action_create_leave" t-att-data-context="'{&quot;default_holiday_status_id&quot;: ' + leave_type.id + '}'" title="New Leave Request">
+                                        <div class="o_leave_name">
+                                            <span><t t-esc="leave_type.virtual_remaining_leaves"/> <t t-esc="leave_type.name"/></span> <!-- or X taken this year ? -->
+                                        </div>
+                                        <div class="o_expiration_date_placeholder"/>
+                                    </a>
+                                    <a class="fa fa-list fa-lg o_top_right o_padding_small o_dashboard_action" name="hr_holidays.action_hr_holidays_generic" t-att-data-context="'{&quot;search_default_holiday_status_id&quot;: ' + leave_type.id + ', &quot;search_default_my_leaves&quot;: 1}'" title="View Requests"/>
+                                </td>
+                            </t>
+                        </tr>
+                    </table>
+                </td>
+                <td class="o_secondary">
+                    <div class="o_dashboard_action" name="hr_holidays.open_company_allocation">
+                        <h1>Leaves Details</h1>
+                    </div>
+                </td></tr>
+            </table>
+        </div>
+    </t>
+</templates>

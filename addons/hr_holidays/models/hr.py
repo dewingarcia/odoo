@@ -20,6 +20,39 @@ class Department(models.Model):
         compute='_compute_leave_count', string='Allocation to Approve')
     total_employee = fields.Integer(
         compute='_compute_total_employee', string='Total Employee')
+    absent_employee_ids = fields.One2many(
+        'hr.employee', string='Absent Employees', compute='_compute_absent_employee_ids')
+    allocation_requests_count = fields.Integer(
+        string='Number of Allocations to Approve', compute='_compute_requests')
+    leave_requests_count = fields.Integer(
+        string='Number of Leaves to Approve', compute='_compute_requests')
+
+    @api.multi
+    def _compute_requests(self):
+        holidays_data = self.env['hr.holidays'].read_group(
+            domain=[('state', 'in', ['confirm', 'validate1'])],
+            fields=['department_id', 'type'],
+            groupby=['department_id', 'type'], lazy=False)
+        for datum in holidays_data:
+            if datum['department_id']:
+                if datum['type'] == 'add':
+                    self.browse(datum['department_id'][0]).allocation_requests_count = datum['__count']
+                else:
+                    self.browse(datum['department_id'][0]).leave_requests_count = datum['__count']
+
+    @api.multi
+    def _compute_absent_employee_ids(self):
+        # seems odd to take midnight in utc instead of midnight in user's tz ... but that's how it's done below
+        today_date = datetime.datetime.utcnow().date()
+        today_start = fields.Datetime.to_string(today_date)  # get the midnight of the current utc day
+        today_end = fields.Datetime.to_string(today_date + relativedelta(hours=23, minutes=59, seconds=59))
+        for department in self:
+            data = self.env['hr.holidays'].search_read(
+                [('department_id', '=', department.id), ('state', 'not in', ['cancel', 'refuse']),
+                 ('date_from', '<=', today_end), ('date_to', '>=', today_start), ('type', '=', 'remove')],
+                ['employee_id'])
+            ids = [d['employee_id'][0] for d in data]
+            department.absent_employee_ids = self.env['hr.employee'].browse(ids)
 
     @api.multi
     def _compute_leave_count(self):
@@ -56,6 +89,26 @@ class Department(models.Model):
         result = dict((data['department_id'][0], data['department_id_count']) for data in emp_data)
         for department in self:
             department.total_employee = result.get(department.id, 0)
+
+    @api.model
+    def retrieve_dashboard_data(self):
+        employee_id = self.env['hr.employee'].search([('user_id', '=', self._uid)], limit=1).id
+        leave_types_data = self.env['hr.holidays.status'].with_context(employee_id=employee_id).search_read(
+            domain=['|', ('activation_date', '<', fields.Datetime.now()), ('activation_date', '=', False)],
+            fields=['id', 'name', 'virtual_remaining_leaves', 'max_leaves', 'limit', 'expiration_date'],
+            order='expiration_date')
+        # double the work but half the code !
+        allocated_leaves = [d for d in leave_types_data if not d['limit'] and d['max_leaves'] > 0]
+        limitless_leaves = [d for d in leave_types_data if d['limit']]
+        pending_leaves_count = self.env['hr.holidays'].search_count([('employee_id', '=', employee_id), ('state', 'in', ['confirm', 'validate1']), ('type', '=', 'remove')])
+        pending_allocations_count = self.env['hr.holidays'].search_count([('employee_id', '=', employee_id), ('state', 'in', ['confirm', 'validate1']), ('type', '=', 'add')])
+        return {
+            # 'employee_id': employee_id,
+            'pending_leaves_count': pending_leaves_count,
+            'pending_allocations_count': pending_allocations_count,
+            'allocated_leaves': allocated_leaves,
+            'limitless_leaves': limitless_leaves,
+        }
 
 
 class Employee(models.Model):
