@@ -23,6 +23,14 @@ var PopupWidget = PosBaseWidget.extend({
         'click .selection-item': 'click_item',
         'click .input-button':   'click_numpad',
         'click .mode-button':    'click_numpad',
+        'keyup':                 '_onKeyup',
+    },
+
+    _onKeyup: function (event) {
+        if (event.which === $.ui.keyCode.ESCAPE) {
+            event.stopPropagation();
+            this.click_cancel();
+        }
     },
 
     // show the popup !  
@@ -131,6 +139,10 @@ gui.define_popup({name:'error-barcode', widget: ErrorBarcodePopupWidget});
 
 var ConfirmPopupWidget = PopupWidget.extend({
     template: 'ConfirmPopupWidget',
+    show: function(options) {
+        this._super(options);
+        this.$el.find('.popup-confirm').focus();
+    }
 });
 gui.define_popup({name:'confirm', widget: ConfirmPopupWidget});
 
@@ -278,6 +290,7 @@ var NumberPopupWidget = PopupWidget.extend({
         this.inputbuffer = '' + (options.value   || '');
         this.decimal_separator = _t.database.parameters.decimal_point;
         this.renderElement();
+        this.$el.find('.popup-input').focus();
         this.firstinput = true;
     },
     click_numpad: function(event){
