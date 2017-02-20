@@ -93,6 +93,8 @@ class PosConfig(models.Model):
         help='The point of sale will display this product category by default. If no category is specified, all available products will be shown')
     iface_display_categ_images = fields.Boolean(string='Display Category Pictures',
         help="The product categories will be displayed with pictures.")
+    price_control = fields.Boolean(string='Allow Price Modifications',
+        help="Allow user to change the price of product.")
     cash_control = fields.Boolean(string='Cash Control', help="Check the amount of the cashbox at opening and closing.")
     receipt_header = fields.Text(string='Receipt Header', help="A short text that will be inserted as a header in the printed receipt")
     receipt_footer = fields.Text(string='Receipt Footer', help="A short text that will be inserted as a footer in the printed receipt")
