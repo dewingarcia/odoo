@@ -22,23 +22,11 @@
             <field name="model_id" ref="gamification.model_gamification_challenge"/>
             <field name="body_html"><![CDATA[
 <table cellspacing="0" cellpadding="0" width="100%" style="font-family: 'Helvetica'; background-color: #EEE; border-collapse: collapse;">
-    <tr style="padding: 0;margin: 0;">
-        <td valign="top" align="center" style="padding: 0;margin: 0;">
-            <table cellspacing="0" cellpadding="0" width="600" style="margin: 10px auto 40px; width: 600px;">
+    <tr>
+        <td valign="top" align="center">
+            <table cellspacing="0" cellpadding="0" width="600" style="margin: 0 auto; width: 600px;">
                 <tr>
-                    <td valign="top" align="left" style="padding: 15px;">
-                        <img width="90" src="https://www.odoo.com/openerp_website/static/src/img/2016/logos/odoo_logo_small.png" style="width:80px;">
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 15px;">
-                        <p style="font-size:30px;font-weight:300;">${object.name}</p>
-                        <p>The following message contains the current progress for the challenge ${object.name}</p>
                     <td>
-                </tr>
-                <tr>
-                    <td style="padding: 15px;">
-
                         % if object.visibility_mode == 'personal':
                             <table cellspacing="0" cellpadding="0" width="100%" style="font-family: 'Helvetica'; background-color: #EEE;border:none;" border="0">
                                 <tr>
@@ -70,48 +58,167 @@
                             </table>
                         % else:
                             % for line in ctx["challenge_lines"]:
-                    
-                            <table cellspacing="0" cellpadding="0" width="100%" align="center" style="border-collapse: collapse;">
-                                <thead>
-                                    <tr>
-                                        <th colspan="4" style="padding:15px 0; color: #875a7b; text-align: left;"><h3>${line['name']}</h3></th>
-                                    </tr>
-                                    <tr style="text-align: left; color: #875a7b; font-size:12px;">
-                                        <th style="padding: 10px 0 10px 15px;">Rank</th>
-                                        <th>Person</th>
-                                        <th>Completeness</th>
-                                        <th style="padding-right: 15px;">Current</th>
-                                    </tr>
-                                    <!-- Imitating border-bottom -->
-                                    <tr>
-                                        <td colspan="4" style="height: 1px; background-color: #875a7b"></td>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    % for goal in line['goals']:
-                                        <tr style="padding: 0 15px; ${ loop.cycle('background-color:#e3e3e3;', '') }
-                                            % if goal.completeness >= 100: color:#875a7b; % endif ">
 
-                                            <td style="padding: 10px 0 10px 15px;">${goal['rank']}</td>
-                                            <td><img src="/web/image?model=res.users&field=image_small&id=${goal['user_id']}" style="margin:10px 0; border-radius: 50px; height:30px;"/></td>
-                                            <td style="font-size: 25px;">${goal['completeness']}%</td>
-                                            <td style="padding-right: 15px;">${goal['current']}/${line['target']}
-                                            % if line['suffix']:
-                                                ${line['suffix']}
-                                            % endif
-                                            </td>
+                                <!-- Header -->
 
-                                        </tr>
-                                    % endfor
-                                </tbody>
-                            </table>
-                
+                                <table cellspacing="0" cellpadding="0" width="100%">
+                                    <tr>
+                                        <td valign="middle" align="left" style="padding:15px">
+                                            <img width="90" src="https://www.odoo.com/openerp_website/static/src/img/2016/logos/odoo_logo_small.png" style="width:80px;">
+                                        </td>
+                                        <td style="padding:15px">
+                                            <p style="font-size:20px;color:#9E9E9E;" align="right">Leaderboard</p>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Header + Button table -->
+
+                                <table cellspacing="0" cellpadding="0" width="100%" bgcolor="#fff" style="background-color:#fff;">
+                                    <tr>
+                                        <td width="50%" style="padding: 15px;">
+                                            <p style="font-size:27px;color:#666666;">
+                                                Top Achievers
+                                            </p>
+                                        </td>
+                                        <td width="50%" align="right" style="padding: 15px;">
+                                            <div style="width:120px;background-color:#1CC5A9;color:#fff;text-align:center;padding:10px;">My Timesheets</div>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Podium -->
+
+                                <table cellspacing="0" cellpadding="0" width="100%" bgcolor="#fff" style="background-color:#fff;" style="padding: 0 15px;">
+                                    <tr>
+                                        <td style="padding:0 30px;">
+                                            <table cellspacing="0" cellpadding="0" width="100%">
+                                                <tr>
+                                                    % for goal in line['goals'][0:3]:
+                                                            <td width="32%" align="center">
+
+                                                                % if loop.index == 1:
+                                                                    <% set extra_div = '<div style="height:40px;"></div>' %>
+                                                                    <% set heightA = 95 %>
+                                                                    <% set heightB = 75 %>
+                                                                    <% set bgColor = '#b898b0' %>
+                                                                    <% set fontSize = 50 %>
+                                                                    <% set podiumPosition = '2' %>
+
+                                                                % elif loop.index == 2:
+                                                                    <% set extra_div = '' %>
+                                                                    <% set heightA = 55 %>
+                                                                    <% set heightB = 115 %>
+                                                                    <% set bgColor = '#9A6C8E' %>
+                                                                    <% set fontSize = 85 %>
+                                                                    <% set podiumPosition = '1' %>
+
+                                                                % elif loop.index == 3:
+                                                                    <% set extra_div = '<div style="height:60px;"></div>' %>
+                                                                    <% set heightA = 115 %>
+                                                                    <% set heightB = 55 %>
+                                                                    <% set bgColor = '#c8afc1' %>
+                                                                    <% set fontSize = 35 %>
+                                                                    <% set podiumPosition = '3' %>
+                                                                % endif
+
+                                                                <div style="margin:0 3px 0 3px;height:220px;">
+                                                                    <div style="height:${heightA}px;">
+                                                                        ${extra_div | safe}
+                                                                        <div style="height:55px;">
+                                                                            <img style="margin-bottom:5px;width:50px;height:50px;border-radius:50%;" src="/web/image?model=res.users&field=image_small&id=${goal['user_id']}" alt="">
+                                                                        </div>
+                                                                    </div>
+                                                                    <div style="background-color:${bgColor | safe};height:${heightB}px;">
+                                                                        <strong><span style="color:#fff;font-size:${fontSize}px;">${podiumPosition | safe}</span></strong>
+                                                                    </div>
+                                                                    <div style="height:30px;">
+                                                                        <p style="color:#9A6C8E;font-size:20px;margin-top:10px;">$${goal['current']}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                    % endfor
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Data Table -->
+
+                                <table cellspacing="0" cellpadding="0" width="100%" bgcolor="#fff" style="background-color:#fff;" style="padding: 15px;">
+                                    <tr>
+                                        <td style="padding: 15px;">
+                                            <span style="color:#A8A8A8;font-size:13px;">
+                                           The following message contains the current progress for the challenge Monthly Sales Targets.
+                                           </span>
+                                       </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 15px;">
+
+                                            <!-- Datas -->
+
+                                            <table cellspacing="0" cellpadding="0" width="100%" style="margin-top:30px;color:#666666;">
+                                                <thead>
+                                                    <tr style="color:#9A6C8E; font-size:12px;">
+                                                        <th width="10%" align="center">Rank</th>
+                                                        <th width="15%" align="center">Person</th>
+                                                        <th width="15%" align="right">Name</th>
+                                                        <th width="20%" align="right">Total Invoiced</th>
+                                                        <th width="20%" style="padding-right:15px;" align="right">Completeness</th>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="5" style="height:1px;background-color:#9A6C8E;"></td>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    % for goal in line['goals']:
+                                                        % if goal.user_id == user.id:
+                                                             <% set tdBgColor = '#9A6C8E' %>
+                                                             <% set tdColor = '#fff' %>
+                                                             <% set mutedColor = '#fff' %>
+                                                             <% set tdPercentageColor = '#fff' %>
+                                                        % else:
+                                                             <% set tdBgColor = '#fff' %>
+                                                             <% set tdColor = 'gray' %>
+                                                             <% set mutedColor = '#AAAAAA' %>
+                                                             <% set tdPercentageColor = '#9A6C8E' %>
+                                                        % endif
+                                                        <tr>
+                                                            <td width="10%" align="center" valign="middle" style="color:${tdColor};background-color:${tdBgColor};padding :5px 0;font-size:20px;">${goal['rank']}
+                                                            </td>
+                                                            <td width="15%" align="center" valign="middle" style="color:${tdColor};background-color:${tdBgColor};padding:5px 0;">
+                                                                <img style="width:30px;height:30px;border-radius:50%;" src="/web/image?model=res.users&field=image_small&id=${goal['user_id']}" alt="">
+                                                            </td>
+                                                            <td width="15%" align="right" valign="middle" style="background-color:${tdBgColor};padding :5px 0;color:${tdColor};font-size:13px;">${goal['name']}</td>
+                                                            <td width="20%" align="right" style="color:${tdColor};background-color:${tdBgColor};padding:5px 0;line-height:1;">$${goal['current']}<br><span style="font-size:13px;color:${mutedColor};">on $${line['target']}</span>
+                                                            </td>
+                                                            <td width="20%" style="color:${tdPercentageColor};background-color:${tdBgColor};padding-right:15px;font-size:22px;" align="right"><strong>${goal['completeness']|int}%</strong></td>
+                                                        </tr>
+                                                        <tr>
+                                                            <td colspan="5" style="height:1px;background-color:#DADADA;"></td>
+                                                        </tr>
+                                                    % endfor
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- Footer -->
+
+                                <table cellspacing="0" cellpadding="0" width="100%" style="padding: 15px;">
+                                    <tr>
+                                        <td align="center" style="padding: 30px 15px;">
+                                            <p style="font-size:12px;color:#AAAAAA">Odoo SA - Chaussée de Namur, 40, B-1367 Grand-Rosière</p>
+                                        </td>
+                                    </tr>
+                                </table>
                             % endfor
                         % endif
-
                     </td>
                 </tr>
-                    
             </table>
         </td>
     </tr>
