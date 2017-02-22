@@ -92,7 +92,10 @@ class AccountFiscalPosition(models.Model):
 
     @api.model
     def _get_fpos_by_region(self, country_id=False, state_id=False, zipcode=False, vat_required=False):
-        if not country_id:
+        if not country_id or country_id == self.company_id.country_id.id:
+            # We exclude our own country from any fiscal position.
+            # Fiscal positions are to treat non domestic mapping. Domestic business is the standard way
+            # There is therefore no need to have fiscal positions for domestic business
             return False
         base_domain = [('auto_apply', '=', True), ('vat_required', '=', vat_required)]
         if self.env.context.get('force_company'):
@@ -130,6 +133,7 @@ class AccountFiscalPosition(models.Model):
         if not fpos:
             # Fallback on catchall (no country, no group)
             fpos = self.search(base_domain + null_country_dom, limit=1)
+
         return fpos or False
 
     @api.model
