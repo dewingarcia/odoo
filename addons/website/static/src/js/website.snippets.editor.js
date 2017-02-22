@@ -218,6 +218,7 @@ options.registry.carousel = options.registry.slider.extend({
 
         // set background and prepare to clean for save
         this.$target.on('slid.bs.carousel', function () {
+            if (!self.editor.styles.background) return;
                 self.editor.styles.background_position.$target = self.editor.styles.background.$target;
                 self.editor.styles.background_position.set_active();
                 self.editor.styles.background.$target.trigger("snippet-option-change", [self.editor.styles.background]);
