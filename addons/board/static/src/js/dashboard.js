@@ -1,6 +1,8 @@
 odoo.define('board.dashboard', function (require) {
 "use strict";
 
+return;
+
 var ActionManager = require('web.ActionManager');
 var Context = require('web.Context');
 var core = require('web.core');
