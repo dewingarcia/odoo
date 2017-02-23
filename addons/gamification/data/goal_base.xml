@@ -164,7 +164,7 @@
                                                     <tr style="color:#9A6C8E; font-size:12px;">
                                                         <th width="10%" align="center">Rank</th>
                                                         <th width="15%" align="center">Person</th>
-                                                        <th width="15%" align="right">Name</th>
+                                                        <th width="15%" align="left">Name</th>
                                                         <th width="20%" align="right">Total Invoiced</th>
                                                         <th width="20%" style="padding-right:15px;" align="right">Completeness</th>
                                                     </tr>
@@ -191,7 +191,7 @@
                                                             <td width="15%" align="center" valign="middle" style="color:${tdColor};background-color:${tdBgColor};padding:5px 0;">
                                                                 <img style="width:30px;height:30px;border-radius:50%;" src="/web/image?model=res.users&field=image_small&id=${goal['user_id']}" alt="">
                                                             </td>
-                                                            <td width="15%" align="right" valign="middle" style="background-color:${tdBgColor};padding :5px 0;color:${tdColor};font-size:13px;">${goal['name']}</td>
+                                                            <td width="15%" align="left" valign="middle" style="background-color:${tdBgColor};padding :5px 0;color:${tdColor};font-size:13px;">${goal['name']}</td>
                                                             <td width="20%" align="right" style="color:${tdColor};background-color:${tdBgColor};padding:5px 0;line-height:1;">$${goal['current']}<br><span style="font-size:13px;color:${mutedColor};">on $${line['target']}</span>
                                                             </td>
                                                             <td width="20%" style="color:${tdPercentageColor};background-color:${tdBgColor};padding-right:15px;font-size:22px;" align="right"><strong>${goal['completeness']|int}%</strong></td>
