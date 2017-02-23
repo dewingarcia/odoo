@@ -14,13 +14,15 @@ class AccountRounding(models.Model):
     _name = 'account.rounding'
     _description = 'Account Rounding'
 
-    name = fields.Char(string='Name', translate=True, required=True)
+    name = fields.Char(string='Name',translate=True, required=True)
     rounding = fields.Float(string='Rounding Precision', required=True,
         help='Represent the non-zero value smallest coinage (for example, 0.05).')
     account_id = fields.Many2one('account.account', string='Account', required=True)
     rounding_method = fields.Selection(string='Rounding Method', required=True,
         selection=[('UP', 'UP'), ('DOWN', 'DOWN'), ('HALF-UP', 'HALF-UP')],
         default='HALF-UP', help='These values must correspond to the rounding_method of the float_round tools method.')
+    add_to_tax = fields.Boolean(string='Add to Biggest Tax',
+        help='Add the rounding amount to the biggest tax found like the Swedish rounding system.')
 
     @api.model
     def round(self, amount):

@@ -683,90 +683,109 @@ class AccountInvoice(models.Model):
         return move_lines
 
     @api.multi
-    def compute_invoice_totals(self, company_currency, invoice_move_lines):
-        total = 0
-        total_currency = 0
-        for line in invoice_move_lines:
-            if self.currency_id != company_currency:
-                currency = self.currency_id.with_context(date=self.date_invoice or fields.Date.context_today(self))
-                if not (line.get('currency_id') and line.get('amount_currency')):
-                    line['currency_id'] = currency.id
-                    line['amount_currency'] = currency.round(line['price'])
-                    line['price'] = currency.compute(line['price'], company_currency)
+    def compute_move_lines_totals(self, move_line_dicts):
+        self.ensure_one()
+        total = 0.0
+        total_currency = 0.0
+        type_sign = -1 if self.type in ('out_invoice', 'in_refund') else 1
+        for move_line_dict in move_line_dicts:
+            total -= move_line_dict['price']
+            if move_line_dict['amount_currency']:
+                total_currency -= type_sign * move_line_dict['amount_currency']
             else:
-                line['currency_id'] = False
-                line['amount_currency'] = False
-                line['price'] = self.currency_id.round(line['price'])
-            if self.type in ('out_invoice', 'in_refund'):
-                total += line['price']
-                total_currency += line['amount_currency'] or line['price']
-                line['price'] = - line['price']
-            else:
-                total -= line['price']
-                total_currency -= line['amount_currency'] or line['price']
-        return total, total_currency, invoice_move_lines
+                total_currency -= move_line_dict['price']
+        return total, total_currency
 
-    @api.model
-    def invoice_line_move_line_get(self, invoice_line_ids):
-        res = []
-        for line in invoice_line_ids:
-            if line.quantity==0:
-                continue
-            tax_ids = []
-            for tax in line.invoice_line_tax_ids:
-                tax_ids.append((4, tax.id, None))
-                for child in tax.children_tax_ids:
-                    if child.type_tax_use != 'none':
-                        tax_ids.append((4, child.id, None))
-            analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in line.analytic_tag_ids]
-
-            move_line_dict = {
-                'invl_id': line.id,
-                'type': 'src',
-                'name': line.name.split('\n')[0][:64],
-                'price_unit': line.price_unit,
-                'quantity': line.quantity,
-                'price': line.price_subtotal,
-                'account_id': line.account_id.id,
-                'product_id': line.product_id.id,
-                'uom_id': line.uom_id.id,
-                'account_analytic_id': line.account_analytic_id.id,
-                'tax_ids': tax_ids,
-                'invoice_id': self.id,
-                'analytic_tag_ids': analytic_tag_ids
+    @api.multi
+    def get_currency_move_line_values(self, price):
+        self.ensure_one()
+        invoice_currency_id = self.currency_id
+        company_currency_id = self.company_id.currency_id
+        if invoice_currency_id != company_currency_id:
+            currency_id = invoice_currency_id.with_context(date=self.date_invoice or fields.Date.context_today(self))
+            return {
+                'currency_id': currency_id.id,
+                'amount_currency': currency_id.round(price),
+                'price': currency_id.compute(price, company_currency_id)
             }
-            if line['account_analytic_id']:
-                move_line_dict['analytic_line_ids'] = [(0, 0, line._get_analytic_line())]
-            res.append(move_line_dict)
-        return res
+        else:
+            return {
+                'currency_id': False,
+                'amount_currency': False,
+                'price': invoice_currency_id.round(price)
+            }
 
-    @api.model
-    def tax_line_move_line_get(self):
-        res = []
-        # keep track of taxes already processed
-        done_taxes = []
-        # loop the invoice.tax.line in reversal sequence
-        for tax_line in sorted(self.tax_line_ids, key=lambda x: -x.sequence):
-            if tax_line.amount:
-                tax = tax_line.tax_id
-                if tax.amount_type == "group":
-                    for child_tax in tax.children_tax_ids:
-                        done_taxes.append(child_tax.id)
-                done_taxes.append(tax.id)
-                res.append({
-                    'invoice_tax_line_id': tax_line.id,
-                    'tax_line_id': tax_line.tax_id.id,
-                    'type': 'tax',
-                    'name': tax_line.name,
-                    'price_unit': tax_line.amount,
-                    'quantity': 1,
-                    'price': tax_line.amount,
-                    'account_id': tax_line.account_id.id,
-                    'account_analytic_id': tax_line.account_analytic_id.id,
-                    'invoice_id': self.id,
-                    'tax_ids': [(6, 0, done_taxes)] if tax_line.tax_id.include_base_amount else []
-                })
-        return res
+    @api.multi
+    def get_additional_move_line_values(self):
+        return []
+
+    @api.multi
+    def get_payment_term_move_line_values(self, total, total_currency):
+        self.ensure_one()
+        il_move_line_values = []
+        pt_move_line_values = []
+        pay_term_name = self.name or '/'
+        if self.payment_term_id:
+            res_pay_term = self.payment_term_id.compute(total, date_ref=self.date_invoice, currency=self.currency_id.id)
+            term_lines = res_pay_term['lines']
+            rounding_lines = res_pay_term['rounding_lines']
+
+            # Compute rounding_lines
+            if rounding_lines:
+                for account_id, rounding_balance, add_to_tax in rounding_lines:
+                    if add_to_tax:
+                        pass # TODO
+                    # Create additional invoice lines
+                    invoice_line_id = self.env['account.invoice.line'].create({
+                        'name': _('Rounding'),
+                        'invoice_id': self.id,
+                        'account_id': account_id,
+                        'price_unit': rounding_balance,
+                        'sequence': 9999  # always last line
+                    })
+                    il_move_line_values.extend(invoice_line_id.get_move_line_values())
+
+            # Update totals
+            add_total, add_total_currency = self.compute_move_lines_totals(il_move_line_values)
+            total += add_total
+            total_currency += add_total_currency
+
+            # Compute term_lines
+            remaining_total_currency = total_currency
+            for i, t in enumerate(term_lines):
+                move_line_dict = {
+                    'type': 'dest',
+                    'name': pay_term_name,
+                    'price': t[1],
+                    'account_id': self.account_id.id,
+                    'date_maturity': t[0],
+                    'invoice_id': self.id
+                }
+
+                # Update with values related to the currency
+                currency_move_line_dict = self.get_currency_move_line_values(t[1])
+                move_line_dict.update(currency_move_line_dict)
+
+                # Update consumed_total_currency
+                remaining_total_currency -= move_line_dict['amount_currency']
+                if i + 1 == len(term_lines) and move_line_dict['amount_currency']: # last line: add the diff
+                    move_line_dict['amount_currency'] += remaining_total_currency
+
+                pt_move_line_values.append(move_line_dict)
+        else:
+            diff_currency = self.currency_id != self.company_id.currency_id
+            pt_move_line_values.append({
+                'type': 'dest',
+                'name': pay_term_name,
+                'price': total,
+                'account_id': self.account_id.id,
+                'date_maturity': self.date_due,
+                'amount_currency': diff_currency and total_currency,
+                'currency_id': diff_currency and self.currency_id.id,
+                'invoice_id': self.id
+            })
+
+        return total, total_currency, pt_move_line_values, il_move_line_values
 
     def inv_line_characteristic_hashcode(self, invoice_line):
         """Overridable hashcode generation for invoice lines. Lines having the same hashcode
@@ -818,82 +837,27 @@ class AccountInvoice(models.Model):
             if inv.move_id:
                 continue
 
+            # Extend context
             ctx = dict(self._context, lang=inv.partner_id.lang)
-
             if not inv.date_invoice:
                 inv.with_context(ctx).write({'date_invoice': fields.Date.context_today(self)})
+            ctx['date'] = inv.date_invoice
             date_invoice = inv.date_invoice
-            company_currency = inv.company_id.currency_id
 
-            # create move lines (one per invoice line + eventual taxes and analytic lines)
-            iml = inv.invoice_line_move_line_get(inv.invoice_line_ids)
-            iml += inv.tax_line_move_line_get()
+            # create move_line_values (invoice_line_ids + tax_line_ids)
+            il_move_line_values = self.invoice_line_ids.with_context(ctx).get_move_line_values()
+            tl_move_line_values = self.tax_line_ids.with_context(ctx).get_move_line_values()
+            add_move_line_values = self.get_additional_move_line_values()
+            move_line_values = il_move_line_values + tl_move_line_values + add_move_line_values
 
-            diff_currency = inv.currency_id != company_currency
-            # create one move line for the total and possibly adjust the other lines amount
-            total, total_currency, iml = inv.with_context(ctx).compute_invoice_totals(company_currency, iml)
+            # compute totals
+            total, total_currency = inv.compute_move_lines_totals(move_line_values)
 
-            name = inv.name or '/'
-            if inv.payment_term_id:
-                res_pay_term = inv.with_context(ctx).payment_term_id.with_context(currency_id=inv.currency_id.id).compute(total, date_invoice)
-                totlines = res_pay_term['lines']
-                rounding = res_pay_term['rounding_lines']
+            # create move_line_values (payment_term_id) & update totals
+            total, total_currency, pt_move_line_values, rounding_move_line_values = inv.with_context(ctx).get_payment_term_move_line_values(total, total_currency)
 
-                # Create additional invoice line to catch the rounding
-                if rounding:
-                    add_invoice_line_ids = []
-                    for acc_id, rounding_balance in rounding:
-                        account_id = self.env['account.account'].browse(acc_id)
-                        # Create additional invoice lines
-                        add_invoice_line_id = self.env['account.invoice.line'].create({
-                            'name': _('Rounding'),
-                            'invoice_id': inv.id,
-                            'account_id': account_id.id,
-                            'price_unit': rounding_balance,
-                            'sequence': 9999 # always last line
-                        })
-                        add_invoice_line_ids.append(add_invoice_line_id)
-                    # Adjust total, total_currency, iml to balance again debit/credit
-                    add_iml = inv.invoice_line_move_line_get(add_invoice_line_ids)
-                    add_total, add_total_currency, add_iml = inv.with_context(ctx).compute_invoice_totals(company_currency, add_iml)
-                    total += add_total
-                    total_currency += add_total_currency
-                    iml += add_iml
+            iml = move_line_values + pt_move_line_values + rounding_move_line_values
 
-                res_amount_currency = total_currency
-                ctx['date'] = date_invoice
-                for i, t in enumerate(totlines):
-                    if inv.currency_id != company_currency:
-                        amount_currency = company_currency.with_context(ctx).compute(t[1], inv.currency_id)
-                    else:
-                        amount_currency = False
-
-                    # last line: add the diff
-                    res_amount_currency -= amount_currency or 0
-                    if i + 1 == len(totlines):
-                        amount_currency += res_amount_currency
-
-                    iml.append({
-                        'type': 'dest',
-                        'name': name,
-                        'price': t[1],
-                        'account_id': inv.account_id.id,
-                        'date_maturity': t[0],
-                        'amount_currency': diff_currency and amount_currency,
-                        'currency_id': diff_currency and inv.currency_id.id,
-                        'invoice_id': inv.id
-                    })
-            else:
-                iml.append({
-                    'type': 'dest',
-                    'name': name,
-                    'price': total,
-                    'account_id': inv.account_id.id,
-                    'date_maturity': inv.date_due,
-                    'amount_currency': diff_currency and total_currency,
-                    'currency_id': diff_currency and inv.currency_id.id,
-                    'invoice_id': inv.id
-                })
             part = self.env['res.partner']._find_accounting_partner(inv.partner_id)
             line = [(0, 0, self.line_get_convert(l, part.id)) for l in iml]
             line = inv.group_lines(iml, line)
@@ -1165,7 +1129,7 @@ class AccountInvoiceLine(models.Model):
 
     @api.multi
     def _get_analytic_line(self):
-        ref = self.invoice_id.number
+        self.ensure_one()
         return {
             'name': self.name,
             'date': self.invoice_id.date_invoice,
@@ -1175,8 +1139,61 @@ class AccountInvoiceLine(models.Model):
             'product_id': self.product_id.id,
             'product_uom_id': self.uom_id.id,
             'general_account_id': self.account_id.id,
-            'ref': ref,
+            'ref': self.invoice_id.number,
         }
+
+    @api.multi
+    def get_move_line_values(self):
+        '''Create move lines vals (as Python dict) based on invoice_line_ids.
+        :return: A list of dictionaries
+        '''
+        res = []
+        for invoice_line_id in self:
+            # skip useless lines
+            if invoice_line_id.quantity == 0:
+                continue
+
+            # create tax_ids values
+            tax_ids = []
+            for tax in invoice_line_id.invoice_line_tax_ids:
+                tax_ids.append((4, tax.id, None))
+                for child in tax.children_tax_ids:
+                    if child.type_tax_use != 'none':
+                        tax_ids.append((4, child.id, None))
+
+            # create analytic_tag_ids values
+            analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in invoice_line_id.analytic_tag_ids]
+            analytic_line_ids = [(0, 0, invoice_line_id._get_analytic_line())] if analytic_tag_ids else None
+
+            invoice_id = invoice_line_id.invoice_id
+
+            move_line_dict = {
+                'invl_id': invoice_line_id.id,
+                'type': 'src',
+                'name': invoice_line_id.name.split('\n')[0][:64],
+                'price_unit': invoice_line_id.price_unit,
+                'quantity': invoice_line_id.quantity,
+                'price': invoice_line_id.price_subtotal,
+                'account_id': invoice_line_id.account_id.id,
+                'product_id': invoice_line_id.product_id.id,
+                'uom_id': invoice_line_id.uom_id.id,
+                'account_analytic_id': invoice_line_id.account_analytic_id.id,
+                'tax_ids': tax_ids,
+                'invoice_id': invoice_id.id,
+                'analytic_tag_ids': analytic_tag_ids,
+                'analytic_line_ids': analytic_line_ids
+            }
+
+            # Update with values related to the currency
+            currency_move_line_dict = invoice_id.get_currency_move_line_values(invoice_line_id.price_subtotal)
+            move_line_dict.update(currency_move_line_dict)
+
+            # Change sign price according to invoice type
+            if invoice_id.type in ('out_invoice', 'in_refund'):
+                move_line_dict['price'] = - move_line_dict['price']
+
+            res.append(move_line_dict)
+        return res
 
     @api.one
     @api.depends('price_unit', 'discount', 'invoice_line_tax_ids', 'quantity',
@@ -1382,6 +1399,53 @@ class AccountInvoiceTax(models.Model):
     _description = "Invoice Tax"
     _order = 'sequence'
 
+    @api.multi
+    def get_move_line_values(self):
+        res = []
+        # keep track of taxes already processed
+        done_taxes = []
+        # loop the invoice.tax.line in reversal sequence
+        for invoice_tax_id in sorted(self, key=lambda x: -x.sequence):
+            # skip useless lines
+            if not invoice_tax_id.amount:
+                continue
+
+            # compute done taxes
+            tax_id = invoice_tax_id.tax_id
+            if tax_id.include_base_amount:
+                if tax_id.amount_type == 'group':
+                    for child_tax in tax_id.children_tax_ids:
+                        done_taxes.append(child_tax.id)
+                done_taxes.append(tax_id.id)
+                done_taxes = [(6, 0, done_taxes)]
+
+            invoice_id = invoice_tax_id.invoice_id
+
+            move_line_dict = {
+                'invoice_tax_line_id': invoice_tax_id.id,
+                'tax_line_id': tax_id.id,
+                'type': 'tax',
+                'name': invoice_tax_id.name,
+                'price_unit': invoice_tax_id.amount,
+                'quantity': 1,
+                'price': invoice_tax_id.amount,
+                'account_id': invoice_tax_id.account_id.id,
+                'account_analytic_id': invoice_tax_id.account_analytic_id.id,
+                'invoice_id': invoice_id.id,
+                'tax_ids': done_taxes
+            }
+
+            # Update with values related to the currency
+            currency_move_line_dict = invoice_id.get_currency_move_line_values(invoice_tax_id.amount)
+            move_line_dict.update(currency_move_line_dict)
+
+            # Change sign price according to invoice type
+            if invoice_id.type in ('out_invoice', 'in_refund'):
+                move_line_dict['price'] = - move_line_dict['price']
+
+            res.append(move_line_dict)
+        return res
+
     @api.depends('invoice_id.invoice_line_ids')
     def _compute_base_amount(self):
         tax_grouped = {}
@@ -1440,20 +1504,22 @@ class AccountPaymentTerm(models.Model):
             raise ValidationError(_('A Payment Terms should have only one line of type Balance.'))
 
     @api.multi
-    def compute(self, value, date_ref=False):
+    def compute(self, value, date_ref=False, currency=None):
         """Compute the value according the payment term lines.
         :param value: The amount to compute
         :param date_ref: The reference date
         :return: a dictionary containing:
             'list': a list of tuple (date, amount)
-            'rounding_lines': a list of tuple (account, amount)
+            'rounding_lines': a list of triple (account, amount, add_to_tax_boolean)
             'max_date': the maximum date found
         """
         date_ref = date_ref or fields.Date.today()
         amount = value
         result = []
         rounding = []
-        if self.env.context.get('currency_id'):
+        if currency is not None:
+            currency = self.env['res.currency'].browse(currency)
+        elif self.env.context.get('currency_id'):
             currency = self.env['res.currency'].browse(self.env.context['currency_id'])
         else:
             currency = self.env.user.company_id.currency_id
@@ -1494,7 +1560,8 @@ class AccountPaymentTerm(models.Model):
                 result.append((next_date_str, amt + rounding_balance))
                 if rounding_balance:
                     account_id = line.rounding_id.account_id
-                    rounding.append((account_id.id, rounding_balance))
+                    add_to_tax = line.rounding_id.add_to_tax
+                    rounding.append((account_id.id, rounding_balance, add_to_tax))
 
                 # Update values
                 max_date = max(max_date, next_date_str)
