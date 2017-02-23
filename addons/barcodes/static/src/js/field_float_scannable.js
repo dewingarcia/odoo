@@ -18,7 +18,7 @@ var field_registry = require('web.field_registry');
 //     // "FieldFloatScannable" and there is no parsing planned for this type, it defaults
 //     // to outputting the value as a string. Hence the need to redefine parse_value
 //     parse_value: function(val, def) {
-//         return formats.parse_value(val, {type: "float"}, def);
+//         return field_utils.parse_field(val, {type: "float"});
 //     },
 
 //     simulateKeypress: function (e) {
