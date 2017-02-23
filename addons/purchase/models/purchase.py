@@ -573,7 +573,7 @@ class PurchaseOrderLine(models.Model):
                             msg += "<b>" + _('As the ordered quantity was decreased, you might need to cancel backorders, return goods or refund invoices') + '</b>'
                         msg += "<br/>" + _("Ordered Quantity") + ": %s -> %s <br/>" % (line.product_qty, values['product_qty'],)#→
                         msg += _("Received Quantity") + ": %s <br/>" % (line.qty_received,)
-                        msg += _("Invoiced Quantity") + ": %s <br/>" % (line.qty_invoiced,)
+                        msg += _("Billed Quantity") + ": %s <br/>" % (line.qty_invoiced,)
                     msg += "</ul>"
                     order.message_post(body=msg)
         return result
