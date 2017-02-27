@@ -358,6 +358,16 @@ class AccountInvoice(models.Model):
         (not_reconciled & pre_not_reconciled).filtered(lambda invoice: invoice.state == 'paid').action_invoice_re_open()
         return res
 
+    @api.multi
+    def copy(self, default=None):
+        self.ensure_one()
+        if not default:
+            default = {}
+        # Rounding invoice lines shouldn't be copied.
+        if not 'invoice_line_ids' in default:
+            default['invoice_line_ids'] = [(6, 0, [l.id for l in self.invoice_line_ids if not l.is_rounding_line])]
+        return super(AccountInvoice, self).copy(default)
+
     @api.model
     def fields_view_get(self, view_id=None, view_type=False, toolbar=False, submenu=False):
         def get_view_id(xid, name):
@@ -840,6 +850,7 @@ class AccountInvoice(models.Model):
                             'invoice_id': inv.id,
                             'account_id': account_id.id,
                             'price_unit': rounding_balance,
+                            'is_rounding_line': True,
                             'sequence': 9999 # always last line
                         })
                         add_invoice_line_ids.append(add_invoice_line_id)
@@ -1229,6 +1240,7 @@ class AccountInvoiceLine(models.Model):
         related='invoice_id.partner_id', store=True, readonly=True)
     currency_id = fields.Many2one('res.currency', related='invoice_id.currency_id', store=True)
     company_currency_id = fields.Many2one('res.currency', related='invoice_id.company_currency_id', readonly=True)
+    is_rounding_line = fields.Boolean(string='Rounding Line', help='Is a rounding line in case of cash rounding.')
 
     @api.model
     def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
