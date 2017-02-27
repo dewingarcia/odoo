@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models
+from odoo import fields, models, api
 
 
 class StockPickingType(models.Model):
@@ -28,3 +28,6 @@ class StockPickingType(models.Model):
             count = dict(map(lambda x: (x['picking_type_id'] and x['picking_type_id'][0], x['picking_type_id_count']), data))
             for record in mrp_picking_types:
                 record[field] = count.get(record.id, 0)
+
+    def get_mrp_stock_picking_action_picking_type(self):
+        return self._get_action('mrp.mrp_production_action_picking_deshboard')
