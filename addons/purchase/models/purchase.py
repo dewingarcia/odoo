@@ -552,30 +552,34 @@ class PurchaseOrderLine(models.Model):
         line = super(PurchaseOrderLine, self).create(values)
         if line.order_id.state == 'purchase':
             line.order_id._create_picking()
-            msg = "Extra line with %s " % (line.product_id.display_name,)
+            msg = _("Extra line with %s ") % (line.product_id.display_name,)
             line.order_id.message_post(body=msg)
         return line
 
     @api.multi
     def write(self, values):
-        result = super(PurchaseOrderLine, self).write(values)
+        orders = False
         if 'product_qty' in values:
             changed_lines = self.filtered(lambda x: x.order_id.state == 'purchase')
             if changed_lines:
                 orders = changed_lines.mapped('order_id')
-                orders._create_picking()
                 for order in orders:
                     order_lines = changed_lines.filtered(lambda x: x.order_id == order)
-                    msg = "<ul>"
+                    msg = ""
+                    if any([values['product_qty'] < x.product_qty for x in order_lines]):
+                        msg += "<b>" + _('As the ordered quantity was decreased, you might need to cancel backorders, return goods or refund invoices') + '</b><br/>'
+                    msg += "<ul>"
                     for line in order_lines:
                         msg += "<li> %s:" % (line.product_id.display_name,)
-                        if values['product_qty'] < line.product_qty:
-                            msg += "<b>" + _('As the ordered quantity was decreased, you might need to cancel backorders, return goods or refund invoices') + '</b>'
-                        msg += "<br/>" + _("Ordered Quantity") + ": %s -> %s <br/>" % (line.product_qty, values['product_qty'],)#→
-                        msg += _("Received Quantity") + ": %s <br/>" % (line.qty_received,)
-                        msg += _("Billed Quantity") + ": %s <br/>" % (line.qty_invoiced,)
+                        msg += "<br/>" + _("Ordered Quantity") + ": %s --> %s <br/>" % (line.product_qty, float(values['product_qty']),)#→
+                        if line.product_id.type in ('product', 'consu'):
+                            msg += _("Received Quantity") + ": %s <br/>" % (line.qty_received,)
+                        msg += _("Billed Quantity") + ": %s <br/></li>" % (line.qty_invoiced,)
                     msg += "</ul>"
                     order.message_post(body=msg)
+        result = super(PurchaseOrderLine, self).write(values)
+        if 'product_qty' in values:
+            orders._create_picking()
         return result
 
     name = fields.Text(string='Description', required=True)
