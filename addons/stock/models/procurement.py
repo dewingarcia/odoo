@@ -26,7 +26,7 @@ class ProcurementRule(models.Model):
 
     location_id = fields.Many2one('stock.location', 'Procurement Location')
     location_src_id = fields.Many2one('stock.location', 'Source Location', help="Source location is action=move")
-    route_id = fields.Many2one('stock.location.route', 'Route', help="If route_id is False, the rule is global")
+    route_id = fields.Many2one('stock.location.route', 'Route', required=True, ondelete='cascade')
     procure_method = fields.Selection([
         ('make_to_stock', 'Take From Stock'),
         ('make_to_order', 'Create Procurement')], string='Move Supply Method',
@@ -34,9 +34,9 @@ class ProcurementRule(models.Model):
         help="""Determines the procurement method of the stock move that will be generated: whether it will need to 'take from the available stock' in its source location or needs to ignore its stock and create a procurement over there.""")
     route_sequence = fields.Integer('Route Sequence', related='route_id.sequence', store=True)
     picking_type_id = fields.Many2one(
-        'stock.picking.type', 'Picking Type',
+        'stock.picking.type', 'Operation Type',
         required=True,
-        help="Picking Type determines the way the picking should be shown in the view, reports, ...")
+        help="Operation Type determines the way the picking should be shown in the view, reports, ...")
     delay = fields.Integer('Number of Days', default=0)
     partner_address_id = fields.Many2one('res.partner', 'Partner Address')
     propagate = fields.Boolean(
@@ -131,8 +131,6 @@ class ProcurementOrder(models.Model):
             warehouse_routes = self.warehouse_id.route_ids
             if warehouse_routes:
                 res = Pull.search(expression.AND([[('route_id', 'in', warehouse_routes.ids)], domain]), order='route_sequence, sequence', limit=1)
-        if not res:
-            res = Pull.search(expression.AND([[('route_id', '=', False)], domain]), order='sequence', limit=1)
         return res
 
     def _get_stock_move_values(self):

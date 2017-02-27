@@ -178,7 +178,7 @@ class PushedFlow(models.Model):
     company_id = fields.Many2one(
         'res.company', 'Company',
         default=lambda self: self.env['res.company']._company_default_get('procurement.order'), index=True)
-    route_id = fields.Many2one('stock.location.route', 'Route')
+    route_id = fields.Many2one('stock.location.route', 'Route', required=True, ondelete='cascade')
     location_from_id = fields.Many2one(
         'stock.location', 'Source Location', index=True, ondelete='cascade', required=True,
         help="This rule can be applied when a move is confirmed that has this location as destination location")
@@ -187,8 +187,8 @@ class PushedFlow(models.Model):
         help="The new location where the goods need to go")
     delay = fields.Integer('Delay (days)', default=0, help="Number of days needed to transfer the goods")
     picking_type_id = fields.Many2one(
-        'stock.picking.type', 'Picking Type', required=True,
-        help="This is the picking type that will be put on the stock moves")
+        'stock.picking.type', 'Operation Type', required=True,
+        help="This is the operation type that will be put on the stock moves")
     auto = fields.Selection([
         ('manual', 'Manual Operation'),
         ('transparent', 'Automatic No Step Added')], string='Automatic Move',

@@ -79,9 +79,8 @@ class ViewCustom(models.Model):
     @api.model_cr_context
     def _auto_init(self):
         res = super(ViewCustom, self)._auto_init()
-        self._cr.execute("SELECT indexname FROM pg_indexes WHERE indexname = 'ir_ui_view_custom_user_id_ref_id'")
-        if not self._cr.fetchone():
-            self._cr.execute("CREATE INDEX ir_ui_view_custom_user_id_ref_id ON ir_ui_view_custom (user_id, ref_id)")
+        tools.create_index(self._cr, 'ir_ui_view_custom_user_id_ref_id',
+                           self._table, ['user_id', 'ref_id'])
         return res
 
 
@@ -225,9 +224,13 @@ actual arch.
             if 'xml' in config['dev_mode'] and view.arch_fs and view.xml_id:
                 # It is safe to split on / herebelow because arch_fs is explicitely stored with '/'
                 fullpath = get_resource_path(*view.arch_fs.split('/'))
-                arch_fs = get_view_arch_from_file(fullpath, view.xml_id)
-                # replace %(xml_id)s, %(xml_id)d, %%(xml_id)s, %%(xml_id)d by the res_id
-                arch_fs = arch_fs and resolve_external_ids(arch_fs, view.xml_id)
+                if fullpath:
+                    arch_fs = get_view_arch_from_file(fullpath, view.xml_id)
+                    # replace %(xml_id)s, %(xml_id)d, %%(xml_id)s, %%(xml_id)d by the res_id
+                    arch_fs = arch_fs and resolve_external_ids(arch_fs, view.xml_id)
+                else:
+                    _logger.warning("View %s: Full path [%s] cannot be found.", view.xml_id, view.arch_fs)
+                    arch_fs = False
             view.arch = arch_fs or view.arch_db
 
     def _inverse_arch(self):
@@ -348,9 +351,8 @@ actual arch.
     @api.model_cr_context
     def _auto_init(self):
         res = super(View, self)._auto_init()
-        self._cr.execute('SELECT indexname FROM pg_indexes WHERE indexname = \'ir_ui_view_model_type_inherit_id\'')
-        if not self._cr.fetchone():
-            self._cr.execute('CREATE INDEX ir_ui_view_model_type_inherit_id ON ir_ui_view (model, inherit_id)')
+        tools.create_index(self._cr, 'ir_ui_view_model_type_inherit_id',
+                           self._table, ['model', 'inherit_id'])
         return res
 
     def _compute_defaults(self, values):

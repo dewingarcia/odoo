@@ -56,6 +56,7 @@ class StockConfigSettings(models.TransientModel):
     def _onchange_group_stock_multi_locations(self):
         if not self.group_stock_multi_locations:
             self.group_stock_multi_warehouses = False
+            self.group_stock_adv_location = False
 
     @api.onchange('group_stock_multi_warehouses')
     def _onchange_group_stock_multi_warehouses(self):
@@ -70,7 +71,7 @@ class StockConfigSettings(models.TransientModel):
     @api.multi
     def set_group_stock_multi_locations(self):
         """ If we are not in multiple locations, we can deactivate the internal
-        picking types of the warehouses, so they won't appear in the dashboard.
+        operation types of the warehouses, so they won't appear in the dashboard.
         Otherwise, activate them.
         """
         for config in self:

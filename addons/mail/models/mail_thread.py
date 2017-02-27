@@ -1180,7 +1180,7 @@ class MailThread(models.AbstractModel):
     def message_route_process(self, message, message_dict, routes):
         self = self.with_context(attachments_mime_plainxml=True) # import XML attachments as text
         # postpone setting message_dict.partner_ids after message_post, to avoid double notifications
-        partner_ids = message_dict.pop('partner_ids', [])
+        original_partner_ids = message_dict.pop('partner_ids', [])
         thread_id = False
         for model, thread_id, custom_values, user_id, alias in routes or ():
             if model:
@@ -1195,24 +1195,35 @@ class MailThread(models.AbstractModel):
                 # email gateway become a follower of all inbound messages
                 MessageModel = Model.sudo(user_id).with_context(mail_create_nosubscribe=True, mail_create_nolog=True)
                 if thread_id and hasattr(MessageModel, 'message_update'):
-                    MessageModel.browse(thread_id).message_update(message_dict)
+                    thread = MessageModel.browse(thread_id)
+                    thread.message_update(message_dict)
                 else:
                     # if a new thread is created, parent is irrelevant
                     message_dict.pop('parent_id', None)
-                    thread_id = MessageModel.message_new(message_dict, custom_values)
+                    thread = MessageModel.message_new(message_dict, custom_values)
             else:
                 if thread_id:
                     raise ValueError("Posting a message without model should be with a null res_id, to create a private message.")
-                Model = self.env['mail.thread']
-            if not hasattr(Model, 'message_post'):
-                Model = self.env['mail.thread'].with_context(thread_model=model)
-            internal = message_dict.pop('internal', False)
-            new_msg = Model.browse(thread_id).message_post(subtype=internal and 'mail.mt_note' or 'mail.mt_comment', **message_dict)
+                thread = self.env['mail.thread']
+            if not hasattr(thread, 'message_post'):
+                thread = self.env['mail.thread'].with_context(thread_model=model)
 
-            if partner_ids:
+            # replies to internal message are considered as notes, but parent message
+            # author is added in recipients to ensure he is notified of a private answer
+            partner_ids = []
+            if message_dict.pop('internal', False):
+                subtype = 'mail.mt_note'
+                if message_dict.get('parent_id'):
+                    parent_message = self.env['mail.message'].sudo().browse(message_dict['parent_id'])
+                    partner_ids = [(4, parent_message.author_id.id)]
+            else:
+                subtype = 'mail.mt_comment'
+            new_msg = thread.message_post(subtype=subtype, partner_ids=partner_ids, **message_dict)
+
+            if original_partner_ids:
                 # postponed after message_post, because this is an external message and we don't want to create
                 # duplicate emails due to notifications
-                new_msg.write({'partner_ids': partner_ids})
+                new_msg.write({'partner_ids': original_partner_ids})
         return thread_id
 
     @api.model
@@ -1311,8 +1322,7 @@ class MailThread(models.AbstractModel):
         name_field = RecordModel._rec_name or 'name'
         if name_field in fields and not data.get('name'):
             data[name_field] = msg_dict.get('subject', '')
-        res = RecordModel.create(data)
-        return res.id
+        return RecordModel.create(data)
 
     @api.multi
     def message_update(self, msg_dict, update_vals=None):
@@ -2124,10 +2134,9 @@ class MailThread(models.AbstractModel):
                         new_channels.setdefault(header_follower.channel_id.id, set()).add(new_subtype.id)
 
         # add followers coming from res.users relational fields that are tracked
-        user_ids = [values[name] for name in user_field_lst if values.get(name)]
-        user_pids = [user.partner_id.id for user in self.env['res.users'].sudo().browse(user_ids)]
-        for partner_id in user_pids:
-            new_partners.setdefault(partner_id, None)
+        to_add_users = self.env['res.users'].sudo().browse([values[name] for name in user_field_lst if values.get(name)])
+        for partner in to_add_users.mapped('partner_id'):
+            new_partners.setdefault(partner.id, None)
 
         for pid, subtypes in new_partners.items():
             subtypes = list(subtypes) if subtypes is not None else None
@@ -2137,7 +2146,7 @@ class MailThread(models.AbstractModel):
             self.message_subscribe(channel_ids=[cid], subtype_ids=subtypes, force=(subtypes != None))
 
         # remove the current user from the needaction partner to avoid to notify the author of the message
-        user_pids = [user_pid for user_pid in user_pids if user_pid != self.env.user.partner_id.id]
+        user_pids = [user.partner_id.id for user in to_add_users if user != self.env.user and user.notification_type == 'email']
         self._message_auto_subscribe_notify(user_pids)
 
         return True
