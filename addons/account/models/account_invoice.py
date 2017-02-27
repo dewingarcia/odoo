@@ -790,9 +790,6 @@ class AccountInvoice(models.Model):
                 currency_move_line_dict = self.get_currency_move_line_values(t[1])
                 move_line_dict.update(currency_move_line_dict)
 
-                # Price is already at the right currency
-                move_line_dict['price'] = t[1]
-
                 # Update consumed_total_currency
                 remaining_total_currency -= move_line_dict['amount_currency']
                 if i + 1 == len(term_lines) and move_line_dict['amount_currency']: # last line: add the diff
@@ -1190,9 +1187,8 @@ class AccountInvoiceLine(models.Model):
                         tax_ids.append((4, child.id, None))
 
             # create analytic_tag_ids values
-            account_analytic_id = invoice_line_id.account_analytic_id.id
             analytic_tag_ids = [(4, analytic_tag.id, None) for analytic_tag in invoice_line_id.analytic_tag_ids]
-            analytic_line_ids = [(0, 0, invoice_line_id._get_analytic_line())] if account_analytic_id else None
+            analytic_line_ids = [(0, 0, invoice_line_id._get_analytic_line())] if analytic_tag_ids else None
 
             invoice_id = invoice_line_id.invoice_id
 
@@ -1206,7 +1202,7 @@ class AccountInvoiceLine(models.Model):
                 'account_id': invoice_line_id.account_id.id,
                 'product_id': invoice_line_id.product_id.id,
                 'uom_id': invoice_line_id.uom_id.id,
-                'account_analytic_id': account_analytic_id,
+                'account_analytic_id': invoice_line_id.account_analytic_id.id,
                 'tax_ids': tax_ids,
                 'invoice_id': invoice_id.id,
                 'analytic_tag_ids': analytic_tag_ids,
@@ -1437,6 +1433,7 @@ class AccountInvoiceTax(models.Model):
     def get_move_line_values(self):
         res = []
         # keep track of taxes already processed
+        done_taxes = []
         # loop the invoice.tax.line in reversal sequence
         for invoice_tax_id in sorted(self, key=lambda x: -x.sequence):
             # skip useless lines
@@ -1444,7 +1441,6 @@ class AccountInvoiceTax(models.Model):
                 continue
 
             # compute done taxes
-            done_taxes = []
             tax_id = invoice_tax_id.tax_id
             if tax_id.include_base_amount:
                 if tax_id.amount_type == 'group':
