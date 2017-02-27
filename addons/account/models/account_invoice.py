@@ -383,16 +383,6 @@ class AccountInvoice(models.Model):
         return super(AccountInvoice, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
 
     @api.multi
-    def copy(self, default=None):
-        self.ensure_one()
-        if not default:
-            default = {}
-        # Rounding invoice lines shouldn't be copied.
-        if not 'invoice_line_ids' in default:
-            default['invoice_line_ids'] = [(6, 0, [l.id for l in self.invoice_line_ids if l.name != _('Rounding')])]
-        return super(AccountInvoice, self).copy(default)
-
-    @api.multi
     def invoice_print(self):
         """ Print the invoice and mark it as sent, so that we can see more
             easily the next step of the workflow
