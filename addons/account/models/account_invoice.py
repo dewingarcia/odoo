@@ -42,10 +42,10 @@ class AccountInvoice(models.Model):
     _order = "date_invoice desc, number desc, id desc"
 
     @api.one
-    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'currency_id', 'company_id', 'date_invoice')
+    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'tax_line_ids.amount_rounding', 'currency_id', 'company_id', 'date_invoice')
     def _compute_amount(self):
         self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line_ids)
-        self.amount_tax = sum(line.amount for line in self.tax_line_ids)
+        self.amount_tax = sum(line.get_total_amount() for line in self.tax_line_ids)
         self.amount_total = self.amount_untaxed + self.amount_tax
         amount_total_company_signed = self.amount_total
         amount_untaxed_signed = self.amount_untaxed
@@ -707,9 +707,9 @@ class AccountInvoice(models.Model):
         return total, total_currency, invoice_move_lines
 
     @api.model
-    def invoice_line_move_line_get(self, invoice_line_ids):
+    def invoice_line_move_line_get(self):
         res = []
-        for line in invoice_line_ids:
+        for line in self.invoice_line_ids:
             if line.quantity==0:
                 continue
             tax_ids = []
@@ -745,7 +745,6 @@ class AccountInvoice(models.Model):
         res = []
         # keep track of taxes already processed
         done_taxes = []
-        # loop the invoice.tax.line in reversal sequence
         for tax_line in sorted(self.tax_line_ids, key=lambda x: -x.sequence):
             if tax_line.amount:
                 tax = tax_line.tax_id
@@ -753,14 +752,15 @@ class AccountInvoice(models.Model):
                     for child_tax in tax.children_tax_ids:
                         done_taxes.append(child_tax.id)
                 done_taxes.append(tax.id)
+                amount = tax_line.get_total_amount()
                 res.append({
                     'invoice_tax_line_id': tax_line.id,
                     'tax_line_id': tax_line.tax_id.id,
                     'type': 'tax',
                     'name': tax_line.name,
-                    'price_unit': tax_line.amount,
+                    'price_unit': amount,
                     'quantity': 1,
-                    'price': tax_line.amount,
+                    'price': amount,
                     'account_id': tax_line.account_id.id,
                     'account_analytic_id': tax_line.account_analytic_id.id,
                     'invoice_id': self.id,
@@ -826,8 +826,9 @@ class AccountInvoice(models.Model):
             company_currency = inv.company_id.currency_id
 
             # create move lines (one per invoice line + eventual taxes and analytic lines)
-            iml = inv.invoice_line_move_line_get(inv.invoice_line_ids)
-            iml += inv.tax_line_move_line_get()
+            il_move_line_values = inv.invoice_line_move_line_get()
+            tl_move_line_values = inv.tax_line_move_line_get()
+            iml = il_move_line_values + tl_move_line_values
 
             diff_currency = inv.currency_id != company_currency
             # create one move line for the total and possibly adjust the other lines amount
@@ -841,25 +842,40 @@ class AccountInvoice(models.Model):
 
                 # Create additional invoice line to catch the rounding
                 if rounding:
-                    add_invoice_line_ids = []
-                    for acc_id, rounding_balance in rounding:
-                        account_id = self.env['account.account'].browse(acc_id)
+                    biggest_tax_line_id = None
+                    for rounding_account_id, rounding_balance, add_to_tax in rounding:
+                        if add_to_tax and tl_move_line_values:
+                            # Look for the biggest tax line
+                            if not biggest_tax_line_id:
+                                biggest_tl_move_line_values = None
+                                for line in tl_move_line_values:
+                                    if not biggest_tl_move_line_values or line['price_unit'] > biggest_tl_move_line_values['price_unit']:
+                                        biggest_tl_move_line_values = line
+                                if biggest_tl_move_line_values:
+                                    biggest_tax_line_id = self.env['account.invoice.tax'].browse(biggest_tl_move_line_values['invoice_tax_line_id'])
+
+                            # Increment amount to adjust to the tax line
+                            if biggest_tax_line_id:
+                                biggest_tax_line_id.amount_rounding += rounding_balance
+                            continue
+
                         # Create additional invoice lines
-                        add_invoice_line_id = self.env['account.invoice.line'].create({
+                        self.env['account.invoice.line'].create({
                             'name': _('Rounding'),
-                            'invoice_id': inv.id,
-                            'account_id': account_id.id,
+                            'invoice_id': self.id,
+                            'account_id': rounding_account_id,
                             'price_unit': rounding_balance,
                             'is_rounding_line': True,
-                            'sequence': 9999 # always last line
+                            'sequence': 9999  # always last line
                         })
-                        add_invoice_line_ids.append(add_invoice_line_id)
-                    # Adjust total, total_currency, iml to balance again debit/credit
-                    add_iml = inv.invoice_line_move_line_get(add_invoice_line_ids)
-                    add_total, add_total_currency, add_iml = inv.with_context(ctx).compute_invoice_totals(company_currency, add_iml)
-                    total += add_total
-                    total_currency += add_total_currency
-                    iml += add_iml
+
+                    # Recompute totals
+                    il_move_line_values = inv.invoice_line_move_line_get()
+                    tl_move_line_values = inv.tax_line_move_line_get()
+                    iml = il_move_line_values + tl_move_line_values
+
+                    diff_currency = inv.currency_id != company_currency
+                    total, total_currency, iml = inv.with_context(ctx).compute_invoice_totals(company_currency, iml)
 
                 res_amount_currency = total_currency
                 ctx['date'] = date_invoice
@@ -1384,6 +1400,11 @@ class AccountInvoiceTax(models.Model):
     _description = "Invoice Tax"
     _order = 'sequence'
 
+    @api.model
+    def get_total_amount(self):
+        self.ensure_one()
+        return self.amount + self.amount_rounding
+
     @api.depends('invoice_id.invoice_line_ids')
     def _compute_base_amount(self):
         tax_grouped = {}
@@ -1413,7 +1434,7 @@ class AccountInvoiceTax(models.Model):
     company_id = fields.Many2one('res.company', string='Company', related='account_id.company_id', store=True, readonly=True)
     currency_id = fields.Many2one('res.currency', related='invoice_id.currency_id', store=True, readonly=True)
     base = fields.Monetary(string='Base', compute='_compute_base_amount', store=True)
-
+    amount_rounding = fields.Monetary('Rounding', help='Alter the move line amount values to handle rounding.', copy=False)
 
 
 
@@ -1496,7 +1517,8 @@ class AccountPaymentTerm(models.Model):
                 result.append((next_date_str, amt + rounding_balance))
                 if rounding_balance:
                     account_id = line.rounding_id.account_id
-                    rounding.append((account_id.id, rounding_balance))
+                    add_to_tax = line.rounding_id.strategy == 'biggest_tax'
+                    rounding.append((account_id.id, rounding_balance, add_to_tax))
 
                 # Update values
                 max_date = max(max_date, next_date_str)

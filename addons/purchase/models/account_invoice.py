@@ -110,12 +110,12 @@ class AccountInvoice(models.Model):
         return res
 
     @api.model
-    def invoice_line_move_line_get(self, invoice_line_ids):
-        res = super(AccountInvoice, self).invoice_line_move_line_get(invoice_line_ids)
+    def invoice_line_move_line_get(self):
+        res = super(AccountInvoice, self).invoice_line_move_line_get()
 
         if self.env.user.company_id.anglo_saxon_accounting:
             if self.type in ['in_invoice', 'in_refund']:
-                for i_line in invoice_line_ids:
+                for i_line in self.invoice_line_ids:
                     res.extend(self._anglo_saxon_purchase_move_lines(i_line, res))
         return res
 
