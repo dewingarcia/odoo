@@ -42,10 +42,10 @@ class AccountInvoice(models.Model):
     _order = "date_invoice desc, number desc, id desc"
 
     @api.one
-    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'tax_line_ids.amount_rounding', 'currency_id', 'company_id', 'date_invoice')
+    @api.depends('invoice_line_ids.price_subtotal', 'tax_line_ids.amount', 'currency_id', 'company_id', 'date_invoice')
     def _compute_amount(self):
         self.amount_untaxed = sum(line.price_subtotal for line in self.invoice_line_ids)
-        self.amount_tax = sum(line.get_total_amount() for line in self.tax_line_ids)
+        self.amount_tax = sum(line.amount for line in self.tax_line_ids)
         self.amount_total = self.amount_untaxed + self.amount_tax
         amount_total_company_signed = self.amount_total
         amount_untaxed_signed = self.amount_untaxed
@@ -720,12 +720,10 @@ class AccountInvoice(models.Model):
         return []
 
     @api.multi
-    def get_payment_term_move_line_values(self, total, total_currency, tl_move_line_values):
+    def get_payment_term_move_line_values(self, total, total_currency):
         self.ensure_one()
-        rounding_move_line_values = []
+        il_move_line_values = []
         pt_move_line_values = []
-        biggest_tax_line = None
-        adjust_tax_line_amount = 0
         pay_term_name = self.name or '/'
         if self.payment_term_id:
             res_pay_term = self.payment_term_id.compute(total, date_ref=self.date_invoice, currency=self.currency_id.id)
@@ -735,16 +733,8 @@ class AccountInvoice(models.Model):
             # Compute rounding_lines
             if rounding_lines:
                 for account_id, rounding_balance, add_to_tax in rounding_lines:
-                    if add_to_tax and tl_move_line_values:
-                        # Look for the biggest tax line
-                        if not biggest_tax_line:
-                            for line in tl_move_line_values:
-                                if not biggest_tax_line or line['price_unit'] > biggest_tax_line['price_unit']:
-                                    biggest_tax_line = line
-                        # Increment amount to adjust to the tax line
-                        adjust_tax_line_amount += rounding_balance
-                        continue
-
+                    if add_to_tax:
+                        pass # TODO
                     # Create additional invoice lines
                     invoice_line_id = self.env['account.invoice.line'].create({
                         'name': _('Rounding'),
@@ -753,24 +743,10 @@ class AccountInvoice(models.Model):
                         'price_unit': rounding_balance,
                         'sequence': 9999  # always last line
                     })
-                    rounding_move_line_values.extend(invoice_line_id.get_move_line_values())
+                    il_move_line_values.extend(invoice_line_id.get_move_line_values())
 
-            # Update totals due to rounding into biggest tax line
-            if biggest_tax_line and adjust_tax_line_amount:
-                minus_total, minus_total_currency = self.compute_move_lines_totals([biggest_tax_line])
-                total -= minus_total
-                total_currency -= minus_total_currency
-                tax_line_id = self.env['account.invoice.tax'].browse(biggest_tax_line['invoice_tax_line_id'])
-                tax_line_id.amount_rounding += adjust_tax_line_amount
-                new_tl_move_line_values = tax_line_id.get_move_line_values()
-                add_total, add_total_currency = self.compute_move_lines_totals(new_tl_move_line_values)
-                total += add_total
-                total_currency += add_total_currency
-                # Update values on original move line values
-                biggest_tax_line.update(new_tl_move_line_values[0])
-
-            # Update totals due to rounding into new invoice lines
-            add_total, add_total_currency = self.compute_move_lines_totals(rounding_move_line_values)
+            # Update totals
+            add_total, add_total_currency = self.compute_move_lines_totals(il_move_line_values)
             total += add_total
             total_currency += add_total_currency
 
@@ -809,7 +785,7 @@ class AccountInvoice(models.Model):
                 'invoice_id': self.id
             })
 
-        return total, total_currency, pt_move_line_values, rounding_move_line_values
+        return total, total_currency, pt_move_line_values, il_move_line_values
 
     def inv_line_characteristic_hashcode(self, invoice_line):
         """Overridable hashcode generation for invoice lines. Lines having the same hashcode
@@ -878,8 +854,7 @@ class AccountInvoice(models.Model):
             total, total_currency = inv.compute_move_lines_totals(move_line_values)
 
             # create move_line_values (payment_term_id) & update totals
-            total, total_currency, pt_move_line_values, rounding_move_line_values = \
-                inv.with_context(ctx).get_payment_term_move_line_values(total, total_currency, tl_move_line_values)
+            total, total_currency, pt_move_line_values, rounding_move_line_values = inv.with_context(ctx).get_payment_term_move_line_values(total, total_currency)
 
             iml = move_line_values + pt_move_line_values + rounding_move_line_values
 
@@ -1424,11 +1399,6 @@ class AccountInvoiceTax(models.Model):
     _description = "Invoice Tax"
     _order = 'sequence'
 
-    @api.model
-    def get_total_amount(self):
-        self.ensure_one()
-        return self.amount + self.amount_rounding
-
     @api.multi
     def get_move_line_values(self):
         res = []
@@ -1450,16 +1420,15 @@ class AccountInvoiceTax(models.Model):
                 done_taxes = [(6, 0, done_taxes)]
 
             invoice_id = invoice_tax_id.invoice_id
-            amount = invoice_tax_id.get_total_amount()
 
             move_line_dict = {
                 'invoice_tax_line_id': invoice_tax_id.id,
                 'tax_line_id': tax_id.id,
                 'type': 'tax',
                 'name': invoice_tax_id.name,
-                'price_unit': amount,
+                'price_unit': invoice_tax_id.amount,
                 'quantity': 1,
-                'price': amount,
+                'price': invoice_tax_id.amount,
                 'account_id': invoice_tax_id.account_id.id,
                 'account_analytic_id': invoice_tax_id.account_analytic_id.id,
                 'invoice_id': invoice_id.id,
@@ -1467,7 +1436,7 @@ class AccountInvoiceTax(models.Model):
             }
 
             # Update with values related to the currency
-            currency_move_line_dict = invoice_id.get_currency_move_line_values(amount)
+            currency_move_line_dict = invoice_id.get_currency_move_line_values(invoice_tax_id.amount)
             move_line_dict.update(currency_move_line_dict)
 
             # Change sign price according to invoice type
@@ -1506,7 +1475,7 @@ class AccountInvoiceTax(models.Model):
     company_id = fields.Many2one('res.company', string='Company', related='account_id.company_id', store=True, readonly=True)
     currency_id = fields.Many2one('res.currency', related='invoice_id.currency_id', store=True, readonly=True)
     base = fields.Monetary(string='Base', compute='_compute_base_amount', store=True)
-    amount_rounding = fields.Monetary('Rounding', help='Alter the move line amount values to handle rounding.', copy=False)
+
 
 
 
