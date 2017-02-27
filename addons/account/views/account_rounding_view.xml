@@ -21,7 +21,7 @@
 							<field name="name"/>
 							<field name="rounding"/>
 							<field name="strategy"/>
-							<field name="account_id" attrs="{'invisible': [('strategy', '=', 'add_invoice_line')]}"/>
+							<field name="account_id" attrs="{'invisible': [('strategy', '!=', 'add_invoice_line')], 'required': [('strategy', '=', 'add_invoice_line')]}"/>
 							<field name="rounding_method"/>
 						</group>
 					</sheet>
