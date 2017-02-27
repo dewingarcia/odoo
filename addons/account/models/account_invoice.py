@@ -1520,7 +1520,7 @@ class AccountPaymentTermLine(models.Model):
         )
     payment_id = fields.Many2one('account.payment.term', string='Payment Terms', required=True, index=True, ondelete='cascade')
     sequence = fields.Integer(default=10, help="Gives the sequence order when displaying a list of payment terms lines.")
-    rounding_id = fields.Many2one('account.rounding', string='Rounding method', help='The smallest coinage of the currency')
+    rounding_id = fields.Many2one('account.cash.rounding', string='Rounding method', help='The smallest coinage of the currency')
 
     @api.one
     @api.constrains('value', 'value_amount')

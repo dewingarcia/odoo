@@ -39,13 +39,13 @@ class TestAccountInvoiceRounding(AccountTestUsers):
 
     def test_01_rounding(self):
         '''Pay 50% (Rounding up)/ 50% (Rounding down)'''
-        rounding_method_up = self.env['account.rounding'].create({
+        rounding_method_up = self.env['account.cash.rounding'].create({
             'name': 'rounding UP 1',
             'rounding': 1.0,
             'account_id': self.account_receivable.id,
             'rounding_method': 'UP',
         })
-        rounding_method_down = self.env['account.rounding'].create({
+        rounding_method_down = self.env['account.cash.rounding'].create({
             'name': 'rounding DOWN 1',
             'rounding': 1.0,
             'account_id': self.account_receivable.id,
@@ -73,7 +73,7 @@ class TestAccountInvoiceRounding(AccountTestUsers):
 
     def test_02_rounding(self):
         '''Pay 100% with rounding half-up'''
-        rounding_method_half_up = self.env['account.rounding'].create({
+        rounding_method_half_up = self.env['account.cash.rounding'].create({
             'name': 'rounding HALF-UP 1',
             'rounding': 0.05,
             'account_id': self.account_receivable.id,
@@ -96,7 +96,7 @@ class TestAccountInvoiceRounding(AccountTestUsers):
 
     def test_03_rounding(self):
         '''Pay 100% but ignore rounding with zero value'''
-        rounding_method_half_up = self.env['account.rounding'].create({
+        rounding_method_half_up = self.env['account.cash.rounding'].create({
             'name': 'rounding HALF-UP 1',
             'rounding': 0.00,
             'account_id': self.account_receivable.id,

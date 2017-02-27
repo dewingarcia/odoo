@@ -2,8 +2,8 @@
 <odoo>
     <data>
         <record id="rounding_list_action" model="ir.actions.act_window">
-			<field name="name">account.rounding.actions</field>
-			<field name="res_model">account.rounding</field>
+			<field name="name">account.cash.rounding.actions</field>
+			<field name="res_model">account.cash.rounding</field>
 			<field name="view_type">form</field>
 			<field name="view_mode">tree,form</field>
 			<field name="help" type="html">
@@ -12,15 +12,16 @@
 		</record>
 
 		<record id="rounding_form_view" model="ir.ui.view">
-			<field name="name">account.rounding.form</field>
-			<field name="model">account.rounding</field>
+			<field name="name">account.cash.rounding.form</field>
+			<field name="model">account.cash.rounding</field>
 			<field name="arch" type="xml">
 				<form string="Rounding Form">
 					<sheet>
 						<group>
 							<field name="name"/>
 							<field name="rounding"/>
-							<field name="account_id"/>
+							<field name="strategy"/>
+							<field name="account_id" attrs="{'invisible': [('strategy', '=', 'add_invoice_line')]}"/>
 							<field name="rounding_method"/>
 						</group>
 					</sheet>
@@ -29,8 +30,8 @@
 		</record>
 
 		<record id="rounding_search_view" model="ir.ui.view">
-			<field name="name">account.rounding.search</field>
-			<field name="model">account.rounding</field>
+			<field name="name">account.cash.rounding.search</field>
+			<field name="model">account.cash.rounding</field>
 			<field name="arch" type="xml">
 				<search>
 					<field name="name"/>
@@ -39,12 +40,13 @@
 		</record>
 
 		<record id="rounding_tree_view" model="ir.ui.view">
-			<field name="name">account.rounding.tree</field>
-			<field name="model">account.rounding</field>
+			<field name="name">account.cash.rounding.tree</field>
+			<field name="model">account.cash.rounding</field>
 			<field name="arch" type="xml">
 				<tree string="Rounding Tree">
 					<field name="name"/>
                     <field name="rounding"/>
+					<field name="account_id"/>
                     <field name="account_id"/>
                     <field name="rounding_method"/>
 				</tree>
