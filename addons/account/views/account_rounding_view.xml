@@ -22,7 +22,6 @@
 							<field name="rounding"/>
 							<field name="account_id"/>
 							<field name="rounding_method"/>
-							<field name="add_to_tax"/>
 						</group>
 					</sheet>
 				</form>
@@ -48,7 +47,6 @@
                     <field name="rounding"/>
                     <field name="account_id"/>
                     <field name="rounding_method"/>
-					<field name="add_to_tax"/>
 				</tree>
 			</field>
 		</record>

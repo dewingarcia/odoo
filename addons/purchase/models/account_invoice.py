@@ -109,12 +109,13 @@ class AccountInvoice(models.Model):
                 self.journal_id = default_journal_id
         return res
 
-    @api.multi
-    def get_additional_move_line_values(self):
-        res = super(AccountInvoice, self).get_additional_move_line_values()
+    @api.model
+    def invoice_line_move_line_get(self, invoice_line_ids):
+        res = super(AccountInvoice, self).invoice_line_move_line_get(invoice_line_ids)
+
         if self.env.user.company_id.anglo_saxon_accounting:
             if self.type in ['in_invoice', 'in_refund']:
-                for i_line in self.invoice_line_ids:
+                for i_line in invoice_line_ids:
                     res.extend(self._anglo_saxon_purchase_move_lines(i_line, res))
         return res
 
