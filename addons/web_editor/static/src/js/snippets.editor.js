@@ -961,6 +961,9 @@ data.Editor = Class.extend({
             this.$overlay.find(".oe_snippet_move, .oe_snippet_clone").addClass('hidden');
         }
 
+        if (!$styles.find('li.dropdown-submenu').length && !$styles.find('li.o_parent_editor_header').length) {
+            $styles.hide();
+        }
         this.$overlay.find('[data-toggle="dropdown"]').dropdown();
     },
 
