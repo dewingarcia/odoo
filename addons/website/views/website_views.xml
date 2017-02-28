@@ -2,11 +2,11 @@
 <odoo>
     <data>
         <!-- Menu items -->
-        <menuitem name="Website Admin"
+        <menuitem name="Website"
             id="menu_website_configuration"
             sequence="9"
-            groups="website.group_website_publisher"
-            web_icon="website,static/description/icon_admin.png"/>
+            groups="base.group_user"
+            web_icon="website,static/description/icon.png"/>
 
         <!-- website views -->
         <record id="view_website_form" model="ir.ui.view">
