@@ -860,13 +860,6 @@ function eval_domains(domains, evaluation_context) {
             result_domain.push.apply(
                 result_domain, py.eval(domain.__debug, wrap_context(evaluation_context)));
             break;
-        case 'compound_domain':
-            var eval_context = eval_contexts([domain.__eval_context]);
-            result_domain.push.apply(
-                result_domain, eval_domains(
-                    domain.__domains, _.extend(
-                        {}, evaluation_context, eval_context)));
-            break;
         default:
             result_domain.push.apply(result_domain, domain);
         }
@@ -952,7 +945,7 @@ function pyeval(type, object, context) {
 function eval_arg(arg) {
     if (typeof arg !== 'object' || !arg.__ref) { return arg; }
     switch(arg.__ref) {
-    case 'domain': case 'compound_domain':
+    case 'domain':
         return pyeval('domains', [arg]);
     case 'context': case 'compound_context':
         return pyeval('contexts', [arg]);
