@@ -855,8 +855,7 @@ class AccountInvoice(models.Model):
                                     biggest_tax_line_id = self.env['account.invoice.tax'].browse(biggest_tl_move_line_values['invoice_tax_line_id'])
 
                             # Increment amount to adjust to the tax line
-                            if biggest_tax_line_id:
-                                biggest_tax_line_id.amount_rounding += rounding_balance
+                            biggest_tax_line_id.amount_rounding += rounding_balance
                             continue
 
                         # Create additional invoice lines
