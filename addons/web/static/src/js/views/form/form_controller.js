@@ -248,7 +248,7 @@ var FormController = BasicController.extend({
             model: record.model,
             record_id: recordID,
             on_closed: function (reason) {
-                if (!_.isObject(reason)) {
+                if (!self.isDestroyed() && !_.isObject(reason)) {
                     return self.reload();
                 }
             },
