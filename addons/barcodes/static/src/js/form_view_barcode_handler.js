@@ -1,6 +1,8 @@
 odoo.define('barcodes.FormViewBarcodeHandler', function(require) {
 "use strict";
 
+return;
+
 var core = require('web.core');
 var concurrency = require('web.concurrency');
 var BarcodeEvents = require('barcodes.BarcodeEvents');
