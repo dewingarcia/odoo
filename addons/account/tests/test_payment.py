@@ -38,8 +38,6 @@ class TestPayment(AccountingTestCase):
 
     def create_invoice(self, amount=100, type='out_invoice', currency_id=None, partner=None):
         """ Returns an open invoice """
-        if not partner:
-            partner = self.partner_agrolait.id
         invoice = self.invoice_model.create({
             'partner_id': partner,
             'reference_type': 'none',
@@ -115,8 +113,8 @@ class TestPayment(AccountingTestCase):
 
     def test_full_payment_process(self):
         """ Create a payment for two invoices, post it and reconcile it with a bank statement """
-        inv_1 = self.create_invoice(amount=100, currency_id=self.currency_eur_id)
-        inv_2 = self.create_invoice(amount=200, currency_id=self.currency_eur_id)
+        inv_1 = self.create_invoice(amount=100, currency_id=self.currency_eur_id, partner=self.partner_agrolait.id)
+        inv_2 = self.create_invoice(amount=200, currency_id=self.currency_eur_id, partner=self.partner_agrolait.id)
 
         ctx = { 'active_model': 'account.invoice', 'active_ids': [inv_1.id, inv_2.id] }
         register_payments = self.register_payments_model.with_context(ctx).create({
@@ -190,12 +188,12 @@ class TestPayment(AccountingTestCase):
     def test_multiple_payments(self):
         """ Create test to pay several vendor bills/invoices at once """
         # One payment for inv_1 and inv_2 (same partner)
-        inv_1 = self.create_invoice(amount=100, currency_id=self.currency_eur_id)
-        inv_2 = self.create_invoice(amount=500, currency_id=self.currency_eur_id)
+        inv_1 = self.create_invoice(amount=100, currency_id=self.currency_eur_id, partner=self.partner_agrolait.id)
+        inv_2 = self.create_invoice(amount=500, currency_id=self.currency_eur_id, partner=self.partner_agrolait.id)
         # One payment for inv_3 (different partner)
         inv_3 = self.create_invoice(amount=200, currency_id=self.currency_eur_id, partner=self.partner_china_exp.id)
         # One payment for inv_4 (Vendor Bill)
-        inv_4 = self.create_invoice(amount=50, currency_id=self.currency_eur_id, type='in_invoice')
+        inv_4 = self.create_invoice(amount=50, currency_id=self.currency_eur_id, partner=self.partner_agrolait.id, type='in_invoice')
 
         ids = [inv_1.id, inv_2.id, inv_3.id, inv_4.id]
         register_payments = self.register_payments_model.with_context(active_ids=ids).create({
@@ -237,21 +235,25 @@ class TestPayment(AccountingTestCase):
             {'account_id': self.account_eur.id, 'debit': 600.0, 'credit': 0.0, 'amount_currency': 0.0, 'currency_id': False},
             {'account_id': inv_1.account_id.id, 'debit': 0.0, 'credit': 600.0, 'amount_currency': 0.0, 'currency_id': False},
         ])
+        self.assertEqual(inv_1.state, 'paid')
+        self.assertEqual(inv_2.state, 'paid')
 
         self.check_journal_items(inv_3_pay.move_line_ids, [
             {'account_id': self.account_eur.id, 'debit': 200.0, 'credit': 0.0, 'amount_currency': 0.0, 'currency_id': False},
             {'account_id': inv_1.account_id.id, 'debit': 0.0, 'credit': 200.0, 'amount_currency': 0.0, 'currency_id': False},
         ])
+        self.assertEqual(inv_3.state, 'paid')
 
         self.check_journal_items(inv_4_pay.move_line_ids, [
             {'account_id': self.account_eur.id, 'debit': 0.0, 'credit': 50.0, 'amount_currency': 0.0, 'currency_id': False},
             {'account_id': inv_1.account_id.id, 'debit': 50.0, 'credit': 0.0, 'amount_currency': 0.0, 'currency_id': False},
         ])
+        self.assertEqual(inv_4.state, 'paid')
 
     def test_partial_payment(self):
         """ Create test to pay invoices (cust. inv + vendor bill) with partial payment """
         # Test Customer Invoice
-        inv_1 = self.create_invoice(amount=600, currency_id=self.currency_eur_id)
+        inv_1 = self.create_invoice(amount=600, currency_id=self.currency_eur_id, partner=self.partner_agrolait.id)
         ids = [inv_1.id]
         register_payments = self.register_payments_model.with_context(active_ids=ids).create({
             'payment_date': time.strftime('%Y') + '-07-15',

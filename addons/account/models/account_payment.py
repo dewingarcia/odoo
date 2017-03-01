@@ -79,12 +79,12 @@ class account_abstract_payment(models.AbstractModel):
         return {}
 
     @api.model
-    def _compute_total_invoices_amount(self, invoice_ids):
+    def _compute_total_invoices_amount(self):
         """ Compute the sum of the residual of invoices, expressed in the payment currency """
         payment_currency = self.currency_id or self.journal_id.currency_id or self.journal_id.company_id.currency_id
 
         total = 0
-        for inv in invoice_ids:
+        for inv in self.invoice_ids:
             if inv.currency_id == payment_currency:
                 total += inv.residual_company_signed
             else:
@@ -99,7 +99,7 @@ class account_register_payments(models.TransientModel):
     _description = "Register payments on multiple invoices"
 
     invoice_ids = fields.Many2many('account.invoice', string='Invoices', copy=False)
-    multi = fields.Boolean(string='Multi', help='Indicate if mixin multiple partner or partner_type.')
+    multi = fields.Boolean(string='Multi', help='Technical field indicating if the user selected invoices from multiple partners or from different types.')
 
     @api.onchange('payment_type')
     def _onchange_payment_type(self):
@@ -145,14 +145,16 @@ class account_register_payments(models.TransientModel):
 
         total_amount = self._compute_payment_amount(invoice_ids)
 
-        rec['partner_id'] = False if multi else invoice_ids[0].commercial_partner_id.id
-        rec['partner_type'] = False if multi else MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type]
-        rec['invoice_ids'] = [(6, 0, invoice_ids.ids)]
-        rec['multi'] = multi
-        rec['amount'] = abs(total_amount)
-        rec['currency_id'] = invoice_ids[0].currency_id.id
-        rec['payment_type'] = total_amount > 0 and 'inbound' or 'outbound'
-        rec['communication'] = ' '.join([ref for ref in invoice_ids.mapped('reference') if ref])
+        rec.update({
+            'amount': abs(total_amount),
+            'currency_id': invoice_ids[0].currency_id.id,
+            'payment_type': total_amount > 0 and 'inbound' or 'outbound',
+            'partner_id': False if multi else invoice_ids[0].commercial_partner_id.id,
+            'partner_type': False if multi else MAP_INVOICE_TYPE_PARTNER_TYPE[invoice_ids[0].type],
+            'communication': ' '.join([ref for ref in invoice_ids.mapped('reference') if ref]),
+            'invoice_ids': [(6, 0, invoice_ids.ids)],
+            'multi': multi,
+        })
         return rec
 
     @api.model
@@ -247,12 +249,11 @@ class account_payment(models.Model):
         if len(invoice_ids) == 0:
             return
         if invoice_ids[0].type in ['in_invoice', 'out_refund']:
-            self.payment_difference = self.amount - self._compute_total_invoices_amount(invoice_ids)
+            self.payment_difference = self.amount - self._compute_total_invoices_amount()
         else:
-            self.payment_difference = self._compute_total_invoices_amount(invoice_ids) - self.amount
+            self.payment_difference = self._compute_total_invoices_amount() - self.amount
 
     company_id = fields.Many2one(store=True)
-
     name = fields.Char(readonly=True, copy=False, default="Draft Payment") # The name is attributed upon post()
     state = fields.Selection([('draft', 'Draft'), ('posted', 'Posted'), ('sent', 'Sent'), ('reconciled', 'Reconciled'), ('cancel', 'Cancelled')], readonly=True, default='draft', copy=False, string="Status")
 
@@ -326,9 +327,6 @@ class account_payment(models.Model):
             rec['partner_id'] = invoice['partner_id'][0]
             rec['amount'] = invoice['residual']
         return rec
-
-    def _get_invoices(self):
-        return self.invoice_ids
 
     @api.multi
     def button_journal_entries(self):
@@ -462,7 +460,7 @@ class account_payment(models.Model):
             # the writeoff debit and credit must be computed from the invoice residual in company currency
             # minus the payment amount in company currency, and not from the payment difference in the payment currency
             # to avoid loss of precision during the currency rate computations. See revision 20935462a0cabeb45480ce70114ff2f4e91eaf79 for a detailed example.
-            total_residual_company_signed = self._compute_total_invoices_amount(self.invoice_ids)
+            total_residual_company_signed = self._compute_total_invoices_amount()
             total_payment_company_signed = self.currency_id.with_context(date=self.payment_date).compute(self.amount, self.company_id.currency_id)
             if self.invoice_ids[0].type in ['in_invoice', 'out_refund']:
                 amount_wo = total_payment_company_signed - total_residual_company_signed
