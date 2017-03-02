@@ -59,8 +59,6 @@ class WebsiteConfigSettings(models.TransientModel):
     order_mail_template = fields.Many2one('mail.template', string='Order Confirmation Email',
         default=_default_order_mail_template, domain="[('model', '=', 'sale.order')]",
         help="Email sent to customer at the end of the checkout process")
-    group_show_price_subtotal = fields.Boolean("Show subtotal", implied_group='sale.group_show_price_subtotal')
-    group_show_price_total = fields.Boolean("Show total", implied_group='sale.group_show_price_total')
 
     default_invoice_policy = fields.Selection([
         ('order', 'Ordered quantities'),
@@ -68,11 +66,6 @@ class WebsiteConfigSettings(models.TransientModel):
         ], 'Invoicing Policy', default='order')
 
     group_multi_currency = fields.Boolean(string='Multi-Currencies', implied_group='base.group_multi_currency')
-
-    sale_show_tax = fields.Selection([
-        ('total', 'Tax-Included Prices'),
-        ('subtotal', 'Tax-Excluded Prices')],
-        "Product Prices", default='total')
 
     @api.model
     def get_default_sale_delivery_settings(self, fields):
@@ -97,11 +90,6 @@ class WebsiteConfigSettings(models.TransientModel):
             sale_pricelist_setting = 'percentage'
         return self.env['ir.values'].sudo().set_default(
             'sale.config.settings', 'sale_pricelist_setting', sale_pricelist_setting)
-
-    @api.multi
-    def set_sale_tax_defaults(self):
-        return self.env['ir.values'].sudo().set_default(
-            'website.config.settings', 'sale_show_tax', self.sale_show_tax)
 
     @api.onchange('sale_delivery_settings')
     def _onchange_sale_delivery_settings(self):
@@ -150,9 +138,9 @@ class WebsiteConfigSettings(models.TransientModel):
                     'group_pricelist_item': True,
                 })
 
-    @api.onchange('sale_show_tax')
-    def _onchange_sale_tax(self):
-        if self.sale_show_tax == "subtotal":
+    @api.onchange('default_sale_show_tax')
+    def _onchange_default_sale_tax(self):
+        if self.default_sale_show_tax == "subtotal":
             self.update({
                 'group_show_price_total': False,
                 'group_show_price_subtotal': True,

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo> 
+    <!-- Res config data -->
+
+    <record id="account.set_default_tax_included" model="res.config.settings">
+        <field name="default_sale_show_tax">subtotal</field>
+        <field name="group_show_price_total" eval="False"/>
+        <field name="group_show_price_subtotal" eval="True"/>
+    </record>
+
+    <function model="res.config.settings" name="execute"
+         eval="[[ref('account.set_default_tax_included')]]"/>
+</odoo>
