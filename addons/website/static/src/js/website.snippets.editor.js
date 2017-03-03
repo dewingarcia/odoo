@@ -232,6 +232,10 @@ options.registry.carousel = options.registry.slider.extend({
                 s_option.$target = self.$target.find(".item.active");
                 s_option.set_active();
                 s_option.$target.trigger("snippet-option-change", [s_option]);
+                if (opt_name == 'background') {
+                    s_option.bind_bg_events();
+                }
+
             });
         });
         this.$target.trigger('slid.bs.carousel');
