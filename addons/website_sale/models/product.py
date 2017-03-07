@@ -116,7 +116,7 @@ class ProductTemplate(models.Model):
     alternative_product_ids = fields.Many2many('product.template', 'product_alternative_rel', 'src_id', 'dest_id',
                                                string='Alternative Products', help='Suggest more expensive alternatives to '
                                                'your customers (upsell strategy). Those products show up on the product page.')
-    accessory_product_ids = fields.Many2many('product.product', 'product_accessory_rel', 'src_id', 'dest_id',
+    accessory_product_ids = fields.Many2many('product.template', 'template_accessory_rel', 'src_id', 'dest_id',
                                              string='Accessory Products', help='Accessories show up when the customer reviews the '
                                              'cart before paying (cross-sell strategy, e.g. for computers: mouse, keyboard, etc.). '
                                              'An algorithm figures out a list of accessories based on all the products added to cart.')
@@ -173,6 +173,24 @@ class ProductTemplate(models.Model):
             next_prodcut_tmpl.website_sequence, self.website_sequence = self.website_sequence, next_prodcut_tmpl.website_sequence
         else:
             return self.set_sequence_bottom()
+
+    def drag_drop_product_up(self, sequence, dragged_product_sequence, target_product_id):
+        if sequence is not dragged_product_sequence:
+            next_product_tmpl = self.search([('website_sequence', '<=', sequence), ('website_sequence', '>', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
+        else:
+            next_product_tmpl = self.sudo().search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
+        self.website_sequence = sequence
+        for x in next_product_tmpl:
+            x.website_sequence = x.website_sequence - 1
+
+    def drag_drop_product_down(self, sequence, dragged_product_sequence, target_product_id):
+        if sequence is not dragged_product_sequence:
+            prev_product_tmpl = self.search([('website_sequence', '>', sequence), ('website_sequence', '<', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
+        else:
+            prev_product_tmpl = self.sudo().search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
+        self.website_sequence = sequence + 1
+        for x in prev_product_tmpl:
+            x.website_sequence = x.website_sequence + 1
 
     @api.multi
     def _compute_website_url(self):

@@ -35,7 +35,7 @@ tour.register('shop_buy_product', {
         },
         {
             content: "add suggested",
-            extra_trigger: '#wrap:not(:has(#cart_products:contains("[A8767] Apple In-Ear Headphones")))',
+            extra_trigger: '#wrap:not(:has(#cart_products:contains("Case cover")))',
             trigger: '.oe_cart:has(tr:contains("32 GB")) a:contains("Add to Cart")',
         },
         {
@@ -46,11 +46,11 @@ tour.register('shop_buy_product', {
         {
             content: "remove Headphones",
             extra_trigger: '#cart_products tr:contains("32 GB") input.js_quantity:propValue(2)',
-            trigger: '#cart_products tr:contains("Apple In-Ear Headphones") a.js_add_cart_json:first',
+            trigger: '#cart_products tr:contains("Case cover") a.js_add_cart_json:first',
         },
         {
             content: "set one iPod",
-            extra_trigger: '#wrap:not(:has(#cart_products tr:contains("Apple In-Ear Headphones")))',
+            extra_trigger: '#wrap:not(:has(#cart_products tr:contains("Case cover")))',
             trigger: '#cart_products input.js_quantity',
             run: 'text 1',
         },

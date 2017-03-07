@@ -157,7 +157,7 @@ class SaleOrder(models.Model):
         """ Suggest accessories based on 'Accessory Products' of products in cart """
         for order in self:
             accessory_products = order.website_order_line.mapped('product_id.accessory_product_ids').filtered(lambda product: product.website_published)
-            accessory_products -= order.website_order_line.mapped('product_id')
+            accessory_products -= order.website_order_line.mapped('product_id').mapped('product_tmpl_id')
             return random.sample(accessory_products, len(accessory_products))
 
 

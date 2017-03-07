@@ -307,6 +307,18 @@
             <field name="default_code">E-COM12</field>
             <field name="attribute_value_ids" eval="[(6,0,[ref('product.product_attribute_value_1')])]"/>
         </record>
+
+        <record id="product_template_1" model="product.template">
+            <field name="name">Case cover</field>
+            <field name="categ_id" ref="product_category_5"/>
+            <field name="standard_price">12.50</field>
+            <field name="list_price">14</field>
+            <field name="type">consu</field>
+            <field name="uom_id" ref="product_uom_unit"/>
+            <field name="uom_po_id" ref="product_uom_unit"/>
+            <field name="default_code">E-COVER12</field>
+        </record>
+
         <record id="product_product_11b" model="product.product">
             <field name="default_code">E-COM13</field>
             <field name="product_tmpl_id" ref="product_product_11_product_template"/>

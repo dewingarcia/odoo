@@ -197,6 +197,17 @@ class WebsiteSale(http.Controller):
         '/shop/category/<model("product.public.category"):category>/page/<int:page>'
     ], type='http', auth="public", website=True)
     def shop(self, page=0, category=None, search='', ppg=False, **post):
+        values = {}
+
+        prepare_bins = self.prepare_bins(page, category, search, ppg)
+
+        values.update(prepare_bins)
+        if category:
+            values['main_object'] = category
+        return request.render("website_sale.products", values)
+
+    def prepare_bins(self, page=0, category=None, search='', ppg=False, **post):
+        Product = request.env['product.template']
         if ppg:
             try:
                 ppg = int(ppg)
@@ -212,11 +223,8 @@ class WebsiteSale(http.Controller):
         attrib_set = set([v[1] for v in attrib_values])
 
         domain = self._get_search_domain(search, category, attrib_values)
-
         keep = QueryURL('/shop', category=category and int(category), search=search, attrib=attrib_list, order=post.get('order'))
-
         compute_currency, pricelist_context, pricelist = self._get_compute_currency_and_context()
-
         request.context = dict(request.context, pricelist=pricelist.id, partner=request.env.user.partner_id)
 
         url = "/shop"
@@ -229,8 +237,8 @@ class WebsiteSale(http.Controller):
             post['attrib'] = attrib_list
 
         categs = request.env['product.public.category'].search([('parent_id', '=', False)])
-        Product = request.env['product.template']
-
+        Categories = []
+        self.filter_categs(categs, Categories)
         parent_category_ids = []
         if category:
             parent_category_ids = [category.id]
@@ -242,33 +250,52 @@ class WebsiteSale(http.Controller):
         product_count = Product.search_count(domain)
         pager = request.website.pager(url=url, total=product_count, page=page, step=ppg, scope=7, url_args=post)
         products = Product.search(domain, limit=ppg, offset=pager['offset'], order=self._get_search_order(post))
-
         ProductAttribute = request.env['product.attribute']
         if products:
             attributes = ProductAttribute.search([('attribute_line_ids.product_tmpl_id', 'in', products.ids)])
         else:
             attributes = ProductAttribute.browse(attributes_ids)
-
+        bins = TableCompute().process(products, ppg)
         values = {
-            'search': search,
             'category': category,
+            'search': search,
             'attrib_values': attrib_values,
             'attrib_set': attrib_set,
+            'rows': PPR,
+            'compute_currency': compute_currency,
             'pager': pager,
-            'pricelist': pricelist,
             'products': products,
             'search_count': product_count,  # common for all searchbox
-            'bins': TableCompute().process(products, ppg),
-            'rows': PPR,
-            'categories': categs,
-            'attributes': attributes,
-            'compute_currency': compute_currency,
+            'bins': bins,
             'keep': keep,
+            'pricelist': pricelist,
+            'categories': categs,
+            'filtered_categs': Categories,
             'parent_category_ids': parent_category_ids,
+            'attributes': attributes,
         }
-        if category:
-            values['main_object'] = category
-        return request.render("website_sale.products", values)
+        return values
+
+    def filter_categs(self, categs, Categories):
+        Product = request.env['product.template']
+
+        def category_has_products(ctg):
+            if Product.search([('public_categ_ids', 'in', ctg.id)]):
+                return True
+            if (ctg.child_id):
+                result = False
+                for child_ctg in ctg.child_id:
+                    result = category_has_products(child_ctg)
+                    if result:
+                        break
+                return result
+            return False
+
+        for c in categs:
+            if c.child_id:
+                self.filter_categs(c.child_id, Categories)
+            if category_has_products(c):
+                Categories.append(c.id)
 
     @http.route(['/shop/product/<model("product.template"):product>'], type='http', auth="public", website=True)
     def product(self, product, category='', search='', **kwargs):
@@ -999,22 +1026,33 @@ class WebsiteSale(http.Controller):
 
         return not active
 
-    @http.route(['/shop/change_sequence'], type='json', auth="public")
-    def change_sequence(self, id, sequence):
-        product_tmpl = request.env['product.template'].browse(id)
-        if sequence == "top":
-            product_tmpl.set_sequence_top()
-        elif sequence == "bottom":
-            product_tmpl.set_sequence_bottom()
-        elif sequence == "up":
-            product_tmpl.set_sequence_up()
-        elif sequence == "down":
-            product_tmpl.set_sequence_down()
+    @http.route(['/shop/change_sequence/<model("product.template"):product>'], type='json', auth="public", website=True)
+    def change_sequence(self, product, sequence):
+        values = {}
+        getattr(product, 'set_sequence_' + sequence)()
+        prepare_bins = self.prepare_bins()
+        values.update(prepare_bins)
+        return {'template': request.env['ir.ui.view'].render_template("website_sale.product_table", values)}
 
-    @http.route(['/shop/change_size'], type='json', auth="public")
-    def change_size(self, id, x, y):
-        product = request.env['product.template'].browse(id)
+    @http.route(['/shop/drag_drop_change_sequence/<model("product.template"):product>'], type='json', auth="public", website=True)
+    def drag_drop_change_sequence(self, product, sequence, direction, dragged_product_sequence, target_product_id):
+        values = {}
+        getattr(product, 'drag_drop_product_' + direction)(sequence, dragged_product_sequence, target_product_id)
+        prepare_bins = self.prepare_bins()
+        values.update(prepare_bins)
+        return {'template': request.env['ir.ui.view'].render_template("website_sale.product_table", values)}
+
+    @http.route(['/shop/change_size/<model("product.template"):product>'], type='json', auth="public")
+    def change_size(self, product, x, y):
         return product.write({'website_size_x': x, 'website_size_y': y})
+
+    @http.route(['/shop/drag_and_drop_resize/<model("product.template"):product>'], type='json', auth="public", website=True)
+    def drag_and_drop_resize(self, product, x, y):
+        values = {}
+        product.write({'website_size_x': x, 'website_size_y': y})
+        prepare_bins = self.prepare_bins()
+        values.update(prepare_bins)
+        return {'template': request.env['ir.ui.view'].render_template("website_sale.product_table", values)}
 
     def order_lines_2_google_api(self, order_lines):
         """ Transforms a list of order lines into a dict for google analytics """

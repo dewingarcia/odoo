@@ -434,6 +434,10 @@ Weight: 10.2 grams
             </field>
         </record>
 
+        <record id="product.product_template_1" model="product.template">
+            <field name="website_published" eval="True"/>
+        </record>
+
         <record id="product.product_product_11" model="product.product">
             <field name="website_published" eval="True"/>
             <field name="description_sale">Height: 76.5 mm
@@ -536,7 +540,7 @@ Weight: 31 grams</field>
                     </div>
                 </section>
             </field>
-            <field name="accessory_product_ids" eval="[(6, 0, [ref('product.product_product_7')])]"/>
+            <field name="accessory_product_ids" eval="[(6, 0, [ref('product.product_template_1')])]"/>
         </record>
 
         <record id="item1" model="product.pricelist.item">
