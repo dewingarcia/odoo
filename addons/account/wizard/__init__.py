@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-
+import account_change_lock_date
 import account_reconcile
 import account_unreconcile
 import account_invoice_refund
