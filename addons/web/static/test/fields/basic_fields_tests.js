@@ -295,7 +295,7 @@ QUnit.module('basic_fields', {
     });
 
     QUnit.test('float field in form view', function(assert) {
-        assert.expect(5);
+        assert.expect(6);
 
         var form = createView({
             View: FormView,
@@ -322,6 +322,10 @@ QUnit.module('basic_fields', {
         assert.strictEqual(form.$('input.o_form_input').val(), '108.2458938598598',
             'The value should not be formated yet.')
 
+        form.$('input.o_form_input').trigger('focusout');
+        assert.strictEqual(form.$('input.o_form_input').val(), '108.246',
+            'The content of the field should be formatted when losing focus.')
+
         form.$('input.o_form_input').val('18.8958938598598').trigger('input');
         form.$buttons.find('.o_form_button_save').click();
         assert.strictEqual(form.$('.o_form_field.o_form_field_number').first().text(), '18.896',
@@ -331,7 +335,7 @@ QUnit.module('basic_fields', {
     });
 
     QUnit.test('float field in editable list view', function (assert) {
-        assert.expect(4);
+        assert.expect(5);
 
         var list = createView({
             View: ListView,
@@ -356,6 +360,10 @@ QUnit.module('basic_fields', {
         list.$('input.o_form_input').val('108.2458938598598').trigger('input');
         assert.strictEqual(list.$('input.o_form_input').val(), '108.2458938598598',
             'The value should not be formated yet.')
+
+        list.$('input.o_form_input').trigger('focusout');
+        assert.strictEqual(list.$('input.o_form_input').val(), '108.246',
+            'The content of the field should be formatted when losing focus.')
 
         list.$('input.o_form_input').val('18.8958938598598').trigger('input');
         list.$buttons.find('.o_list_button_save').click();

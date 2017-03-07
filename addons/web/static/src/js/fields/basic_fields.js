@@ -492,6 +492,9 @@ var FieldInteger = InputField.extend({
 
 var FieldFloat = InputField.extend({
     supportedFieldTypes: ['float'],
+    events: _.extend({}, InputField.prototype.events, {
+        'focusout': '_onFocusOut',
+    }),
 
     /**
      * Float fields have an additional precision parameter that is read from
@@ -538,6 +541,15 @@ var FieldFloat = InputField.extend({
         }
         var $span = $('<span>').addClass('o_form_field o_form_field_number').text(this._formatValue(value));
         this.$el.html($span);
+    },
+
+    /**
+     * Format the value when losing focus.
+     *
+     * @private
+     */
+    _onFocusOut: function () {
+        this._render();
     },
 });
 
