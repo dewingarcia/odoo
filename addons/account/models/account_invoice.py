@@ -843,6 +843,7 @@ class AccountInvoice(models.Model):
                 # Create additional invoice line to catch the rounding
                 if rounding:
                     biggest_tax_line_id = None
+                    invoice_line_vals = []
                     for rounding_account_id, rounding_balance, add_to_tax in rounding:
                         if add_to_tax and tl_move_line_values:
                             # Look for the biggest tax line
@@ -858,8 +859,11 @@ class AccountInvoice(models.Model):
                             biggest_tax_line_id.amount_rounding += rounding_balance
                             continue
 
+                        if not rounding_account_id:
+                            raise UserError(_('An account must be specified on the rounding to create a new rounding invoice line.'))
+
                         # Create additional invoice lines
-                        self.env['account.invoice.line'].create({
+                        invoice_line_vals.append({
                             'name': _('Rounding'),
                             'invoice_id': self.id,
                             'account_id': rounding_account_id,
@@ -867,6 +871,10 @@ class AccountInvoice(models.Model):
                             'is_rounding_line': True,
                             'sequence': 9999  # always last line
                         })
+
+                    # If error appears during the rounding, no additional invoice line must be created.
+                    for values in invoice_line_vals:
+                        self.env['account.invoice.line'].create(values)
 
                     # Recompute totals
                     il_move_line_values = inv.invoice_line_move_line_get()
