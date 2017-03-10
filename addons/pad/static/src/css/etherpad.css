@@ -21,6 +21,13 @@
     font-size: 14px;
 }
 
+/* for mobile */
+@media screen and (max-width: 650px) {
+    .oe_pad_switch{
+        left:249px;
+    }
+}
+
 .oe_pad_switch:hover{
     background-image: -webkit-linear-gradient(top, #f4f4f4, #e4e4e4);
 }
