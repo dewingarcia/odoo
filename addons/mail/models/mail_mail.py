@@ -238,6 +238,10 @@ class MailMail(models.Model):
                 _logger.info(
                     'Sent batch %s emails via mail server ID #%s',
                     len(batch_ids), server_id)
+            except:
+                self.browse(batch_ids)._send(
+                    auto_commit=auto_commit,
+                    raise_exception=raise_exception)
             finally:
                 if smtp_session:
                     smtp_session.quit()
