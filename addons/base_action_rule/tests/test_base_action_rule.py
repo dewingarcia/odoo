@@ -92,6 +92,16 @@ class base_action_rule_test(common.TransactionCase):
         self.assertTrue(lead.customer)
         self.assertEqual(lead.user_id, self.user_demo)
 
+    def test_11_recursive(self):
+        """ Check that a rule is executed recursively by a secondary change. """
+        lead = self.create_lead(state='open')
+        self.assertEqual(lead.state, 'open')
+        self.assertEqual(lead.user_id, self.user_admin)
+        # change partner; this should trigger the rule that modifies the state
+        partner = self.env.ref('base.res_partner_1')
+        lead.write({'partner_id': partner.id})
+        self.assertEqual(lead.state, 'draft')
+
     def test_20_direct_line(self):
         """
         Check that a rule is executed after creating a line record.
