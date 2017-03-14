@@ -928,6 +928,11 @@ var X2ManyViewManager = ViewManager.extend({
                     self.x2m.reload_current_view();
                 });
             },
+            unlink_function: function(id) {
+                return self.x2m.data_delete(id).done(function() {
+                    self.x2m.reload_current_view();
+                });
+            },
             alternative_form_view: self.x2m.field.views ? self.x2m.field.views.form : undefined,
             parent_view: self.x2m.view,
             child_name: self.x2m.name,

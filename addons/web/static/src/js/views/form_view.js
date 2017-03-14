@@ -720,6 +720,24 @@ var FormView = View.extend(common.FieldManagerMixin, {
         });
         return def.promise();
     },
+
+    on_button_remove: function() {
+        var self = this;
+        var def = $.Deferred();
+        this.has_been_loaded.done(function() {
+            if (self.datarecord.id && confirm(_t("Do you really want to delete this record?"))) {
+                self.dataset.unlink([self.datarecord.id])
+                    def.resolve();
+                    self.update_pager();
+            } else {
+                utils.async_when().done(function () {
+                    def.reject();
+                });
+            }
+        });
+        return def.promise();
+    },
+    
     can_be_discarded: function(message) {
         if (!this.$el.is('.oe_form_dirty')) {
             return $.Deferred().resolve();

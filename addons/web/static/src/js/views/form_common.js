@@ -838,6 +838,12 @@ var ViewDialog = Dialog.extend({ // FIXME should use ViewManager
                 self.trigger('write_completed saved', r);
             });
         };
+        this.dataset.unlink_function = function(id) {
+            var fct = self.options.unlink_function || sup;
+            return fct.call(this, id).done(function(r) {
+                self.trigger('unlink_completed saved', r);
+            });
+        };
         this.dataset.parent_view = this.options.parent_view;
         this.dataset.child_name = this.options.child_name;
 
@@ -891,6 +897,21 @@ var FormViewDialog = ViewDialog.extend({
                             self.view_form.reload_mutex.exec(function() {
                                 self.view_form.on_button_new();
                             });
+                        });
+                    }});
+                }
+
+                var is_edit = $(event.currentTarget).hasClass('o_kanban_record');
+                if(!readonly && !multi_select && is_edit){
+                    options.buttons.splice(0, 0, { text: _t("Remove") , classes: "btn-primary pull-right", click: function() {
+                        self.view_form.onchanges_mutex.def.then(function() {
+                            if (!self.view_form.warning_displayed) {
+                                $.when(self.view_form.on_button_remove()).done(function() {
+                                    self.view_form.reload_mutex.exec(function() {
+                                        self.close();
+                                    });
+                                });
+                            }
                         });
                     }});
                 }
