@@ -312,12 +312,17 @@ class Company(models.Model):
         self.clear_caches()
         company = super(Company, self).create(vals)
         partner.write({'company_id': company.id})
+        if vals.get('currency_id'):
+            company._active_company_currency(vals['currency_id'])
         return company
 
     @api.multi
     def write(self, values):
         self.clear_caches()
-        return super(Company, self).write(values)
+        res = super(Company, self).write(values)
+        if values.get('currency_id'):
+            self._active_company_currency(values['currency_id'])
+        return res
 
     @api.onchange('rml_paper_format')
     def _onchange_rml_paper_format(self):
@@ -335,3 +340,10 @@ class Company(models.Model):
     def _check_parent_id(self):
         if not self._check_recursion():
             raise ValidationError(_('Error ! You cannot create recursive companies.'))
+
+    @api.multi
+    def _active_company_currency(self, currency_id):
+        for company in self:
+            currency = self.env['res.currency'].browse(currency_id)
+            if not currency.active and company.currency_id.id == currency_id:
+                currency.active = True
