@@ -66,6 +66,15 @@ class PosOrder(models.Model):
                         closed_session.id,
                         order['name'],
                         order['amount_total'])
+        rescue_session = PosSession.search([
+            ('state', 'not in', ('closed', 'closing_control')),
+            ('rescue', '=', True),
+            ('config_id', '=', closed_session.config_id.id),
+        ], limit=1)
+        if rescue_session:
+            _logger.warning('reusing recovery session %s for saving order %s', (rescue_session.name, order['name']))
+            return rescue_session
+
         _logger.warning('attempting to create recovery session for saving order %s', order['name'])
         new_session = PosSession.create({
             'config_id': closed_session.config_id.id,

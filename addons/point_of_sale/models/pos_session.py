@@ -96,6 +96,10 @@ class PosSession(models.Model):
     order_ids = fields.One2many('pos.order', 'session_id',  string='Orders')
     statement_ids = fields.One2many('account.bank.statement', 'pos_session_id', string='Bank Statement', readonly=True)
     picking_count = fields.Integer(compute='_compute_picking_count')
+    rescue = fields.Boolean(string='Recovery Session',
+        help="Auto-generated session for orphan orders, ignored in constraints",
+        readonly=True,
+        copy=False)
 
     _sql_constraints = [('uniq_name', 'unique(name)', _("The name of this POS Session must be unique !"))]
 
@@ -130,12 +134,20 @@ class PosSession(models.Model):
     @api.constrains('user_id', 'state')
     def _check_unicity(self):
         # open if there is no session in 'opening_control', 'opened', 'closing_control' for one user
-        if self.search_count([('state', 'not in', ('closed', 'closing_control')), ('user_id', '=', self.user_id.id)]) > 1:
+        if self.search_count([
+            ('state', 'not in', ('closed', 'closing_control')),
+            ('user_id', '=', self.user_id.id),
+            ('rescue', '=', False)
+          ]) > 1:
             raise ValidationError(_("You cannot create two active sessions with the same responsible!"))
 
     @api.constrains('config_id')
     def _check_pos_config(self):
-        if self.search_count([('state', '!=', 'closed'), ('config_id', '=', self.config_id.id)]) > 1:
+        if self.search_count([
+            ('state', '!=', 'closed'),
+            ('config_id', '=', self.config_id.id),
+            ('rescue', '=', False)
+          ]) > 1:
             raise ValidationError(_("You cannot create two active sessions related to the same point of sale!"))
 
     @api.model
