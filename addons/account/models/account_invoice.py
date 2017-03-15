@@ -361,12 +361,10 @@ class AccountInvoice(models.Model):
     @api.multi
     def copy(self, default=None):
         self.ensure_one()
-        if not default:
-            default = {}
+        res = super(AccountInvoice, self).copy(default)
         # Rounding invoice lines shouldn't be copied.
-        if not 'invoice_line_ids' in default:
-            default['invoice_line_ids'] = [(6, 0, [l.id for l in self.invoice_line_ids if not l.is_rounding_line])]
-        return super(AccountInvoice, self).copy(default)
+        res.invoice_line_ids = [(6, 0, [l.id for l in res.invoice_line_ids if not l.is_rounding_line])]
+        return res
 
     @api.model
     def fields_view_get(self, view_id=None, view_type=False, toolbar=False, submenu=False):
