@@ -29,3 +29,65 @@ chat_manager.bus.on('new_message', null, function (msg) {
 });
 
 });
+
+odoo.define('im_livechat.form_widgets', function (require) {
+"use strict";
+
+var core = require('web.core');
+
+var FieldChar = core.form_widget_registry.get('char');
+var FieldText = core.form_widget_registry.get('text');
+
+var _t = core._t;
+var QWeb = core.qweb;
+
+var AbstractFieldCopyText = {
+    events: {
+        'click .o_clipboard_button': 'copy_text',
+    },
+
+    copy_text: function (event) {
+        var self = this;
+        var $clipboardBtn;
+        var clipboard;
+        $clipboardBtn = this.$('.o_clipboard_button');
+        $clipboardBtn.tooltip({title: _t('Copied !'), trigger: 'manual', placement: 'right'});
+        clipboard = new window.Clipboard('.o_clipboard_button', {
+            text: function () {
+                return self.get_copy_text();
+            }
+        });
+        clipboard.on('success', function () {
+            _.defer(function () {
+                $clipboardBtn.tooltip('show');
+                _.delay(function () {
+                    $clipboardBtn.tooltip('destroy');
+                }, 800);
+            });
+        });
+    },
+    get_copy_text: function () {
+        return this.get('value').trim();
+    }
+};
+
+var FieldCopyChar = FieldChar.extend(AbstractFieldCopyText, {
+    render_value: function() {
+        this._super.apply(this, arguments);
+        this.$el.addClass('o_field_copy');
+        this.$el.append($(QWeb.render('FieldCopyChar')));
+    }
+});
+
+var FieldCopyText = FieldText.extend(AbstractFieldCopyText, {
+    render_value: function() {
+        this._super.apply(this, arguments);
+        this.$el.addClass('o_field_copy');
+        this.$el.append($(QWeb.render('FieldCopyText')));
+    }
+});
+
+core.form_widget_registry
+    .add('FieldCopyChar', FieldCopyChar)
+    .add('FieldCopyText', FieldCopyText);
+});
