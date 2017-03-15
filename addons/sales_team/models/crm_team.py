@@ -278,13 +278,16 @@ class CrmTeam(models.Model):
     def create(self, values):
         team  = super(CrmTeam, self.with_context(mail_create_nosubscribe=True)).create(values)
         if values.get('member_ids'):
-            team.favorite_user_ids  = [(4, member.id) for member in team.member_ids]
+            team._set_favourite_team()
         return team
 
     @api.multi
     def write(self, values):
         res = super(CrmTeam, self).write(values)
         if values.get('member_ids'):
-            for team in self:
-                team.favorite_user_ids = [(4, member.id) for member in team.member_ids]
+            self._set_favourite_team()
         return res
+
+    def _set_favourite_team(self):
+        for team in self:
+            team.favorite_user_ids = [(4, member.id) for member in team.member_ids]
