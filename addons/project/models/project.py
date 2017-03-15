@@ -357,7 +357,7 @@ class Task(models.Model):
         ('normal', 'Grey'),
         ('done', 'Green'),
         ('blocked', 'Red')], string='Kanban State',
-        copy=False, default='normal', required=True, track_visibility='onchange',
+        copy=False, default='normal', required=True,
         help="A task's kanban state indicates special situations affecting it:\n"
              " * Grey is the default situation\n"
              " * Red indicates something is preventing the progress of this task\n"
@@ -403,6 +403,20 @@ class Task(models.Model):
     legend_blocked = fields.Char(related='stage_id.legend_blocked', string='Kanban Blocked Explanation', readonly=True)
     legend_done = fields.Char(related='stage_id.legend_done', string='Kanban Valid Explanation', readonly=True)
     legend_normal = fields.Char(related='stage_id.legend_normal', string='Kanban Ongoing Explanation', readonly=True)
+    # Below field will get appropritate label for kanban_state field, according to stage of the task.
+    kanban_state_label = fields.Char(compute='_compute_kanban_state_label', string='Kanban State', track_visibility='onchange')
+
+    @api.depends('stage_id', 'kanban_state')
+    def _compute_kanban_state_label(self):
+        for task in self:
+            # If legend value is not set on stage, we use the existing selection values
+            kanban_state_val = dict(self._fields['kanban_state'].selection).get(task.kanban_state)
+            if task.kanban_state == 'normal':
+                task.kanban_state_label = task.legend_normal or kanban_state_val
+            elif task.kanban_state == 'blocked':
+                task.kanban_state_label = task.legend_blocked or kanban_state_val
+            else:
+                task.kanban_state_label = task.legend_done or kanban_state_val
 
     @api.onchange('project_id')
     def _onchange_project(self):
@@ -561,9 +575,9 @@ class Task(models.Model):
     @api.multi
     def _track_subtype(self, init_values):
         self.ensure_one()
-        if 'kanban_state' in init_values and self.kanban_state == 'blocked':
+        if 'kanban_state_label' in init_values and self.kanban_state == 'blocked':
             return 'project.mt_task_blocked'
-        elif 'kanban_state' in init_values and self.kanban_state == 'done':
+        elif 'kanban_state_label' in init_values and self.kanban_state == 'done':
             return 'project.mt_task_ready'
         elif 'user_id' in init_values and self.user_id:  # assigned -> new
             return 'project.mt_task_new'
