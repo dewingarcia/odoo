@@ -298,7 +298,7 @@ exports.PosModel = Backbone.Model.extend({
     },{
         model: 'res.currency',
         fields: ['name','symbol','position','rounding'],
-        ids:    function(self){ return [self.default_pricelist.currency_id[0]]; },
+        ids:    function(self){ return [self.config.currency_id[0]]; },
         loaded: function(self, currencies){
             self.currency = currencies[0];
             if (self.currency.rounding > 0) {
