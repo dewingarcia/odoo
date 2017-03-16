@@ -289,7 +289,12 @@ exports.PosModel = Backbone.Model.extend({
         model:  'product.pricelist',
         fields: [],
         domain: function(self) { return [['currency_id', '=', self.config.currency_id[0]]]; },
-        loaded: function(self, pricelists){ self.default_pricelist = pricelists[0]; },
+        loaded: function(self, pricelists){
+            self.default_pricelist = _.find(pricelists, function (pricelist) {
+                return pricelist.id === self.config.pricelist_id[0];
+            });
+            self.pricelist_ids = pricelists;
+        },
     },{
         model: 'res.currency',
         fields: ['name','symbol','position','rounding'],
