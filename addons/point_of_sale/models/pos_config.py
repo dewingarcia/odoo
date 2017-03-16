@@ -119,7 +119,8 @@ class PosConfig(models.Model):
     pos_session_username = fields.Char(compute='_compute_current_session_user')
     group_by = fields.Boolean(string='Group Journal Items', default=True,
         help="Check this if you want to group the Journal Items by Product while closing a Session")
-    pricelist_id = fields.Many2one('product.pricelist', string='Pricelist', required=True, default=_default_pricelist)
+    pricelist_id = fields.Many2one('product.pricelist', string='Pricelist', required=True, default=_default_pricelist,
+        help="The pricelist used if no customer is selected or if the customer has no Sale Pricelist configured.")
     company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.user.company_id)
     barcode_nomenclature_id = fields.Many2one('barcode.nomenclature', string='Barcodes', required=True, default=_get_default_nomenclature,
         help='Defines what kind of barcodes are available and how they are assigned to products, customers and cashiers')
