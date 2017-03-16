@@ -1234,13 +1234,19 @@ class Monetary(Field):
         try:
             return value.float_repr()         # see float_precision.float_repr()
         except Exception:
-            return float(value or 0.0)
+            value = self.convert_to_cache(value, record)
+            try:
+                return value.float_repr()
+            except Exception:
+                return value
 
     def convert_to_cache(self, value, record, validate=True):
-        if validate:
-            currency = record[self.currency_field]
+        if validate and value:
             # FIXME @rco-odoo: currency may not be already initialized if it is
             # a function or related field!
+            currency = record.mapped(self.currency_field)
+            if len(currency) > 1:
+                raise ValueError("Cannot round value of %r with multiple currencies on %s" % (self.name, record))
             if currency:
                 value = currency.round(float(value or 0.0))
                 return float_precision(value, currency.decimal_places)
