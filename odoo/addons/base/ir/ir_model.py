@@ -9,6 +9,7 @@ from collections import defaultdict
 from odoo import api, fields, models, SUPERUSER_ID, tools,  _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.modules.registry import Registry
+from odoo.osv import expression
 from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
@@ -479,9 +480,18 @@ class IrModelFields(models.Model):
         # prevent screwing up fields that depend on these fields
         self._prepare_update()
 
-        model_names = self.mapped('model')
+        names = [(field.model, field.name) for field in self]
         self._drop_column()
         res = super(IrModelFields, self).unlink()
+
+        # check that views are not broken
+        domain = expression.OR([[('arch_db', 'like', fname)] for _mname, fname in names])
+        views = self.env['ir.ui.view'].search(domain)
+        try:
+            views._check_xml()
+        except Exception:
+            msg = _("Cannot delete fields that are still present in views:\n%s")
+            raise UserError(msg % ", ".join("%s.%s" % name for name in names))
 
         # The field we just deleted might be inherited, and the registry is
         # inconsistent in this case; therefore we reload the registry.
@@ -489,7 +499,8 @@ class IrModelFields(models.Model):
             self._cr.commit()
             api.Environment.reset()
             registry = Registry.new(self._cr.dbname)
-            models = registry.descendants(model_names, '_inherits')
+            mnames = {mname for mname, _fname in names}
+            models = registry.descendants(mnames, '_inherits')
             registry.init_models(self._cr, models, dict(self._context, update_custom_fields=True))
             registry.signal_registry_change()
 
