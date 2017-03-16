@@ -66,43 +66,80 @@
     </t>
 
     <t t-name="website_sale.products_table">
+        <t t-set="date_filter" t-value="' since last ' + widget.date_range"/>
         <div class="row">
             <div class="col-md-12 col-xs-12">
                 <div class="row">
                     <h4>AT A GLANCE</h4>
                     <a href="#" class="o_dashboard_action" name="website_sale.sale_report_action_dashboard">
                         <div class="col-sm-4 o_link_enable" title="Orders">
+                            <div>Orders</div>
                             <div class="o_highlight">
                                 <t t-esc="widget.dashboards_data.sales.summary.order_count"/>
                             </div>
-                            Orders
+                            <t t-if="widget.dashboards_data.sales.evl_summary.evl_order_count &gt; 0">
+                                <div class="o_green"><i class="fa fa-caret-up"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_count, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                            </t>
+                            <t t-else="">
+                                <div class="o_red"><i class="fa fa-caret-down"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_count, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                            </t>
                         </div>
                     </a>
                     <a href="#" class="o_dashboard_action" name="website_sale.sale_report_action_dashboard">
                         <div class="col-sm-4 o_link_enable" title="Untaxed Total Sold">
+                            <div>Sold</div>
                             <div class="o_highlight">
                                 <t t-esc="widget.render_monetary_field(widget.dashboards_data.sales.summary.total_sold, widget.data.currency)"/>
                             </div>
-                            Sold
+                            <t t-if="widget.dashboards_data.sales.evl_summary.evl_order_count &gt; 0">
+                                <div class="o_green"><i class="fa fa-caret-up"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_total_sold, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                            </t>
+                            <t t-else="">
+                                <div class="o_red"><i class="fa fa-caret-down"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_total_sold, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                            </t>
                         </div>
                     </a>
                     <a href="#" class="o_dashboard_action" name="website_sale.sale_report_action_carts">
                         <div class="col-sm-4 o_link_enable o_invisible_border" title="Carts">
+                            <div>Carts</div>
                             <div class="o_highlight"><t t-esc="widget.dashboards_data.sales.summary.order_carts_count"/></div>
-                            Carts
+                            <t t-if="widget.dashboards_data.sales.evl_summary.evl_order_count &gt; 0">
+                                <div class="o_green"><i class="fa fa-caret-up"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_carts_count, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                            </t>
+                            <t t-else="">
+                                <div class="o_red"><i class="fa fa-caret-down"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_carts_count, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                            </t>
                         </div>
                     </a>
                     <div class="col-sm-4 o_link_disable" title="Orders/Day">
+                        <div>Orders/Day</div>
                         <div class="o_highlight"><t t-esc="widget.dashboards_data.sales.summary.order_per_day_ratio"/></div>
-                        Orders/Day
+                        <t t-if="widget.dashboards_data.sales.evl_summary.evl_order_per_day_ratio &gt; 0">
+                            <div class="o_green"><i class="fa fa-caret-up"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_per_day_ratio, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_red"><i class="fa fa-caret-down"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_per_day_ratio, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                        </t>
                     </div>
                     <div class="col-sm-4 o_link_disable" title="Average Order">
+                        <div>Average Order</div>
                         <div class="o_highlight"><t t-esc="widget.render_monetary_field(widget.dashboards_data.sales.summary.order_sold_ratio, widget.data.currency)"/></div>
-                        Average Order
+                        <t t-if="widget.dashboards_data.sales.evl_summary.evl_order_sold_ratio &gt; 0">
+                            <div class="o_green"><i class="fa fa-caret-up"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_sold_ratio, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_red"><i class="fa fa-caret-down"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_sold_ratio, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                        </t>
                     </div>
                     <div class="col-sm-4 o_link_disable o_invisible_border" title="Conversion">
+                        <div>Conversion</div>
                         <div class="o_highlight"><t t-esc="widget.format_number(widget.dashboards_data.sales.summary.order_convertion_pctg, 'float', [3, 2], '%')"/></div>
-                        Conversion
+                        <t t-if="widget.dashboards_data.sales.evl_summary.evl_order_convertion_pctg &gt; 0">
+                            <div class="o_green"><i class="fa fa-caret-up"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_convertion_pctg, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_red"><i class="fa fa-caret-down"/><t t-esc="widget.format_number(widget.dashboards_data.sales.evl_summary.evl_order_convertion_pctg, 'float', [3, 2], '%')"/><t t-esc="date_filter"/></div>
+                        </t>
                     </div>
                 </div>
             </div>
