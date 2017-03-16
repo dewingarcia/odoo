@@ -281,6 +281,18 @@ class IrModelFields(models.Model):
             raise UserError(_("The Selection Options expression is not a valid Pythonic expression."
                               "Please provide an expression in the [('key','Label'), ...] format."))
 
+    @api.constrains('name')
+    def _check_name(self):
+        for field in self:
+            if field.state == 'manual' and not field.name.startswith('x_'):
+                msg = _("Field name %r must start with %r.")
+                raise ValidationError(msg % (field.name, 'x_'))
+            try:
+                models.check_pg_name(field.name)
+            except ValidationError:
+                msg = _("Field name %r can only contain characters, digits and underscores (up to 63).")
+                raise ValidationError(msg % (field.name,))
+
     _sql_constraints = [
         ('size_gt_zero', 'CHECK (size>=0)', 'Size of the field cannot be negative.'),
     ]
