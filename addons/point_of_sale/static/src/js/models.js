@@ -61,7 +61,7 @@ exports.PosModel = Backbone.Model.extend({
         this.config = null;
         this.units = [];
         this.units_by_id = {};
-        this.pricelist = null;
+        this.default_pricelist = null;
         this.order_sequence = 1;
         window.posmodel = this;
 
@@ -289,11 +289,11 @@ exports.PosModel = Backbone.Model.extend({
         model:  'product.pricelist',
         fields: [],
         domain: function(self) { return [['currency_id', '=', self.config.currency_id[0]]]; },
-        loaded: function(self, pricelists){ self.pricelist = pricelists[0]; },
+        loaded: function(self, pricelists){ self.default_pricelist = pricelists[0]; },
     },{
         model: 'res.currency',
         fields: ['name','symbol','position','rounding'],
-        ids:    function(self){ return [self.pricelist.currency_id[0]]; },
+        ids:    function(self){ return [self.default_pricelist.currency_id[0]]; },
         loaded: function(self, currencies){
             self.currency = currencies[0];
             if (self.currency.rounding > 0) {
@@ -317,7 +317,7 @@ exports.PosModel = Backbone.Model.extend({
                  'product_tmpl_id','tracking'],
         order:  ['sequence','default_code','name'],
         domain: [['sale_ok','=',true],['available_in_pos','=',true]],
-        context: function(self){ return { pricelist: self.pricelist.id, display_default_code: false }; },
+        context: function(self){ return { pricelist: self.default_pricelist.id, display_default_code: false }; },
         loaded: function(self, products){
             self.db.add_products(products);
         },
