@@ -3,3 +3,4 @@
 
 import account_journal
 import account_payment
+import chart_template
