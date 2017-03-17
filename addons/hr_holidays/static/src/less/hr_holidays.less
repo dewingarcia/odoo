@@ -25,7 +25,6 @@
             width: 50%;
         }
         .o_leave_name {
-            display: inline;
             font-size: 15px;
         }
         .o_leave_expiration {
@@ -34,16 +33,7 @@
         .o_expiration_date_placeholder {
             height: 18px;
         }
-        .o_padding_small {
-            padding-bottom: 6px;
-            padding-top: 6px;
-            padding-left: 6px;
-            padding-right: 6px;
-        }
-        .o_main_button {
-            margin-right: 33px;
-        }
-        .o_secondary {
+        .o_summary {
             background-color: @odoo-brand-primary;
             color: white;
             &:hover {
@@ -76,39 +66,12 @@
                     color: white;
                     position: relative;
                     background-color: @odoo-brand-optional;
-                    .o_dashboard_action:hover {
+                    &.o_dashboard_action:hover {
                         background-color: darken(@odoo-brand-optional, 10%);
                     }
-                    .o_no_padding_left {
-                        padding-left: 0;
-                    }
-                    a {
-                        color: white;
-                        &.o_top_right {
-                            position: absolute;
-                            right: 2%;
-                            top: 3px;
-                        }
-                        &.o_top_right_below {
-                            position: absolute;
-                            left: auto;
-                            right: 2%;
-                            top: 33px;
-                            bottom: auto;
-                        }
-                    }
-                }
-                &.o_warning {
-                    background-color: orange;
-                    &:hover {
-                        background-color: darken(orange, 10%);
-                    }
                     a {
                         color: white;
                     }
-                }
-                &.o_highlight, .o_highlight {
-                    font-size: 20px;
                 }
                 &.o_text {
                     text-align: right;

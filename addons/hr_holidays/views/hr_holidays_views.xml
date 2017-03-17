@@ -105,9 +105,6 @@
             <field name="priority">99</field>
             <field name="arch" type="xml">
                 <kanban class="oe_background_grey o_kanban_dashboard o_hr_holidays_kanban" create="0" js_class="hr_holidays_dashboard">
-                    <!-- <field name="name"/> -->
-                    <!-- <field name="company_id"/> -->
-                    <!-- <field name="manager_id"/> -->
                     <field name="absent_employee_ids"/>
                     <field name="color"/>
                     <templates>
@@ -117,14 +114,16 @@
                                     <div class="o_kanban_card_header_title">
                                         <div class="o_primary"><field name="name"/></div>
                                         <div class="o_secondary"><field name="company_id"/></div>
-                                    </div><!-- 
-                                    <div class="o_kanban_manage_button_section">
-                                        <a class="o_kanban_manage_toggle_button" href="#">More <i class="fa fa-caret-down"/></a>
-                                    </div> -->
+                                    </div>
                                 </div>
                                 <div class="container o_kanban_card_content o_visible">
                                     <div class="row">
                                         <div class="col-xs-6 o_kanban_primary_left">
+                                            <button t-if="record.leave_requests_count.raw_value" type="action" class="btn btn-primary" name="%(hr_holidays.action_hr_holidays_generic)d" context="{'search_default_department_id': active_id, 'search_default_approve': 1, 'search_default_leaves': 1}">
+                                                <field name="leave_requests_count"/>
+                                                <t t-if="record.leave_requests_count.raw_value == 1">Leave to Approve</t>
+                                                <t t-else="">Leaves to Approve</t>
+                                            </button>
                                             <a type="action" name="%(hr.open_view_employee_list_my)d" class="btn btn-link" t-if="record.absent_employee_ids.raw_value.length" context="{'search_default_department_id': active_id, 'search_default_is_absent_totay': 1}">
                                                 Absent Today : <t t-esc="record.absent_employee_ids.raw_value.length"/>
                                             </a>
@@ -132,15 +131,16 @@
                                             <!-- would've liked to add a title : leave name and/or leave type but seems impossible with current framework -->
                                             <t t-foreach="record.absent_employee_ids.raw_value" t-as="absentee_id">
                                                 <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
-                                                <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
-                                                <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
-                                                <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
-                                                <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
-                                                <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
-                                                <img t-att-src="kanban_image('hr.employee', 'image_small', absentee_id)" width="32" height="32" class="oe_kanban_avatar"/>
                                             </t>
                                         </div>
                                         <div class="col-xs-6 o_kanban_primary_right" groups="hr_holidays.group_hr_holidays_manager">
+                                            <div t-if="record.allocation_requests_count.raw_value">
+                                                <a class="btn-link" name="%(hr_holidays.action_hr_holidays_generic)d" type="action" context="{'search_default_department_id': active_id, 'search_default_approve': 1, 'search_default_allocations': 1}">
+                                                    <field name="allocation_requests_count"/>
+                                                    <t t-if="record.allocation_requests_count.raw_value == 1">Allocation Request to Approve</t>
+                                                    <t t-else="">Allocation Requests to Approve</t>
+                                                </a>
+                                            </div>
                                             <div name="shortcuts">
                                                 <a class="btn-link" name="%(hr_holidays.action_create_leave)d" type="action" context="{'default_department_id': active_id, 'default_holiday_type': 'department'}">
                                                     New Leave
@@ -151,51 +151,9 @@
                                                     New Allocation
                                                 </a>
                                             </div>
-                                            <div t-if="record.leave_requests_count.raw_value">
-                                                <a class="btn-link" name="%(hr_holidays.action_hr_holidays_generic)d" type="action" context="{'search_default_department_id': active_id, 'search_default_approve': 1, 'search_default_leaves': 1}">
-                                                    <field name="leave_requests_count"/>
-                                                    <t t-if="record.leave_requests_count.raw_value == 1">Leave Request to Approve</t>
-                                                    <t t-else="">Leave Requests to Approve</t>
-                                                </a>
-                                            </div>
-                                            <div t-if="record.allocation_requests_count.raw_value">
-                                                <a class="btn-link" name="%(hr_holidays.action_hr_holidays_generic)d" type="action" context="{'search_default_department_id': active_id, 'search_default_approve': 1, 'search_default_allocations': 1}">
-                                                    <field name="allocation_requests_count"/>
-                                                    <t t-if="record.allocation_requests_count.raw_value == 1">Allocation Request to Approve</t>
-                                                    <t t-else="">Allocation Requests to Approve</t>
-                                                </a>
-                                            </div>
                                         </div>
                                     </div>
-                                </div><!-- <div class="container o_kanban_card_manage_pane o_invisible">
-                                    <div class="row">
-                                        <div class="col-xs-4 o_kanban_card_manage_section o_kanban_manage_to_do">
-                                            <div class="o_kanban_card_manage_title">
-                                                <span>To Do</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-xs-4 o_kanban_card_manage_section o_kanban_manage_to_approve">
-                                            <div class="o_kanban_card_manage_title">
-                                                <span>To Approve</span>
-                                            </div>
-                                        </div>
-                                        <div class="col-xs-4 o_kanban_card_manage_section o_kanban_manage_reports">
-                                            <div class="o_kanban_card_manage_title">
-                                                <span>Reporting</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div t-if="widget.editable" class="o_kanban_card_manage_settings row">
-                                        <div class="col-xs-8">
-                                            <ul class="oe_kanban_colorpicker" data-field="color"/>
-                                        </div>
-                                        <div class="col-xs-4 text-right">
-                                            <a type="edit">Settings</a>
-                                        </div>
-                                    </div>
-                                </div> -->
-
+                                </div>
                             </div>
                         </t>
                     </templates>
