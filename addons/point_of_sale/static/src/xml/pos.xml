@@ -131,7 +131,7 @@
 
     <t t-name="SetPricelistButton">
         <div class='control-button'>
-            <i class='fa fa-book' /> abc
+            <i class='fa fa-th-list' /> Pricelist
         </div>
     </t>
 
