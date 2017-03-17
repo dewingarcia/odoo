@@ -2037,6 +2037,44 @@ define_action_button({
     },
 });
 
+var set_pricelist_button = ActionButtonWidget.extend({
+    template: 'SetPricelistButton',
+    init: function (parent, options) {
+        this._super(parent, options);
+
+        this.pos.get('orders').bind('add remove change', function () {
+            this.renderElement();
+        }, this);
+
+        this.pos.bind('change:selectedOrder', function () {
+            this.renderElement();
+        }, this);
+    },
+    button_click: function () {
+        var self = this;
+
+        self.gui.show_popup('selection',{
+            title: _t('Select pricelist'),
+            list: [],
+            confirm: function (pricelist) {
+                var order = self.pos.get_order();
+                order.trigger('change'); // todo jov: verify
+            },
+            is_selected: function (pricelist) {
+                // todo jov
+            }
+        });
+    },
+});
+
+define_action_button({
+    'name': 'set_pricelist',
+    'widget': set_pricelist_button,
+    'condition': function(){
+        return this.pos.pricelist_ids.length > 1;
+    },
+});
+
 return {
     ReceiptScreenWidget: ReceiptScreenWidget,
     ActionButtonWidget: ActionButtonWidget,
@@ -2053,6 +2091,7 @@ return {
     ProductCategoriesWidget: ProductCategoriesWidget,
     ScaleScreenWidget: ScaleScreenWidget,
     set_fiscal_position_button: set_fiscal_position_button,
+    set_pricelist_button: set_pricelist_button,
 };
 
 });
