@@ -243,13 +243,6 @@ class PosConfig(models.Model):
         }
 
     @api.multi
-    def open_existing_session_cb_close(self):
-        assert len(self.ids) == 1, "you can open only one session at a time"
-        if self.current_session_id.cash_control:
-            self.current_session_id.action_pos_session_closing_control()
-        return self.open_session_cb()
-
-    @api.multi
     def open_session_cb(self):
         assert len(self.ids) == 1, "you can open only one session at a time"
         if not self.current_session_id:
