@@ -2053,15 +2053,23 @@ var set_pricelist_button = ActionButtonWidget.extend({
     button_click: function () {
         var self = this;
 
+        var pricelists = _.map(self.pos.pricelist_ids, function (pricelist) {
+            return {
+                label: pricelist.name,
+                item: pricelist
+            };
+        });
+
         self.gui.show_popup('selection',{
             title: _t('Select pricelist'),
-            list: [],
+            list: pricelists,
             confirm: function (pricelist) {
                 var order = self.pos.get_order();
-                order.trigger('change'); // todo jov: verify
+                order.pricelist_id = pricelist.id;
+                order.trigger('change');
             },
             is_selected: function (pricelist) {
-                // todo jov
+                return pricelist.id === self.pos.get_order().pricelist_id;
             }
         });
     },
