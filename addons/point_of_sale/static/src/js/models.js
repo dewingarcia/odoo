@@ -1757,6 +1757,7 @@ exports.Order = Backbone.Model.extend({
         this.paymentlines   = new PaymentlineCollection(); 
         this.pos_session_id = this.pos.pos_session.id;
         this.finalized      = false; // if true, cannot be modified.
+        this.pricelist_id   = this.pos.default_pricelist.id;
 
         this.set({ client: null });
 
@@ -1803,7 +1804,8 @@ exports.Order = Backbone.Model.extend({
         var client;
         this.sequence_number = json.sequence_number;
         this.pos.pos_session.sequence_number = Math.max(this.sequence_number+1,this.pos.pos_session.sequence_number);
-        this.session_id    = json.pos_session_id;
+        this.session_id = json.pos_session_id;
+        this.pricelist_id = json.pricelist_id;
         this.uid = json.uid;
         this.name = _t("Order ") + this.uid;
         this.validation_date = json.creation_date;
@@ -1869,6 +1871,7 @@ exports.Order = Backbone.Model.extend({
             lines: orderLines,
             statement_ids: paymentLines,
             pos_session_id: this.pos_session_id,
+            pricelist_id: this.pricelist_id,
             partner_id: this.get_client() ? this.get_client().id : false,
             user_id: this.pos.cashier ? this.pos.cashier.id : this.pos.user.id,
             uid: this.uid,
