@@ -514,6 +514,7 @@ var FieldX2Many = AbstractField.extend({
         list_record_delete: '_onDeleteRecord',
         add_record: '_onAddRecord',
         open_record: '_onOpenRecord',
+        resequence: '_onResequence',
         toggle_column_order: '_onToggleColumnOrder',
     }),
 
@@ -717,6 +718,23 @@ var FieldX2Many = AbstractField.extend({
             readonly: this.mode === 'readonly',
             string: this.string,
         });
+    },
+    /**
+     * Forces a resequencing of the records.
+     *
+     * @private
+     */
+    _onResequence: function (event) {
+        var self = this;
+        _.each(event.data.row_ids, function (row_id, index) {
+            self._setValue({
+                operation: 'UPDATE',
+                id: row_id,
+                data: {
+                    sequence: event.data.offset + index,
+                },
+            });
+        })
     },
     /**
      * Adds field name information to the event, so that the view upstream is

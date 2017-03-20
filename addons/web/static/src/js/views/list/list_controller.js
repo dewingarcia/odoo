@@ -20,6 +20,7 @@ var ListController = BasicController.extend({
     custom_events: _.extend({}, BasicController.prototype.custom_events, {
         button_clicked: '_onButtonClicked',
         change_mode: '_onChangeMode',
+        resequence: '_onResequence',
         selection_changed: '_onSelectionChanged',
         toggle_column_order: '_onToggleColumnOrder',
         toggle_group: '_onToggleGroup',
@@ -291,6 +292,31 @@ var ListController = BasicController.extend({
      */
     _onExportData: function () {
         new DataExport(this, this.dataset).open();
+    },
+    /**
+    * Force a resequence of the records curently on this page.
+    *
+    * @param {OdooEvent} event
+    */
+    _onResequence: function (event) {
+        debugger;
+        var data = this.model.get(this.handle);
+        var res_ids = _.map(event.data.row_ids, function(row_id) {
+            return _.findWhere(data.data, {id: row_id}).res_id;
+        })
+        if (data.fields.sequence) {
+            def = this._rpc('/web/dataset/resequence').params({
+                model: this.modelName,
+                ids: res_ids,
+                offset: event.data.offset,
+            }).exec();
+        }
+        return $.when(def).then(function () {
+            data.data = _.sortBy(data.data, function (d) {
+                return _.indexOf(res_ids, d.res_id);
+            });
+            return this.handle;
+        });
     },
     /**
      * changes of the list editable are automatically saved when unselecting the

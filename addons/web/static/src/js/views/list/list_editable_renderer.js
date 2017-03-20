@@ -206,15 +206,35 @@ ListRenderer.include({
      */
     _renderBody: function () {
         var $body = this._super();
-        if (this.mode === 'edit' && this.hasHandle) {
+        if (this.hasHandle) {
             $body.sortable({
                 axis: 'y',
                 items: '> tr.o_data_row',
                 helper: 'clone',
                 handle: '.o_row_handle',
+                stop: this._resequence.bind(this),
             });
         }
         return $body;
+    },
+    /**
+     * Force the resequencing of the items in the list.
+     *
+     * @param {Event} event
+     * @param {Object} ui jqueryui sortable widget
+     */
+    _resequence: function (event, ui) {
+        var moved_record_id = ui.item.data('id');
+        var row_ids = _.map(this.state.data, function(record) {return record.id});
+        row_ids = _.without(row_ids, moved_record_id)
+        row_ids.splice(ui.item.index(), 0, moved_record_id);
+        var sequences = _.map(this.state.data, function(record) {
+            return record.data.sequence
+        })
+        this.trigger_up('resequence', {
+            row_ids: row_ids,
+            offset: _.min(sequences),
+        });
     },
     /**
      * Add all the necessary styling classes to displayed cells.  Also, we need

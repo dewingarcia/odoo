@@ -51,6 +51,7 @@ var ListRenderer = BasicRenderer.extend({
         this._super.apply(this, arguments);
         var self = this;
         this.hasHandle = false;
+        this.handleField = false;
         this.columns = _.reject(this.arch.children, function (c) {
             if (c.attrs.invisible === '1') {
                 return true;
@@ -61,6 +62,7 @@ var ListRenderer = BasicRenderer.extend({
             }
             if (c.attrs.widget === 'handle') {
                 self.hasHandle = true;
+                self.handleField = c.attrs.name;
             }
             c.modifiers = modifiers;
             return false;

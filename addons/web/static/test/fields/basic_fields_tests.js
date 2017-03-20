@@ -789,6 +789,7 @@ QUnit.module('basic_fields', {
         });
     });
 
+
     QUnit.module('HandleWidget');
 
     QUnit.test('handle widget', function (assert) {
