@@ -34,6 +34,8 @@
             height: 18px;
         }
         .o_summary {
+            font-size: 32px;
+            line-height: 1;
             background-color: @odoo-brand-primary;
             color: white;
             &:hover {
@@ -51,13 +53,14 @@
                 text-align: center;
                 border-top: 1px solid @odoo-view-background-color;
                 width: 25%;
-
                 height: 33px;
 
                 span {
                     display: inline;
                 }
-
+                .o_highlight {
+                    font-size: 20px;
+                }
                 a:hover {
                     text-decoration: none;
                 }
@@ -66,8 +69,22 @@
                     color: white;
                     position: relative;
                     background-color: @odoo-brand-optional;
+                    .o_hover_plus {
+                        font-size: 3em;
+                        position: absolute;
+                        top: 8px;
+                        left: 0px;
+                        width: 100%;
+                        opacity: 0;
+                    }
                     &.o_dashboard_action:hover {
                         background-color: darken(@odoo-brand-optional, 10%);
+                        a {
+                            opacity: .5;
+                        }
+                        .o_hover_plus {
+                            opacity: 1;
+                        }
                     }
                     a {
                         color: white;

@@ -10,8 +10,8 @@
                 <tr><td style="width:180%">
                     <table class="table table-condensed">
                         <tr>
-                            <td class="o_text">
-                                <h2>My Allocated Leaves</h2>
+                            <td class="o_text o_highlight">
+                                My Allocated Leaves
                             </td>
                             <t t-foreach="data.allocated_leaves" t-as="leave_type">
                                 <td class="o_main o_dashboard_action" name="hr_holidays.action_create_leave" t-att-data-context="'{&quot;default_holiday_status_id&quot;: ' + leave_type.id + '}'" title="New Leave Request">
@@ -24,28 +24,30 @@
                                         </div>
                                         <div class="o_expiration_date_placeholder" t-else=""/>
                                     </a>
+                                    <div class="fa fa-plus o_hover_plus"/>
                                 </td>
                             </t>
                         </tr>
                         <tr>
-                            <td class="o_text">
-                                <h3>Other Leaves</h3>
+                            <td class="o_text o_highlight">
+                                Other Leaves
                             </td>
                             <t t-foreach="data.limitless_leaves" t-as="leave_type">
                                 <td class="o_main o_dashboard_action" name="hr_holidays.action_create_leave" t-att-data-context="'{&quot;default_holiday_status_id&quot;: ' + leave_type.id + '}'" title="New Leave Request">
-                                    <a class="o_main_button o_padding_small" >
+                                    <a>
                                         <div class="o_leave_name">
                                             <span><t t-esc="leave_type.virtual_remaining_leaves"/> <t t-esc="leave_type.name"/></span> <!-- or X taken this year ? -->
                                         </div>
                                         <div class="o_expiration_date_placeholder"/>
                                     </a>
+                                    <div class="fa fa-plus o_hover_plus"/>
                                 </td>
                             </t>
                         </tr>
                     </table>
                 </td>
                 <td class="o_summary o_dashboard_action" name="hr_holidays.open_company_allocation">
-                    <h1>Leaves Summary</h1>
+                    Leaves Summary
                 </td></tr>
             </table>
         </div>
