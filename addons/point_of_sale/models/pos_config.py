@@ -29,6 +29,9 @@ class AccountBankStmtCashWizard(models.Model):
 class PosConfig(models.Model):
     _name = 'pos.config'
 
+    def _default_currency(self):
+        return self.env.user.company_id.currency_id
+
     def _default_sale_journal(self):
         journal = self.env.ref('point_of_sale.pos_sale_journal', raise_if_not_found=False)
         if journal and journal.company_id == self.env.user.company_id:
@@ -75,7 +78,7 @@ class PosConfig(models.Model):
         domain=[('type', '=', 'sale')],
         help="Accounting journal used to create invoices.",
         default=_default_invoice_journal)
-    currency_id = fields.Many2one('res.currency', required=True, default=lambda self: self.env.user.company_id.currency_id)  # todo jov: help=
+    currency_id = fields.Many2one('res.currency', required=True, default=_default_currency)  # todo jov: help=
     iface_cashdrawer = fields.Boolean(string='Cashdrawer', help="Automatically open the cashdrawer")
     iface_payment_terminal = fields.Boolean(string='Payment Terminal', help="Enables Payment Terminal integration")
     iface_electronic_scale = fields.Boolean(string='Electronic Scale', help="Enables Electronic Scale integration")
