@@ -210,19 +210,17 @@ class MailMail(models.Model):
 
         for mail in self:
             try:
-                # TDE note: remove me when model_id field is present on mail.message - done here to avoid doing it multiple times in the sub method
-                if mail.model:
-                    model = self.env['ir.model'].sudo().search([('model', '=', mail.model)])[0]
-                else:
-                    model = None
+                message = mail.mail_message_id
+                model = message.model
                 if model:
+                    model = self.env['ir.model'].sudo().search([('model', '=', model)])[0]
                     mail = mail.with_context(model_name=model.name)
 
                 # load attachment binary data with a separate read(), as prefetching all
                 # `datas` (binary field) could bloat the browse cache, triggerring
                 # soft/hard mem limits with temporary data.
                 attachments = [(a['datas_fname'], base64.b64decode(a['datas']))
-                               for a in mail.attachment_ids.sudo().read(['datas_fname', 'datas'])]
+                               for a in message.attachment_ids.sudo().read(['datas_fname', 'datas'])]
 
                 # specific behavior to customize the send email for notified partners
                 email_list = []
@@ -236,8 +234,8 @@ class MailMail(models.Model):
                 bounce_alias = self.env['ir.config_parameter'].get_param("mail.bounce.alias")
                 catchall_domain = self.env['ir.config_parameter'].get_param("mail.catchall.domain")
                 if bounce_alias and catchall_domain:
-                    if mail.model and mail.res_id:
-                        headers['Return-Path'] = '%s+%d-%s-%d@%s' % (bounce_alias, mail.id, mail.model, mail.res_id, catchall_domain)
+                    if message.model and message.res_id:
+                        headers['Return-Path'] = '%s+%d-%s-%d@%s' % (bounce_alias, mail.id, message.model, message.res_id, catchall_domain)
                     else:
                         headers['Return-Path'] = '%s+%d@%s' % (bounce_alias, mail.id, catchall_domain)
                 if mail.headers:
@@ -259,22 +257,22 @@ class MailMail(models.Model):
                 res = None
                 for email in email_list:
                     msg = IrMailServer.build_email(
-                        email_from=mail.email_from,
+                        email_from=message.email_from,
                         email_to=email.get('email_to'),
-                        subject=mail.subject,
+                        subject=message.subject,
                         body=email.get('body'),
                         body_alternative=email.get('body_alternative'),
                         email_cc=tools.email_split(mail.email_cc),
-                        reply_to=mail.reply_to,
+                        reply_to=message.reply_to,
                         attachments=attachments,
-                        message_id=mail.message_id,
+                        message_id=message.message_id,
                         references=mail.references,
-                        object_id=mail.res_id and ('%s-%s' % (mail.res_id, mail.model)),
+                        object_id=mail.res_id and ('%s-%s' % (mail.res_id, message.model)),
                         subtype='html',
                         subtype_alternative='plain',
                         headers=headers)
                     try:
-                        res = IrMailServer.send_email(msg, mail_server_id=mail.mail_server_id.id)
+                        res = IrMailServer.send_email(msg, mail_server_id=message.mail_server_id.id)
                     except AssertionError as error:
                         if error.message == IrMailServer.NO_VALID_RECIPIENT:
                             # No valid recipient found for this particular
@@ -282,7 +280,7 @@ class MailMail(models.Model):
                             # delivery to next recipients, if any. If this is
                             # the only recipient, the mail will show as failed.
                             _logger.info("Ignoring invalid recipients for mail.mail %s: %s",
-                                         mail.message_id, email.get('email_to'))
+                                         message.message_id, email.get('email_to'))
                         else:
                             raise
                 if res:
