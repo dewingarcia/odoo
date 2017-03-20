@@ -67,7 +67,7 @@ var InputField = AbstractField.extend({
     reset: function (record, event) {
         this._reset(record, event);
         if (event && event.target === this) {
-            $.when();
+            return $.when();
         } else {
             return this._render();
         }
