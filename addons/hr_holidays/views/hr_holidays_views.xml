@@ -27,7 +27,7 @@
                     <filter domain="[('state','in',('confirm','validate1'))]" string="To Approve" name="approve"/>
                     <filter string="Approved Leaves" domain="[('state', '=', 'validate')]" name="validated"/>
                     <separator/>
-                    <filter name="active_types" string="Active Types" domain="['&amp;', '|', ('holiday_status_id.activation_date', '&lt;=', context_today), ('holiday_status_id.activation_date', '=', False), '|', ('holiday_status_id.expiration_date', '&gt;=', context_today), ('holiday_status_id.expiration_date', '=', False)]" help="Filters only on allocations and requests that belong to an holiday type that is 'active' (today is between activation and expiration date)"/>
+                    <filter name="active_types" string="Active Types" domain="[('holiday_status_id.active', '=', True)]" help="Filters only on allocations and requests that belong to an holiday type that is 'active' (active field is True)"/>
                     <separator/>
                     <filter string="Unread Messages" name="message_needaction" domain="[('message_needaction','=',True)]"/>
                     <separator/>
@@ -44,7 +44,7 @@
                     <separator/>
                      <!-- wtgffff is this? YEAR??? ACTIVE??? TO CHANGE -->
                     <filter name="year" string="Current Year"
-                         domain="['&amp;', '|', ('holiday_status_id.activation_date', '&lt;=', context_today), ('holiday_status_id.activation_date', '=', False), '|', ('holiday_status_id.expiration_date', '&gt;=', context_today), ('holiday_status_id.expiration_date', '=', False)]" help="Active Leaves and Allocations"/>
+                        domain="[('holiday_status_id.active', '=', True)]" help="Active Leaves and Allocations"/>
                     <separator/>
                     <filter string="My Requests" name="my_leaves" domain="[('user_id', '=', uid)]"/>
                     <separator/>
@@ -727,14 +727,13 @@
                     <group>
                         <group name="selection">
                             <field name="name"/>
+                            <field name="double_validation"/>
                             <field name="limit"/>
-                            <field name="activation_date"/>
-                            <field name="expiration_date"/>
                         </group>
                         <group name="second">
-                            <field name="double_validation"/>
                             <field name="categ_id"/>
                             <field name="color_name"/>
+                            <field name="active"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
                     </group>

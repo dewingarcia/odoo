@@ -23,7 +23,6 @@ class HolidaysType(models.Model):
 
     _name = "hr.holidays.status"
     _description = "Leave Type"
-    _order = "expiration_date, id"
 
     name = fields.Char('Leave Type', required=True, translate=True)
     categ_id = fields.Many2one('calendar.event.type', string='Meeting Type',
@@ -51,10 +50,8 @@ class HolidaysType(models.Model):
              'than the available ones for this type and will not take them into account for the '
              '"Remaining Legal Leaves" defined on the employee form.')
 
-    activation_date = fields.Date(string='Activation Date',
-        help="Optional, if set this leave type will be hidden until the activation date is reached.")
-    expiration_date = fields.Date(string='Expiration Date',
-        help="Optional, if set this leave type will be active until the expiration date is reached.")
+    active = fields.Boolean('Active', default=True,
+        help="If the active field isn't checked, it will allow you to hide the leave type without removing it.")
     max_leaves = fields.Float(compute='_compute_leaves', string='Maximum Allowed',
         help='This value is given by the sum of all holidays requests with a positive value.')
     leaves_taken = fields.Float(compute='_compute_leaves', string='Leaves Already Taken',
@@ -183,9 +180,7 @@ class Holidays(models.Model):
     date_to = fields.Datetime('End Date', readonly=True, copy=False,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, track_visibility='onchange')
     holiday_status_id = fields.Many2one(
-        "hr.holidays.status", string="Leave Type", required=True, readonly=True,
-        domain=lambda self: ['&', '|', ('activation_date', '<=', fields.Date.today()), ('activation_date', '=', False),
-                                  '|', ('expiration_date', '>=', fields.Date.today()), ('expiration_date', '=', False)], # would be even better to add virtual_remaining_leaves > 0 or limit=True but sadly it's computed
+        "hr.holidays.status", string="Leave Type", required=True, readonly=True, # would be even better to add domain virtual_remaining_leaves > 0 or limit=True but sadly it's computed
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     employee_id = fields.Many2one('hr.employee', string='Employee', index=True, readonly=True,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, default=_default_employee, track_visibility='onchange')
@@ -333,16 +328,6 @@ class Holidays(models.Model):
             self.number_of_days_temp = self._get_number_of_days(date_from, date_to, self.employee_id.id)
         else:
             self.number_of_days_temp = 0
-
-    @api.constrains('date_from', 'date_to', 'holiday_status_id')
-    def _check_leave_dates(self):
-        if self.type == 'remove':
-            if self.holiday_status_id.expiration_date and self.holiday_status_id.expiration_date < self.date_to:
-                raise ValidationError(_('Leave Type expires before leave end date.'))
-            if self.holiday_status_id.activation_date and self.holiday_status_id.activation_date > self.date_from:
-                raise ValidationError(_('Leave Type activates after leave start date.'))
-
-
 
     ####################################################
     # ORM Overrides methods
