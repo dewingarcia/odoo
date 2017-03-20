@@ -1,65 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
 
-<t t-name="OrgChart">
+<t t-name="hr_org_chart_widget">
     <div class="o_org_chart">
         computing...
     </div>
 </t>
 
-<t t-name="OrgChartEntry">
-    <div t-attf-class="o_org_chart_entry #{o_org_chart_entry_type} media">
-        <t t-set="is_self" t-value="o_org_chart_entry_type == 'o_org_chart_entry_self'"/>
-        <!-- FIXME: href attribute should be be correclty implemented -->
-        <t t-set="usr_link" t-value="'/web#id=' + employee.id+ '&amp;view_type=form&amp;model=hr.employee'"/>
+<t t-name="hr_org_chart_employee">
+    <div t-attf-class="o_org_chart_entry o_org_chart_entry_#{employee_type} media">
+        <t t-set="is_self" t-value="employee_type == 'self'"/>
 
         <div class="media-left">
             <!-- NOTE: Since by the default on not squared images odoo add white borders,
                 use bg-images to get a clean and centred images -->
-
             <a
-                t-if="!is_self"
                 class="media-object img-circle"
                 t-attf-style="background-image:url(/web/image/hr.employee/#{employee.id}/image/)"
                 t-att-alt="employee.name"
-                t-attf-href="#{usr_link}"/>
-            <div
-                t-if="is_self"
-                class="media-object img-circle"
-                t-attf-style="background-image:url(/web/image/hr.employee/#{employee.id}/image/)"/>
+                t-att-href="employee.link"/>
         </div>
 
         <div class="media-body">
             <!-- FIXME: data should be correclty gathered
                 data-dir-subs = Number of direct subordinates
                 data-ind-subs = Number of indirect subordinates
+
+                FIXME TDE/ indirect_sub_count > 1 ?? to check
             -->
             <span
-                t-if="employee.count > 1"
+                t-if="employee.indirect_sub_count &gt; 0"
                 t-attf-class="badge #{!is_self?'o_org_chart_add_link':''}"
                 tabindex="0"
                 data-trigger="focus"
-                t-attf-data-name="#{employee.name}"
-                t-attf-data-pic-url="/web/image/hr.employee/#{employee.id}/image/"
-                t-attf-data-usr-url="#{usr_link}"
-                data-toggle="popover"
-                data-dir-subs="4"
-                data-ind-subs="34">
+                t-att-data-name="employee.name"
+                t-att-data-pic-url="'/web/image/hr.employee/' + employee.id + '/image/'"
+                t-att-data-usr-url="employee.link"
+                t-att-data-dir-subs="employee.direct_sub_count"
+                t-att-data-ind-subs="employee.indirect_sub_count"
+                data-toggle="popover">
 
                 <!-- FIXME: 'employee.count' return unexpected values -->
-                <t t-esc="employee.count"/>
+                <t t-esc="employee.indirect_sub_count"/>
             </span>
 
             <t t-if="!is_self">
-                <!-- FIXME: again, href attribute should be correclty implemented -->
-                <a t-attf-href="/web#id=#{employee.id}&amp;view_type=form&amp;model=hr.employee">
+                <a t-att-href="employee.link">
                     <h5 class="media-heading"><b><t t-esc="employee.name"/></b></h5>
-                    <strong><t t-esc="employee.job"/></strong>
+                    <strong><t t-esc="employee.job_name"/></strong>
                 </a>
             </t>
             <t t-if="is_self">
                 <h5 class="media-heading"><b><t t-esc="employee.name"/></b></h5>
-                <strong><t t-esc="employee.job"/></strong>
+                <strong><t t-esc="employee.job_name"/></strong>
             </t>
         </div>
     </div>
@@ -74,14 +67,6 @@
             <!-- FIXME: Should link to a filtered kamban view showing all direct suburdinates -->
             <a t-if="type == 'show_more'" onClick="alert('Link to kanban view')" class="well o_org_chart_show_more media-object text-center">&#8230;</a>
         </div>
-    </div>
-</t>
-
-<t t-name="OrgChartNoData">
-    <div class="alert alert-info">
-        <p><b>No hierarchy position.</b></p>
-        <p>This employee has not managers or suburdinates defined.</p>
-        <p>In order get the organigramm, assign a manager or set the employee as a manager for others.</p>
     </div>
 </t>
 
@@ -104,38 +89,42 @@
         <t t-foreach="data.managers" t-as="employee">
             <t t-if='data.managers.length > 2'>
                 <t t-if='employee_index > 0'>
-                    <t t-call="OrgChartEntry">
-                        <t t-set="o_org_chart_entry_type" t-value="'o_org_chart_entry_manager'"/>
+                    <t t-call="hr_org_chart_employee">
+                        <t t-set="employee_type" t-value="'manager'"/>
                     </t>
                 </t>
             </t>
             <t t-if='!(data.managers.length > 2)'>
-                <t t-call="OrgChartEntry">
-                    <t t-set="o_org_chart_entry_type" t-value="'o_org_chart_entry_manager'"/>
+                <t t-call="hr_org_chart_employee">
+                    <t t-set="employee_type" t-value="'manager'"/>
                 </t>
             </t>
         </t>
     </div>
 
-    <t t-if="data.children.length or data.managers.length" t-call="OrgChartEntry">
-        <t t-set="o_org_chart_entry_type" t-value="'o_org_chart_entry_self'"/>
+    <t t-if="data.children.length or data.managers.length" t-call="hr_org_chart_employee">
+        <t t-set="employee_type" t-value="'self'"/>
         <t t-set="employee" t-value="data.self"/>
     </t>
     <t t-if="!data.children.length and !data.managers.length">
-        <t t-call="OrgChartNoData"/>
+        <div class="alert alert-info">
+            <p><b>No hierarchy position.</b></p>
+            <p>This employee has not managers or suburdinates defined.</p>
+            <p>In order get the organigramm, assign a manager or set the employee as a manager for others.</p>
+        </div>
     </t>
 
     <div t-if="data.children.length" class="o_org_chart_group_down">
         <t t-foreach="data.children" t-as="employee">
             <t t-if="(employee_index + 1) &lt; (7 - (data.managers.length - 1))">
-                <t t-call="OrgChartEntry">
-                    <t t-set="o_org_chart_entry_type" t-value="'o_org_chart_entry_sub'"/>
+                <t t-call="hr_org_chart_employee">
+                    <t t-set="employee_type" t-value="'sub'"/>
                 </t>
             </t>
         </t>
 
         <t t-if="(data.children.length - (data.managers.length - 1)) > 4" >
-            <t t-call="OrgChartEntryNav">
+            <t t-call="hr_org_chart_employee">
                 <t t-set="type" t-value="'show_more'"/>
             </t>
         </t>

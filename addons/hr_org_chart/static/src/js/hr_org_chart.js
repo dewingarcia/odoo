@@ -1,23 +1,27 @@
 odoo.define('web.OrgChart', function (require) {
 "use strict";
 
+var ajax = require('web.ajax');
 var core = require('web.core');
-var common = require('web.form_common');
+var form_common = require('web.form_common');
 
 var QWeb = core.qweb;
 var _t = core._t;
 
 
-var FieldOrgChart = common.AbstractField.extend({
-    template: "OrgChart",
-    render_value: function() {
+var FieldOrgChart = form_common.AbstractField.extend({
+    template: "hr_org_chart_widget",
+
+    init: function () {
+        this._super.apply(this, arguments);
+        this.org_chart_data = {};
+    },
+
+    render_value: function () {
         var self = this;
 
-        this.view.dataset.call('get_org_chart', [[this.view.datarecord.id], this.view.datarecord.parent_id[0] || false, this.view.dataset.get_context()]).then(
-           function (data) {
-              self.data = data
-              self.$el.html(QWeb.render("OrgChartDetail", {widget: self, data: data}));
-              return data
+        this.get_org_chart_data().then(function () {
+            self.$el.html(QWeb.render("OrgChartDetail", {widget: self, data: self.org_chart_data}));
            }
         );
 
@@ -57,10 +61,18 @@ var FieldOrgChart = common.AbstractField.extend({
         this._super();
     },
 
+    get_org_chart_data: function () {
+        var self = this;
+        return ajax.jsonRpc('/hr/get_org_chart', 'call', {
+            employee_id: this.view.datarecord.id,
+        }).then(function (data) {
+            self.org_chart_data = data;
+        });
+    },
 });
 
-core.form_widget_registry.add('orgchart', FieldOrgChart)
+core.form_widget_registry.add('hr_org_chart', FieldOrgChart);
 
-return OrgChart;
+return FieldOrgChart;
 
 });
