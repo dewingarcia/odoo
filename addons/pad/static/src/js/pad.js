@@ -17,7 +17,7 @@ var FieldPad = form_common.AbstractField.extend(form_common.ReinitializeWidgetMi
             event.preventDefault();
             self.set("configured", true);
         });
-        this.pad_loading_request = null;
+        this._pad_loading_deferred = null;
     },
     initialize_content: function() {
         var self = this;
@@ -36,14 +36,25 @@ var FieldPad = form_common.AbstractField.extend(form_common.ReinitializeWidgetMi
     },
     render_value: function() {
         var self = this;
-        $.when(this._configured_deferred, this.pad_loading_request).always(function() {
+        $.when(this._configured_deferred).always(function() {
             if (!self.get('configured')){
                 return;
             }
+
+            // reject possibly ongoing pad deferred
+            if (self._pad_loading_deferred !== null) {
+                self._pad_loading_deferred.reject();
+                self.$('.oe_pad_content').text('');
+                self._pad_deferred = null;
+            }
+            self._pad_loading_deferred = $.Deferred();
+            var loading_def = self._pad_loading_deferred;
+
             var value = self.get('value');
             if (self.get('effective_readonly')) {
                 if (_.str.startsWith(value, 'http')) {
-                    self.pad_loading_request = self.view.dataset.call('pad_get_content', {url: value}).done(function(data) {
+                    self.view.dataset.call('pad_get_content', {url: value}).then(loading_def.resolve, loading_def.reject);
+                    loading_def.done(function(data) {
                         self.$('.oe_pad_content').removeClass('oe_pad_loading').html('<div class="oe_pad_readonly"><div>');
                         self.$('.oe_pad_readonly').html(data);
                     }).fail(function() {
@@ -54,23 +65,34 @@ var FieldPad = form_common.AbstractField.extend(form_common.ReinitializeWidgetMi
                 }
             }
             else {
-                var def = $.when();
                 if (! value || !_.str.startsWith(value, 'http')) {
-                    def = self.view.dataset.call('pad_generate_url', {
-                        context: {
-                            model: self.view.model,
-                            field_name: self.name,
-                            object_id: self.view.datarecord.id
-                        },
-                    }).then(function(data) {
-                        if (! data.url) {
-                            self.set("configured", false);
-                        } else {
-                            self.internal_set_value(data.url);
-                        }
+                    $.when(
+                        self.view.dataset.call('pad_generate_url', {
+                            context: {
+                                model: self.view.model,
+                                field_name: self.name,
+                                object_id: self.view.datarecord.id
+                            }
+                        }),
+                        // change record only after view has fully loaded it
+                        self.view.record_loaded
+                    ).then(function(data) {
+                        // use defer to be after push_state (which happen after record_loaded)
+                        _.defer(function(){
+                            if (loading_def.state() === 'pending') {
+                                if (! data.url) {
+                                    self.set("configured", false);
+                                } else {
+                                    self.internal_set_value(data.url);
+                                }
+                                loading_def.resolve();
+                            }
+                        });
                     });
+                } else {
+                    loading_def.resolve();
                 }
-                def.then(function() {
+                loading_def.then(function() {
                     value = self.get('value');
                     if (_.str.startsWith(value, 'http')) {
                         var content = '<iframe width="100%" height="100%" frameborder="0" src="' + value + '?showChat=false&userName=' + encodeURIComponent(self.session.username) + '"></iframe>';
