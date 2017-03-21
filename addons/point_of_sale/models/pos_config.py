@@ -29,9 +29,6 @@ class AccountBankStmtCashWizard(models.Model):
 class PosConfig(models.Model):
     _name = 'pos.config'
 
-    def _default_currency(self):
-        return self.env.user.company_id.currency_id
-
     def _default_sale_journal(self):
         journal = self.env.ref('point_of_sale.pos_sale_journal', raise_if_not_found=False)
         if journal and journal.company_id == self.env.user.company_id:
@@ -42,7 +39,7 @@ class PosConfig(models.Model):
         return self.env['account.journal'].search([('type', '=', 'sale'), ('company_id', '=', self.env.user.company_id.id)], limit=1)
 
     def _default_pricelist(self):
-        return self.env['product.pricelist'].search([('currency_id', '=', self.env.user.company_id.currency_id.id)], limit=1)
+        return self.env['product.pricelist'].search([], limit=1)
 
     def _get_default_location(self):
         return self.env['stock.warehouse'].search([('company_id', '=', self.env.user.company_id.id)], limit=1).lot_stock_id
@@ -78,7 +75,7 @@ class PosConfig(models.Model):
         domain=[('type', '=', 'sale')],
         help="Accounting journal used to create invoices.",
         default=_default_invoice_journal)
-    currency_id = fields.Many2one('res.currency', required=True, default=_default_currency)  # todo jov: help=
+    currency_id = fields.Many2one('res.currency', compute='_compute_currency', string="Currency")
     iface_cashdrawer = fields.Boolean(string='Cashdrawer', help="Automatically open the cashdrawer")
     iface_payment_terminal = fields.Boolean(string='Payment Terminal', help="Enables Payment Terminal integration")
     iface_electronic_scale = fields.Boolean(string='Electronic Scale', help="Enables Electronic Scale integration")
@@ -137,6 +134,14 @@ class PosConfig(models.Model):
     default_fiscal_position_id = fields.Many2one('account.fiscal.position', string='Default Fiscal Position')
     default_cashbox_lines_ids = fields.One2many('account.cashbox.line', 'default_pos_id', string='Default Balance')
     customer_facing_display_html = fields.Html(string='Customer facing display content', translate=True, default=_compute_default_customer_html)
+
+    @api.depends('journal_id.currency_id', 'journal_id.company_id.currency_id')
+    def _compute_currency(self):
+        for pos_config in self:
+            if pos_config.journal_id:
+                pos_config.currency_id = pos_config.journal_id.currency_id.id or pos_config.journal_id.company_id.currency_id.id
+            else:
+                pos_config.currency_id = self.env.user.company_id.currency_id.id
 
     @api.depends('session_ids')
     def _compute_current_session(self):

@@ -287,14 +287,9 @@ exports.PosModel = Backbone.Model.extend({
         loaded: function(self, locations){ self.shop = locations[0]; },
     },{
         model:  'product.pricelist',
-        fields: [],
-        domain: function(self) { return [['currency_id', '=', self.config.currency_id[0]]]; },
-        loaded: function(self, pricelists){
-            self.default_pricelist = _.find(pricelists, function (pricelist) {
-                return pricelist.id === self.config.pricelist_id[0];
-            });
-            self.pricelist_ids = pricelists;
-        },
+        fields: ['currency_id'],
+        ids:    function(self){ return [self.config.pricelist_id[0]]; },
+        loaded: function(self, pricelists){ self.pricelist = pricelists[0]; },
     },{
         model: 'res.currency',
         fields: ['name','symbol','position','rounding'],
