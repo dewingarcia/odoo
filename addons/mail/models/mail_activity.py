@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
+import json
 from datetime import date, datetime, timedelta
 
 from odoo import api, fields, models
@@ -106,6 +107,9 @@ class MailActivity(models.Model):
     def create(self, values):
         activity = super(MailActivity, self).create(values)
         self.env[activity.res_model].browse(activity.res_id).message_subscribe(partner_ids=[activity.user_id.partner_id.id])
+        data = {'id': activity.user_id.id, 'activity_id': activity.id}
+        notification = {'type': 'activity_created', 'activity': json.dumps(data)}
+        self.env['bus.bus'].sendone((self._cr.dbname, 'res.partner', activity.user_id.partner_id.id), notification)
         return activity
 
     @api.multi
@@ -135,7 +139,6 @@ class MailActivity(models.Model):
     @api.multi
     def action_close_dialog(self):
         return {'type': 'ir.actions.act_window_close'}
-
 
 class MailActivityMixin(models.AbstractModel):
     """ Mail Activity Mixin is a mixin class to use if you want to add activities

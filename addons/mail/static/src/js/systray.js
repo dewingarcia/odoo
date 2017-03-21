@@ -9,38 +9,12 @@ var chat_manager = require('mail.chat_manager');
 
 var QWeb = core.qweb;
 
-/**
- * Menu item appended in the systray part of the navbar, redirects to the Inbox in Discuss
- * Also displays the needaction counter (= Inbox counter)
- */
-var InboxItem = Widget.extend({
-    template:'mail.chat.InboxItem',
-    events: {
-        "click": "on_click",
-    },
-    start: function () {
-        this.$needaction_counter = this.$('.o_notification_counter');
-        chat_manager.bus.on("update_needaction", this, this.update_counter);
-        chat_manager.is_ready.then(this.update_counter.bind(this));
-        return this._super();
-    },
-    update_counter: function () {
-        var counter = chat_manager.get_needaction_counter();
-        this.$needaction_counter.text(counter);
-        this.$el.toggleClass('o_no_notification', !counter);
-    },
-    on_click: function (event) {
-        event.preventDefault();
-        chat_manager.is_ready.then(this.discuss_redirect.bind(this));
-    },
-    discuss_redirect: _.debounce(function () {
-        var self = this;
-        this.do_action('mail.mail_channel_action_client_chat', {clear_breadcrumbs: true}).then(function () {
-            self.trigger_up('hide_app_switcher');
-            core.bus.trigger('change_menu_section', chat_manager.get_discuss_menu_id());
-        });
-    }, 1000, true),
-});
+var session = require('web.session');
+var Model = require('web.Model')
+var ActivityModel = new Model('mail.activity', session.user_context);
+var activities = [];
+var bus = require('bus.bus').bus;
+var unread_activity_counter = 0;
 
 /**
  * Menu item appended in the systray part of the navbar
@@ -145,7 +119,70 @@ var MessagingMenu = Widget.extend({
     },
 });
 
+/**
+ * Menu item appended in the systray part of the navbar, redirects to the next activities of all app
+ */
+var NextActivity = Widget.extend({
+    template:'mail.chat.NextActivity',
+    events: {
+        "click": "on_click",
+        "click .o_mail_channel_preview": "on_click_channel",
+    },
+    start: function () {
+        this.$filter_buttons = this.$('.o_filter_button');
+        this.$activities_preview = this.$('.o_mail_navbar_dropdown_channels');
+        chat_manager.bus.on("activity_created", this, this.update_counter);
+        chat_manager.is_ready.then(this.update_counter.bind(this));
+        return this._super();
+    },
+    is_open: function () {
+        return this.$el.hasClass('open');
+    },
+    update_counter: function () {
+        this.get_activity_data();
+        var counter = this.get_unread_activity_counter();
+        this.$('.o_notification_counter').text(counter);
+        this.update_activity_preview();
+    },
+    get_activity_data: function(){
+        ActivityModel.query(['res_model', 'state', 'date_deadline', 'id', 'user_id']).filter([['user_id', '=', obj.id]]).all().then(function (activity_obj) {
+        activities = activity_obj.concat();
+        unread_activity_counter = activities.length;
+        });
+    }
+    get_unread_activity_counter: function () {
+        return unread_activity_counter;
+    },
+    get_activities: function () {
+        return _.clone(activities);
+    },
+    get_activities_preview: function (activities) {
+        var activities_preview = _.map(activities, function (activity) {
+            var info = _.pick(activity, 'id', 'res_model', 'state', 'date_deadline');
+            info.image_src = '/mail/static/src/img/smiley/avatar.jpg';
+            return info;
+        });
+        return activities_preview;
+    },
+    update_activity_preview: function () {
+        var self = this;
+
+        // Display spinner while waiting for channels preview
+        this.$activities_preview.html(QWeb.render('Spinner'));
+        var activities = chat_manager.get_activities();
+        var activities_preview = get_activities_preview(activities);
+        this.$activities_preview.html(QWeb.render('mail.chat.NextActivityPreview', {
+            activities : activities_preview
+        }));
+    },
+    on_click: function () {
+        if (!this.is_open()) {
+            this.update_activity_preview();  // we are opening the dropdown so update its content
+        }
+    },
+});
+
 SystrayMenu.Items.push(MessagingMenu);
-SystrayMenu.Items.push(InboxItem);
+SystrayMenu.Items.push(NextActivity);
 
 });

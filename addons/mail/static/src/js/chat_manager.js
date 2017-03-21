@@ -532,6 +532,8 @@ function on_partner_notification (data) {
         on_channel_seen_notification(data);
     } else if (data.info === 'transient_message') {
         on_transient_message_notification(data);
+    } else if (data.type === 'activity_created') {
+        on_activity_creation_notification(data);
     } else {
         on_chat_session_notification(data);
     }
@@ -655,6 +657,9 @@ function on_transient_message_notification (data) {
     add_message(data);
 }
 
+function on_activity_creation_notification (data) {
+    chat_manager.bus.trigger('activity_created');
+}   
 // Public interface
 //----------------------------------------------------------------------------------
 var chat_manager = {
