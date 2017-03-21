@@ -103,4 +103,5 @@
             <button class="btn btn-sm btn-default js_date_range" data-date="year">Last Year</button>
         </div>
     </t>
+
 </templates>

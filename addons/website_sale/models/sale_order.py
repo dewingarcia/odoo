@@ -11,7 +11,9 @@ _logger = logging.getLogger(__name__)
 
 
 class SaleOrder(models.Model):
-    _inherit = "sale.order"
+
+    _name = "sale.order"
+    _inherit = ['utm.mixin', 'sale.order']
 
     website_order_line = fields.One2many(
         'sale.order.line', 'order_id',

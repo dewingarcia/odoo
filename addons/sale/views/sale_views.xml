@@ -352,6 +352,7 @@
                                 </group>
                                 <group string="Reporting" name="technical" groups="base.group_no_one">
                                     <field groups="base.group_no_one" name="origin"/>
+                                    <group name="utm"/>
                                 </group>
                             </group>
                         </page>

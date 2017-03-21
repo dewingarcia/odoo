@@ -143,3 +143,24 @@ class WebsiteSaleBackend(WebsiteBackend):
         } for d in date_list]
 
         return sales_graph
+
+    @http.route('/website/fetch_utm_data', type="json", auth='user')
+    def fetch_utm_data(self, utm_type, date_from, date_to):
+        utm_response_data = []
+        if utm_type in ('campaign_id', 'medium_id', 'source_id'):
+
+            utm_data = request.env['sale.order'].read_group(
+                    domain=[
+                        (utm_type, '!=', False),
+                        ('date_order', '>=', date_from),
+                        ('date_order', '<=', date_to)],
+                    fields=['amount_total', 'id', utm_type],
+                    groupby=utm_type)
+
+            for utm in utm_data:
+                utm_response_data.append({
+                    'utmtype': utm[utm_type][1],
+                    'amount_total': utm['amount_total'],
+                })
+
+            return utm_response_data

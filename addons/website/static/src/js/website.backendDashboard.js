@@ -214,6 +214,7 @@ var Dashboard = Widget.extend(ControlPanelMixin, {
             self.$('.o_website_dashboard_content').empty();
             self.render_dashboards();
             self.render_graphs();
+            self.fetch_graph_data(); //method Of website_sale to render utm graph
         });
 
     },

@@ -25,6 +25,21 @@
         </field>
     </record>
 
+    <record id="sale_view_inherit123" model="ir.ui.view">
+        <field name="name">sale.order.form.inherit.sale</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='utm']" position="replace">
+                <group name="utm" groups="base.group_no_one">
+                    <field name="campaign_id" groups="base.group_no_one"/>
+                    <field name="medium_id" groups="base.group_no_one"/>
+                    <field name="source_id" groups="base.group_no_one"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
     <record id="action_orders_ecommerce" model="ir.actions.act_window">
         <field name="name">Orders</field>
         <field name="res_model">sale.order</field>
