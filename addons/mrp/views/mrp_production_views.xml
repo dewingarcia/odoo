@@ -357,7 +357,7 @@
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">mrp.production</field>
             <field name="view_type">form</field>
-            <field name="view_mode">tree,form,calendar,pivot,graph</field>
+            <field name="view_mode">tree,form,kanban,calendar,pivot,graph</field>
             <field name="domain">[('availability', 'in', ('waiting', 'partially_available'))]</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
