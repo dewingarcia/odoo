@@ -52,17 +52,18 @@ var ListRenderer = BasicRenderer.extend({
         var self = this;
         this.hasHandle = false;
         this.columns = _.reject(this.arch.children, function (c) {
+            var modifiers = JSON.parse(c.attrs.modifiers || '{}');
+            c.modifiers = modifiers;
+
             if (c.attrs.invisible === '1') {
                 return true;
             }
-            var modifiers = JSON.parse(c.attrs.modifiers || '{}');
             if (modifiers.tree_invisible) {
                 return true;
             }
             if (c.attrs.widget === 'handle') {
                 self.hasHandle = true;
             }
-            c.modifiers = modifiers;
             return false;
         });
         this.rowDecorations = _.chain(this.arch.attrs)
