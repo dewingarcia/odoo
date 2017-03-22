@@ -15,6 +15,31 @@
             </tree>
         </field>
     </record>
+
+    <record id="view_purchase_requisition_type_kanban" model="ir.ui.view">
+        <field name="name">purchase.requisition.type.kanban</field>
+        <field name="model">purchase.requisition.type</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="exclusive"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="row">
+                                <div class="col-xs-6">
+                                    <strong><field name="name"/></strong>
+                                </div>
+                                <div class="col-xs-6">
+                                    <field name="exclusive" widget="kanban_label_selection"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
     <record model="ir.ui.view" id="view_purchase_requisition_type_form">
         <field name="name">purchase.requisition.type.form</field>
         <field name="model">purchase.requisition.type</field>
@@ -40,7 +65,7 @@
         <field name="res_model">purchase.requisition.type</field>
         <field name="context">{}</field>
         <field name="view_type">form</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
     </record>
     <menuitem
         id="menu_purchase_requisition_type"
