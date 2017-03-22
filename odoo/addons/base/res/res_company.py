@@ -315,14 +315,14 @@ class Company(models.Model):
         })
         vals['partner_id'] = partner.id
         self.clear_caches()
-        company = super(Company, self).create(vals)
+        company = super(Company, self.with_context(no_resize=True)).create(vals)
         partner.write({'company_id': company.id})
         return company
 
     @api.multi
     def write(self, values):
         self.clear_caches()
-        return super(Company, self).write(values)
+        return super(Company, self.with_context(no_resize=True)).write(values)
 
     @api.onchange('rml_paper_format')
     def _onchange_rml_paper_format(self):
