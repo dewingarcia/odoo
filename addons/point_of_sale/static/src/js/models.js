@@ -1179,14 +1179,14 @@ exports.Orderline = Backbone.Model.extend({
             return;
         }
         this.product = options.product;
-        this.price   = options.product.price;
         this.set_product_lot(this.product);
         this.set_quantity(1);
         this.discount = 0;
         this.discountStr = '0';
         this.type = 'unit';
         this.selected = false;
-        this.id       = orderline_id++; 
+        this.id       = orderline_id++;
+        this.price = this.get_product_price();
     },
     init_from_JSON: function(json) {
         this.product = this.pos.db.get_product_by_id(json.product_id);
@@ -1419,6 +1419,19 @@ exports.Orderline = Backbone.Model.extend({
         }
 
         return wrapped;
+    },
+    // todo jov: i don't know where to put this. Doing it on the
+    // orderline like this is not smart because it makes no sense and
+    // also it means we cannot use it outside of an orderline. So for
+    // the prices on the product images this is not going to work.
+    //
+    // There's two other options I think:
+    // - db.js
+    // - create a product class
+    //
+    // port of _compute_price_rule on product.pricelist
+    get_product_price: function(){
+        return 666;
     },
     // changes the base price of the product for this orderline
     set_unit_price: function(price){
