@@ -27,6 +27,13 @@
         <field name="groups" eval="[(4,ref('base.group_user'))]"/>
     </record>
 
+    <record id="property_rule_holidays_employee" model="ir.rule">
+        <field name="name">Employee Leaves Reservations</field>
+        <field name="model_id" ref="model_hr_holidays"/>
+        <field name="domain_force">[('leave_id.employee_id.user_id','=',user.id)]</field>
+        <field name="groups" eval="[(4,ref('base.group_user'))]"/>
+    </record>
+
     <record id="property_rule_holidays_employee_write" model="ir.rule">
         <field name="name">Employee Leaves Create, Write, Unlink</field>
         <field name="model_id" ref="model_hr_holidays"/>
@@ -37,6 +44,13 @@
 
     <record id="property_rule_holidays_officer" model="ir.rule">
         <field name="name">Leaves Officer</field>
+        <field name="model_id" ref="model_hr_holidays"/>
+        <field name="domain_force">[(1,'=',1)]</field>
+        <field name="groups" eval="[(4,ref('hr_holidays.group_hr_holidays_user'))]"/>
+    </record>
+
+    <record id="property_rule_holidays_employee" model="ir.rule">
+        <field name="name">Officer Leaves Reservations</field>
         <field name="model_id" ref="model_hr_holidays"/>
         <field name="domain_force">[(1,'=',1)]</field>
         <field name="groups" eval="[(4,ref('hr_holidays.group_hr_holidays_user'))]"/>

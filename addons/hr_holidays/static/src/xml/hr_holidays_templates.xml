@@ -19,10 +19,13 @@
                                         <div class="o_leave_name">
                                             <span><t t-esc="leave_type.virtual_remaining_leaves"/> <t t-esc="leave_type.name"/></span>
                                         </div>
-                                        <div class="o_leave_expiration" t-if="leave_type.expiration_date">
-                                            <span><i>expiration date: <t t-esc="leave_type.expiration_date"/></i></span><!-- t-att-class green/orange/red relative to timedeltas -->
+                                         <div t-if="leave_type.next_expiration_date" class="o_leave_expiration">
+                                            <span>
+                                                <span t-if="leave_type.next_expiration_date &lt; moment().add(1, 'months').format()" class="fa fa-warning"/>
+                                                <i><t t-esc="leave_type.next_expiration_amount"/> will expire after <t t-esc="leave_type.next_expiration_date"/></i>
+                                            </span>
                                         </div>
-                                        <div class="o_expiration_date_placeholder" t-else=""/>
+                                        <div t-else="" class="o_expiration_date_placeholder"/>
                                     </a>
                                     <div class="fa fa-plus o_hover_plus"/>
                                 </td>
@@ -36,9 +39,12 @@
                                 <td class="o_main o_dashboard_action" name="hr_holidays.action_create_leave" t-att-data-context="'{&quot;default_holiday_status_id&quot;: ' + leave_type.id + '}'" title="New Leave Request">
                                     <a>
                                         <div class="o_leave_name">
-                                            <span><t t-esc="leave_type.virtual_remaining_leaves"/> <t t-esc="leave_type.name"/></span> <!-- or X taken this year ? -->
+                                            <span><t t-esc="leave_type.name"/></span>
                                         </div>
-                                        <div class="o_expiration_date_placeholder"/>
+                                        <div t-if="leave_type.leaves_taken">
+                                            <t t-esc="leave_type.leaves_taken"/> Taken this year
+                                        </div>
+                                        <div t-else="" class="o_expiration_date_placeholder"/>
                                     </a>
                                     <div class="fa fa-plus o_hover_plus"/>
                                 </td>

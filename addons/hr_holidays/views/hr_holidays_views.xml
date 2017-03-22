@@ -220,6 +220,9 @@
                                     <field name="number_of_days_temp" class="oe_inline"/> days
                                 </div>
                             </div>
+                            <field name="expiration_date" attrs="{'invisible':[('type', '=', 'remove')]}"/>
+                            <field name="allocation_reservation_ids" attrs="{'invisible':[('type', '=', 'remove')]}" groups="base.group_no_one"/>
+                            <field name="leave_reservation_ids" attrs="{'invisible':[('type', '=', 'add')]}" groups="base.group_no_one"/>
                         </group>
                         <group>
                             <field name="holiday_type" string="Mode" groups="hr_holidays.group_hr_holidays_user" widget="radio"/>
@@ -343,6 +346,35 @@
                 </tree>
             </field>
         </record>
+
+        <!-- hr.holidays.reservation -->
+        <record id="hr_holidays_reservation_view_tree" model="ir.ui.view">
+            <field name="name">hr.holidays.reservation.tree</field>
+            <field name="model">hr.holidays.reservation</field>
+            <field name="arch" type="xml">
+                <tree string="Holidays Reservation">
+                    <field name="allocation_id"/>
+                    <field name="leave_id"/>
+                    <field name="number_of_days"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="hr_holidays_reservation_view_form" model="ir.ui.view">
+            <field name="name">hr.holidays.reservation.form</field>
+            <field name="model">hr.holidays.reservation</field>
+            <field name="arch" type="xml">
+                <form string="Holidays Reservation">
+                    <group>
+                        <field name="allocation_id"/>
+                        <field name="leave_id"/>
+                        <field name="number_of_days"/>
+                    </group>
+                </form>
+            </field>
+        </record>
+
+        <!-- Menus and Actions -->
 
         <menuitem
             name="Leaves"
