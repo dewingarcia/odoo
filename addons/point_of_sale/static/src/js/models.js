@@ -287,13 +287,20 @@ exports.PosModel = Backbone.Model.extend({
         loaded: function(self, locations){ self.shop = locations[0]; },
     },{
         model:  'product.pricelist',
-        fields: [],
+        fields: [], // todo jov: maybe don't load non-stored computed or useless fields
         domain: function(self) { return [['currency_id', '=', self.config.currency_id[0]]]; },
         loaded: function(self, pricelists){
             self.default_pricelist = _.find(pricelists, function (pricelist) {
                 return pricelist.id === self.config.pricelist_id[0];
             });
             self.pricelist_ids = pricelists;
+        },
+    },{
+        model:  'product.pricelist.item',
+        fields: [], // todo jov: maybe don't load non-stored computed or useless fields
+        domain: function(self) { return [['pricelist_id', 'in', _.pluck(self.pricelist_ids, 'id')]]; },
+        loaded: function(self, pricelist_items){
+            self.pricelist_items = pricelist_items; // todo jov: maybe integrate with db.js?
         },
     },{
         model: 'res.currency',
