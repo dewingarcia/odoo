@@ -198,7 +198,6 @@ class WebsiteSale(http.Controller):
     ], type='http', auth="public", website=True)
     def shop(self, page=0, category=None, search='', ppg=False, **post):
         values = self.prepare_bins(page, category, search, ppg)
-
         if category:
             values['main_object'] = category
         return request.render("website_sale.products", values)

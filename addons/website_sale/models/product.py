@@ -178,7 +178,7 @@ class ProductTemplate(models.Model):
         if sequence is not dragged_product_sequence:
             next_product_tmpl = self.search([('website_sequence', '<=', sequence), ('website_sequence', '>', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
         else:
-            next_product_tmpl = self.sudo().search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
+            next_product_tmpl = self.search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
         self.website_sequence = sequence
         for x in next_product_tmpl:
             x.website_sequence = x.website_sequence - 1
@@ -187,7 +187,7 @@ class ProductTemplate(models.Model):
         if sequence is not dragged_product_sequence:
             prev_product_tmpl = self.search([('website_sequence', '>', sequence), ('website_sequence', '<', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
         else:
-            prev_product_tmpl = self.sudo().search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
+            prev_product_tmpl = self.search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
         self.website_sequence = sequence + 1
         for x in prev_product_tmpl:
             x.website_sequence = x.website_sequence + 1
