@@ -565,7 +565,7 @@
                         </group>
                     </page>
                 </page>
-                <group name="invoicing" position="before">
+                <group name="invoicing" position="inside">
                     <group string="Purchase Bills" name="bill" attrs="{'invisible': [('purchase_ok','=',False)]}" groups="purchase.group_purchase_manager">
                         <field name="purchase_method" widget="radio"/>
                     </group>
