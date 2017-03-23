@@ -55,7 +55,12 @@ WebsiteBackend.include({
             'date_to': this.date_to.format('YYYY-MM-DD'),
         }).done(function(result) {
             self.graph_data = result;
-            self.render_utm_graph('#o_graph_utm', self.graph_data);
+            if(result.length > 0){
+                self.render_utm_graph('#o_graph_utm', self.graph_data);
+            }
+            else{
+                self.render_noData_image('#o_graph_utm');
+            }
         });
     },
 
@@ -72,7 +77,7 @@ WebsiteBackend.include({
                 .labelType("percent")
                 .showLegend(false)
                 .margin({"left":0,"right":0,"top":0,"bottom":0})
-                .noData("No UTM tag detected in orders");
+                .noData("No UTM Tag Detected");
 
         var svg = d3.select(div_to_display)
             .append("svg");
@@ -86,6 +91,14 @@ WebsiteBackend.include({
         nv.utils.windowResize(chart2.update);
         return chart2;
         });
+    },
+
+    render_noData_image: function(div_to_display){
+        this.image_src = "website_sale/static/src/img/website_sale_dashboard_utms_demo.png";
+        $('<img />', {
+            src: this.image_src,
+            alt: "There isn't any UTM tag detected in orders"
+        }).addClass("o_image_chart").appendTo(this.$(div_to_display).empty());
     },
 
 });
