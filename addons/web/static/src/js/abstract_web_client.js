@@ -3,6 +3,7 @@ odoo.define('web.AbstractWebClient', function (require) {
 
 var ActionManager = require('web.ActionManager');
 var core = require('web.core');
+var config = require('web.config');
 var crash_manager = require('web.crash_manager');
 var Loading = require('web.Loading');
 var NotificationManager = require('web.notification').NotificationManager;
@@ -56,6 +57,7 @@ var WebClient = Widget.extend({
     start: function() {
         var self = this;
 
+        this.$el.toggleClass('o_touch_device', config.device.touch);
         this.on("change:title_part", this, this._title_changed);
         this._title_changed();
 
