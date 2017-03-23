@@ -140,12 +140,12 @@
                                                     <t t-if="record.allocation_requests_count.raw_value == 1">Allocation Request to Approve</t>
                                                     <t t-else="">Allocation Requests to Approve</t>
                                                 </a>
-                                            </div>
+                                            </div><!-- 
                                             <div name="shortcuts">
                                                 <a class="btn-link" name="%(hr_holidays.action_create_leave)d" type="action" context="{'default_department_id': active_id, 'default_holiday_type': 'department'}">
                                                     New Leave
                                                 </a>
-                                            </div>
+                                            </div> -->
                                             <div>
                                                 <a class="btn-link" name="%(hr_holidays.action_create_allocation)d" type="action" context="{'default_department_id': active_id, 'default_holiday_type': 'department'}">
                                                     New Allocation

@@ -23,7 +23,7 @@
                                          <div t-if="leave_type.next_expiration_date" class="o_leave_expiration">
                                             <span>
                                                 <span t-if="leave_type.next_expiration_date &lt; moment().add(1, 'months').format()" class="fa fa-warning"/>
-                                                <i><t t-esc="leave_type.next_expiration_amount"/> will expire after <t t-esc="leave_type.next_expiration_date"/></i>
+                                                <i><t t-esc="leave_type.next_expiration_amount"/> will expire on <t t-esc="leave_type.next_expiration_date"/></i>
                                             </span>
                                         </div>
                                         <div t-else="" class="o_expiration_date_placeholder"/>
