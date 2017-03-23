@@ -49,6 +49,33 @@
             </field>
         </record>
 
+        <record id="view_hr_payroll_structure_kanban" model="ir.ui.view">
+            <field name="name">hr.payroll.structure.kanban</field>
+            <field name="model">hr.payroll.structure</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile">
+                    <field name="name"/>
+                    <field name="code"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div t-attf-class="oe_kanban_global_click">
+                                <div class="row">
+                                    <div class="col-xs-8">
+                                        <span><strong><t t-esc="record.name.value"/></strong></span>
+                                    </div>
+                                    <div class="col-xs-4">
+                                        <span class="pull-right badge">
+                                            <strong><t t-esc="record.code.value"/></strong>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
         <record id="view_hr_payroll_structure_filter" model="ir.ui.view">
             <field name="name">hr.payroll.structure.select</field>
             <field name="model">hr.payroll.structure</field>
@@ -91,6 +118,7 @@
             <field name="name">Salary Structures</field>
             <field name="res_model">hr.payroll.structure</field>
             <field name="view_type">form</field>
+            <field name="view_mode">tree,kanban,form</field>
             <field name="view_id" ref="view_hr_payroll_structure_list_view"/>
         </record>
         <menuitem
