@@ -197,6 +197,40 @@
             </field>
         </record>
 
+        <record id="view_hr_payslip_kanban" model="ir.ui.view">
+            <field name="name">hr.payslip.kanban</field>
+            <field name="model">hr.payslip</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile">
+                    <field name="employee_id"/>
+                    <field name="date_from"/>
+                    <field name="date_to"/>
+                    <field name="state"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div t-attf-class="oe_kanban_global_click">
+                                <span class="mb4">
+                                    <strong><field name="employee_id"/></strong>
+                                </span>
+                                <div class="row">
+                                    <div class="col-xs-9">
+                                        <i class="fa fa-clock-o"/> <t t-esc="record.date_from.value"/>-
+                                        <t t-esc="record.date_to.value"/>
+                                    </div>
+                                    <div class="col-xs-3">
+                                        <span class="pull-right">
+                                            <field name="state" widget="kanban_label_selection" options="{'classes': {'draft': 'default', 'cancel': 'default',
+                                            'open': 'success', 'close': 'default', 'pending': 'danger'}}"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
         <act_window name="Payslip Computation Details"
             context="{'default_slip_id': active_id,'search_default_slip_id': active_id}"
             res_model="hr.payslip.line"
@@ -365,6 +399,7 @@
             <field name="name">Employee Payslips</field>
             <field name="res_model">hr.payslip</field>
             <field name="view_type">form</field>
+            <field name="view_mode">tree,kanban,form</field>
             <field name="view_id" ref="view_hr_payslip_tree"/>
             <field name="search_view_id" ref="view_hr_payslip_filter"/>
         </record>
