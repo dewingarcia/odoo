@@ -2053,7 +2053,7 @@ var set_pricelist_button = ActionButtonWidget.extend({
     button_click: function () {
         var self = this;
 
-        var pricelists = _.map(self.pos.pricelist_ids, function (pricelist) {
+        var pricelists = _.map(self.pos.pricelists, function (pricelist) {
             return {
                 label: pricelist.name,
                 item: pricelist
@@ -2079,7 +2079,7 @@ define_action_button({
     'name': 'set_pricelist',
     'widget': set_pricelist_button,
     'condition': function(){
-        return this.pos.pricelist_ids.length > 1;
+        return this.pos.pricelists.length > 1;
     },
 });
 

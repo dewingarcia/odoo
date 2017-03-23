@@ -293,14 +293,22 @@ exports.PosModel = Backbone.Model.extend({
             self.default_pricelist = _.find(pricelists, function (pricelist) {
                 return pricelist.id === self.config.pricelist_id[0];
             });
-            self.pricelist_ids = pricelists;
+            self.pricelists = pricelists;
         },
     },{
         model:  'product.pricelist.item',
         fields: [], // todo jov: maybe don't load non-stored computed or useless fields
-        domain: function(self) { return [['pricelist_id', 'in', _.pluck(self.pricelist_ids, 'id')]]; },
+        domain: function(self) { return [['pricelist_id', 'in', _.pluck(self.pricelists, 'id')]]; },
         loaded: function(self, pricelist_items){
-            self.pricelist_items = pricelist_items; // todo jov: maybe integrate with db.js?
+            // todo jov: this is super slow.
+            // Maybe integrate with db.js?
+            _.each(pricelist_items, function (item) {
+                var pricelist = _.find(self.pricelists, function (pricelist) {
+                    return pricelist.id === item.pricelist_id[0];
+                });
+
+                pricelist.item_ids[_.indexOf(pricelist.item_ids, item.id)] = item;
+            });
         },
     },{
         model: 'res.currency',
@@ -1169,10 +1177,13 @@ exports.load_models = function(models,options) {
 
 exports.Product = Backbone.Model.extend({
     initialize: function(attr, options){
-        _.extend(this, options); // todo jov: weird
+        // todo jov: makes sense in a weird
+        // way, but should be done manually
+        // so all the properties are listed
+        _.extend(this, options);
     },
     // port of _compute_price_rule on product.pricelist
-    get_product_price: function(){
+    get_product_price: function(pricelist){
         return 666;
     },
 });
