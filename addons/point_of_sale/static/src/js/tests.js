@@ -1,4 +1,34 @@
-odoo.define('point_of_sale.Tour', function (require) {
+odoo.define('point_of_sale.tour.pricelist', function (require) {
+    "use strict";
+
+    var tour = require("web_tour.tour");
+    var model = require('web.DataModel');
+
+    var steps = [{
+        content: 'waiting for loading to finish',
+        trigger: '.o_main_content:has(.loader:hidden)',
+        run: function () {
+            console.log('doing rpc');
+            var product_template_model = new model('product.template');
+            var read = product_template_model.call('read', [[1], ['id', 'name']]);
+            read.always(function (result) {
+                console.log(JSON.stringify(result));
+            });
+        },
+    }];
+
+    steps = steps.concat([{
+        content: "close the Point of Sale frontend",
+        trigger: ".header-button",
+    }, {
+        content: "confirm closing the frontend",
+        trigger: ".header-button",
+    }]);
+
+    tour.register('pos_pricelist', { test: true, url: '/pos/web' }, steps);
+});
+
+odoo.define('point_of_sale.tour.acceptance', function (require) {
     "use strict";
 
     var tour = require("web_tour.tour");

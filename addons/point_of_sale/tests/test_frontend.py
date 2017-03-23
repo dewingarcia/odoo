@@ -62,6 +62,11 @@ class TestUi(odoo.tests.HttpCase):
         cr.release()
 
         self.phantom_js("/pos/web",
+                        "odoo.__DEBUG__.services['web_tour.tour'].run('pos_pricelist')",
+                        "odoo.__DEBUG__.services['web_tour.tour'].tours.pos_pricelist.ready",
+                        login="admin")
+
+        self.phantom_js("/pos/web",
                         "odoo.__DEBUG__.services['web_tour.tour'].run('pos_basic_order')",
                         "odoo.__DEBUG__.services['web_tour.tour'].tours.pos_basic_order.ready",
                         login="admin")
