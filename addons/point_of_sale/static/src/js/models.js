@@ -331,7 +331,9 @@ exports.PosModel = Backbone.Model.extend({
         domain: [['sale_ok','=',true],['available_in_pos','=',true]],
         context: function(self){ return { display_default_code: false }; },
         loaded: function(self, products){
-            self.db.add_products(products);
+            self.db.add_products(_.map(products, function (product) {
+                return new exports.Product({}, product);
+            }));
         },
     },{
         model:  'account.bank.statement',
@@ -1165,6 +1167,16 @@ exports.load_models = function(models,options) {
     pmodels.splice.apply(pmodels,[index,0].concat(models));
 };
 
+exports.Product = Backbone.Model.extend({
+    initialize: function(attr, options){
+        _.extend(this, options); // todo jov: weird
+    },
+    // port of _compute_price_rule on product.pricelist
+    get_product_price: function(){
+        return 666;
+    },
+});
+
 var orderline_id = 1;
 
 // An orderline represent one element of the content of a client's shopping cart.
@@ -1186,7 +1198,7 @@ exports.Orderline = Backbone.Model.extend({
         this.type = 'unit';
         this.selected = false;
         this.id       = orderline_id++;
-        this.price = this.get_product_price();
+        this.price = options.product.get_product_price();
     },
     init_from_JSON: function(json) {
         this.product = this.pos.db.get_product_by_id(json.product_id);
@@ -1419,19 +1431,6 @@ exports.Orderline = Backbone.Model.extend({
         }
 
         return wrapped;
-    },
-    // todo jov: i don't know where to put this. Doing it on the
-    // orderline like this is not smart because it makes no sense and
-    // also it means we cannot use it outside of an orderline. So for
-    // the prices on the product images this is not going to work.
-    //
-    // There's two other options I think:
-    // - db.js
-    // - create a product class
-    //
-    // port of _compute_price_rule on product.pricelist
-    get_product_price: function(){
-        return 666;
     },
     // changes the base price of the product for this orderline
     set_unit_price: function(price){
