@@ -583,6 +583,7 @@
             <field name="name">Contribution Registers</field>
             <field name="res_model">hr.contribution.register</field>
             <field name="view_type">form</field>
+            <field name="view_mode">tree,kanban,form</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
                 Click to add a new contribution register.
