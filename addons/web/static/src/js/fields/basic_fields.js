@@ -1026,44 +1026,37 @@ var PriorityWidget = AbstractField.extend({
     // only usable for fields of type selection
     className: "o_priority",
     events: {
-        'mouseover > a': function (e) {
-            clearTimeout(this.hover_timer);
-            this.$('.o_priority_star').removeClass('fa-star-o').addClass('fa-star');
-            $(e.currentTarget).nextAll().removeClass('fa-star').addClass('fa-star-o');
-        },
-        'mouseout > a': function () {
-            clearTimeout(this.hover_timer);
-
-            var self = this;
-            this.hover_timer = setTimeout(function () {
-                self._render();
-            }, 200);
-        },
-        'click > a': function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            var index = $(e.currentTarget).data('index');
-            var new_value = this.field.selection[index][0];
-            if(new_value === this.value) {
-                new_value = this.empty_value;
-            }
-            this._setValue(new_value);
-        },
+        'mouseover > a': '_onMouseOver',
+        'mouseout > a': '_onMouseOut',
+        'click > a': '_onClick',
     },
+    replace_element: true,
     supportedFieldTypes: ['selection'],
 
-    is_set: function () {
+    //--------------------------------------------------------------------------
+    // Public
+    //--------------------------------------------------------------------------
+
+    /**
+     * Like boolean fields, this widget always has a value, since the default
+     * value is already a valid value.
+     *
+     * @override
+     */
+    isSet: function () {
         return true;
     },
-    render_star: function (tag, is_full, index, tip) {
-        return $(tag)
-            .attr('title', tip)
-            .attr('data-index', index)
-            .addClass('o_priority_star fa')
-            .toggleClass('fa-star', is_full)
-            .toggleClass('fa-star-o', !is_full);
-    },
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * Renders a star for each possible value, readonly or edit mode doesn't matter.
+     *
+     * @override
+     * @private
+     */
     _render: function () {
         var self = this;
         var index_value = this.value ? _.findIndex(this.field.selection, function (v) {
@@ -1072,8 +1065,72 @@ var PriorityWidget = AbstractField.extend({
         this.$el.empty();
         this.empty_value = this.field.selection[0][0];
         _.each(this.field.selection.slice(1), function (choice, index) {
-            self.$el.append(self.render_star('<a href="#">', index_value >= index+1, index+1, choice[1]));
+            self.$el.append(self._render_star('<a href="#">', index_value >= index+1, index+1, choice[1]));
         });
+    },
+
+    /**
+     * Renders a star representing a particular value for this field.
+     *
+     * @param {String} tag html tag to be passed to jquery to hold the star
+     * @param {boolean} is_full whether the star is a full star or not
+     * @param {integer} index the index of the star in the series
+     * @param {String} tip tooltip for this star's meaning
+     * @private
+     */
+    _render_star: function (tag, is_full, index, tip) {
+        return $(tag)
+            .attr('title', tip)
+            .attr('data-index', index)
+            .addClass('o_priority_star fa')
+            .toggleClass('fa-star', is_full)
+            .toggleClass('fa-star-o', !is_full);
+    },
+
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * Colors the stars to show the user the result when clicking on it.
+     *
+     * @param {event} event
+     * @private
+     */
+    _onMouseOver: function(event) {
+        clearTimeout(this.hover_timer);
+        this.$('.o_priority_star').removeClass('fa-star-o').addClass('fa-star');
+        $(event.currentTarget).nextAll().removeClass('fa-star').addClass('fa-star-o');
+    },
+
+    /**
+     * Reset the star display status.
+     *
+     * @private
+     */
+    _onMouseOut: function() {
+        clearTimeout(this.hover_timer);
+        var self = this;
+        this.hover_timer = setTimeout(function () {
+            self._render();
+        }, 200);
+    },
+
+    /**
+     * Update the value of the field based on which star the user clicked on.
+     *
+     * @param {event} event
+     * @private
+     */
+    _onClick: function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var index = $(event.currentTarget).data('index');
+        var new_value = this.field.selection[index][0];
+        if(new_value === this.value) {
+            new_value = this.empty_value;
+        }
+        this._setValue(new_value);
     },
 });
 
