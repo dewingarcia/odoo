@@ -494,6 +494,8 @@ var DomainLeaf = DomainNode.extend({
         } else {
             if (_.isBoolean(this.value)) { // Never display "true" or "false" strings from boolean value
                 this.value = "";
+            } else if (_.isObject(this.value)) { // Can be object if parsed to x2x representation
+                this.value = this.value.id || "";
             }
         }
 
