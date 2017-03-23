@@ -14,12 +14,17 @@ var utils = require('web.utils');
 var View = require('web.View');
 var widgets = require('web_calendar.widgets');
 var local_storage = require('web.local_storage');
+var config = require('web.config');
 
 var CompoundDomain = data.CompoundDomain;
 
 var _t = core._t;
 var _lt = core._lt;
 var QWeb = core.qweb;
+
+function is_mobile() {
+    return config.device.size_class <= config.device.SIZES.XS;
+    }
 
 function get_fc_defaultOptions() {
     var dateFormat = time.strftime_to_moment_format(_t.database.parameters.date_format);
@@ -252,6 +257,7 @@ var CalendarView = View.extend({
      */
     render_buttons: function($node) {
         var self = this;
+        this.is_mobile = is_mobile();
         this.$buttons = $(QWeb.render("CalendarView.buttons", {'widget': this}));
         this.$buttons.on('click', 'button.o_calendar_button_new', function () {
             self.dataset.index = null;
@@ -269,7 +275,14 @@ var CalendarView = View.extend({
         bindCalendarButton('.o_calendar_button_month', 'changeView', 'month');
 
         this.$buttons.find('.o_calendar_button_' + this.mode).addClass('active');
-        
+
+        if(this.is_mobile) {
+            $(this.$buttons).on("click",'.dropdown-menu li a',function(ev){
+                this.$button = $(ev.currentTarget).text();
+                $('#date_selector').html(this.$button + ' <span class="caret"></span>');
+            });
+        }
+
         if ($node) {
             this.$buttons.appendTo($node);
         } else {
