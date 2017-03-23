@@ -257,7 +257,7 @@
 
     <!-- Add to cart button-->
     <template id="categories_recursive" name="Category list">
-        <li t-att-class="'active' if c.id == int(category or 0) else None" t-if="c.id in filtered_categs">
+        <li t-att-class="'active' if c.id == int(category or 0) else None" t-if="c.id in filtered_category_ids">
             <a t-att-href="keep('/shop/category/' + slug(c), category=0)" t-field="c.name"></a>
             <ul t-if="c.child_id" class="nav nav-pills nav-stacked nav-hierarchy">
                 <t t-foreach="c.child_id" t-as="c">
@@ -287,7 +287,7 @@
     </template>
 
     <template id="option_collapse_categories_recursive" name="Collapse Category Recursive">
-        <li t-att-class="'active' if categ.id == int(category or 0) else None" t-if="categ.id in filtered_categs">
+        <li t-att-class="'active' if categ.id == int(category or 0) else None" t-if="categ.id in filtered_category_ids">
             <i t-if="categ.child_id" t-attf-class="text-primary fa #{'fa-chevron-down' if categ.id in parent_category_ids else 'fa-chevron-right'}" />
             <a t-att-href="keep('/shop/category/' + slug(categ), category=0)" t-field="categ.name"></a>
             <ul t-if="categ.child_id" class="nav nav-pills nav-stacked nav-hierarchy" t-att-style="'display:block;' if categ.id in parent_category_ids else 'display:none;'">

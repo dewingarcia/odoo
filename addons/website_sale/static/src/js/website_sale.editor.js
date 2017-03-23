@@ -123,7 +123,6 @@ options.registry.website_sale = options.Class.extend({
     },
     bind_drag_and_drop_product: function(){
         var self = this;
-        var a = this.$target;
         var startx,starty,stopx,stopy,direction,target_product_sequence,dragged_product_sequence,target_product_id;
         this.$target.draggable({
             helper: 'original',
@@ -155,10 +154,9 @@ options.registry.website_sale = options.Class.extend({
             stop: function(event, ui) {
                 stopx = event.pageX;
                 stopy = event.pageY;
-                if (starty > stopy && startx > stopx ){
+                if (starty > stopy && startx > stopx) {
                     direction = "up";
-                }
-                else{
+                } else {
                     direction = "down";
                 }
                 ajax.jsonRpc('/shop/drag_drop_change_sequence/' + self.product_tmpl_id, 'call', {'sequence': target_product_sequence, 'direction': direction, 'dragged_product_sequence': dragged_product_sequence, 'target_product_id': target_product_id})

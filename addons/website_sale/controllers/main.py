@@ -197,11 +197,8 @@ class WebsiteSale(http.Controller):
         '/shop/category/<model("product.public.category"):category>/page/<int:page>'
     ], type='http', auth="public", website=True)
     def shop(self, page=0, category=None, search='', ppg=False, **post):
-        values = {}
+        values = self.prepare_bins(page, category, search, ppg)
 
-        prepare_bins = self.prepare_bins(page, category, search, ppg)
-
-        values.update(prepare_bins)
         if category:
             values['main_object'] = category
         return request.render("website_sale.products", values)
@@ -255,31 +252,31 @@ class WebsiteSale(http.Controller):
             attributes = ProductAttribute.search([('attribute_line_ids.product_tmpl_id', 'in', products.ids)])
         else:
             attributes = ProductAttribute.browse(attributes_ids)
-        bins = TableCompute().process(products, ppg)
-        values = {
-            'category': category,
+
+        return {
             'search': search,
+            'category': category,
             'attrib_values': attrib_values,
             'attrib_set': attrib_set,
-            'rows': PPR,
-            'compute_currency': compute_currency,
             'pager': pager,
+            'pricelist': pricelist,
             'products': products,
             'search_count': product_count,  # common for all searchbox
-            'bins': bins,
-            'keep': keep,
-            'pricelist': pricelist,
+            'bins': TableCompute().process(products, ppg),
+            'rows': PPR,
             'categories': categs,
-            'filtered_categs': Categories,
-            'parent_category_ids': parent_category_ids,
+            'filtered_category_ids': Categories,
             'attributes': attributes,
+            'compute_currency': compute_currency,
+            'keep': keep,
+            'parent_category_ids': parent_category_ids,
         }
-        return values
 
     def filter_categs(self, categs, Categories):
         Product = request.env['product.template']
 
         def category_has_products(ctg):
+            # Note: Search in recursive function doesn't looks good idea also it is called in loop
             if Product.search([('public_categ_ids', 'in', ctg.id)]):
                 return True
             if (ctg.child_id):
@@ -1028,18 +1025,14 @@ class WebsiteSale(http.Controller):
 
     @http.route(['/shop/change_sequence/<model("product.template"):product>'], type='json', auth="public", website=True)
     def change_sequence(self, product, sequence):
-        values = {}
         getattr(product, 'set_sequence_' + sequence)()
-        prepare_bins = self.prepare_bins()
-        values.update(prepare_bins)
+        values = self.prepare_bins()
         return {'template': request.env['ir.ui.view'].render_template("website_sale.product_table", values)}
 
     @http.route(['/shop/drag_drop_change_sequence/<model("product.template"):product>'], type='json', auth="public", website=True)
     def drag_drop_change_sequence(self, product, sequence, direction, dragged_product_sequence, target_product_id):
-        values = {}
         getattr(product, 'drag_drop_product_' + direction)(sequence, dragged_product_sequence, target_product_id)
-        prepare_bins = self.prepare_bins()
-        values.update(prepare_bins)
+        values = self.prepare_bins()
         return {'template': request.env['ir.ui.view'].render_template("website_sale.product_table", values)}
 
     @http.route(['/shop/change_size/<model("product.template"):product>'], type='json', auth="public")
@@ -1048,10 +1041,8 @@ class WebsiteSale(http.Controller):
 
     @http.route(['/shop/drag_and_drop_resize/<model("product.template"):product>'], type='json', auth="public", website=True)
     def drag_and_drop_resize(self, product, x, y):
-        values = {}
         product.write({'website_size_x': x, 'website_size_y': y})
-        prepare_bins = self.prepare_bins()
-        values.update(prepare_bins)
+        values = self.prepare_bins()
         return {'template': request.env['ir.ui.view'].render_template("website_sale.product_table", values)}
 
     def order_lines_2_google_api(self, order_lines):
