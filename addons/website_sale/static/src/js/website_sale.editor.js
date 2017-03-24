@@ -30,6 +30,16 @@ if(!$('.js_sale').length) {
     return $.Deferred().reject("DOM doesn't contain '.js_sale'");
 }
 
+function set_dropzone() {
+    var $products = $("#products_grid").find(".oe_product_cart");
+    _.each($products, function(product) {
+        if (!$(product).find(".oe_drop_zone").length) {
+            $(product).append($("<div class='oe_drop_zone oe_insert oe_vertical hidden'/><div class='oe_drop_zone oe_insert oe_vertical cloned_drop_zone hidden'/>"));
+        }
+    });
+};
+
+
 options.registry.website_sale = options.Class.extend({
     start: function () {
         var self = this;
@@ -56,6 +66,7 @@ options.registry.website_sale = options.Class.extend({
                     }
                     self.set_active();
                 });
+        set_dropzone();
         this.$overlay.find('.oe_handle.w').removeClass('readonly').addClass('ui-resizable-handle ui-resizable-w');
         this.$overlay.find('.oe_handle.e').removeClass('readonly').addClass('ui-resizable-handle ui-resizable-e');
         this.$overlay.find('.oe_handle.n').removeClass('readonly').addClass('ui-resizable-handle ui-resizable-n');
@@ -109,10 +120,11 @@ options.registry.website_sale = options.Class.extend({
     },
     go_to: function (type, value) {
         var self = this;
+        var $product_grid = this.$target.closest("#products_grid");
         if(type !== "click") return;
         ajax.jsonRpc('/shop/change_sequence/' + this.product_tmpl_id, 'call', {'sequence': value})
             .done(function(result) {
-                $('#product_table').replaceWith(result.template);
+                $product_grid.find('#product_table').replaceWith(result.template);
                 $('.oe_overlay').detach();
                 self.rebind_event();
         });
@@ -125,30 +137,26 @@ options.registry.website_sale = options.Class.extend({
         var self = this;
         var startx, starty, stopx, stopy, direction, target_product_sequence, dragged_product_sequence, target_product_id;
         var is_dragged = false;
+        var $product_grid = this.$target.closest("#products_grid");
         this.$target.draggable({
             helper: 'original',
             revert: function() {
-                $('div.oe_product_cart[data-publish=on]').children('.oe_drop_zone').addClass('hidden');
+                $product_grid.find('div.oe_product_cart[data-publish=on]').children('.oe_drop_zone').addClass('hidden');
                 return true;
             },
             revertDuration: 200,
-            drag: function(event) {
-                self.$target.next('td.oe_product.oe_grid').find('div.oe_drop_zone:not(.cloned_drop_zone)').addClass('hidden');
-                self.$target.find('.cloned_drop_zone').addClass('hidden');
-            },
             start: function(event, ui) {
                 starty = event.pageY;
                 startx = event.pageX;
-                var $this = $('div.oe_product_cart[data-publish=on]').not(self.$target.find('div.oe_product_cart'));
-                $this.each(function() {
+                var $all_other_published_td = $product_grid.find('div.oe_product_cart[data-publish=on]').not(self.$target.find('div.oe_product_cart'));
+                $all_other_published_td.each(function() {
                     $(this).find('.oe_drop_zone').not('.cloned_drop_zone').removeClass('hidden').css('height', $(this).height());
                 });
-                // var last_td = $('tr').find('td:last').has('div.oe_product_cart[data-publish=on]');
-                var last_td = $('tr').find('td').has('div.oe_product_cart[data-publish=on]');
-                var last_publish_td = $('td div.oe_product_cart[data-publish=off]').parents('td').prev('td').has('div.oe_product_cart[data-publish=on]');
-                var all_last_td = $.merge(last_td,last_publish_td);
-                if(all_last_td) {
-                    all_last_td.each(function() {
+                var all_publish_on_td = $('tr').find('td').has('div.oe_product_cart[data-publish=on]');
+                var all_publish_off_td = $('td div.oe_product_cart[data-publish=off]').parents('td').prev('td').has('div.oe_product_cart[data-publish=on]');
+                var all_td = $.merge(all_publish_on_td, all_publish_off_td);
+                if(all_td) {
+                    all_td.each(function() {
                         $(this).find('.cloned_drop_zone').removeClass('hidden').css('height', $(this).height()).css('float','right');
                     })
                 }
@@ -161,7 +169,7 @@ options.registry.website_sale = options.Class.extend({
                     is_dragged = false;
                     ajax.jsonRpc('/shop/drag_drop_change_sequence/' + self.product_tmpl_id, 'call', {'sequence': target_product_sequence, 'direction': direction, 'dragged_product_sequence': dragged_product_sequence, 'target_product_id': target_product_id})
                         .done(function(result) {
-                            $('#product_table').replaceWith(result.template);
+                            $product_grid.find("#product_table").replaceWith(result.template);
                             $('.oe_overlay').detach();
                             self.rebind_event();
                         });
@@ -183,8 +191,9 @@ options.registry.website_sale = options.Class.extend({
         var self = this;
         var width = this.$target.parents('tr').width()/4;
         var height = this.$target.parents('tr').height();
+        var $product_grid = this.$target.closest("#products_grid");
         this.$target.resizable({
-            containment: $('#product_table'),
+            containment: $product_grid.find('#product_table'),
             handles:{n: $(this.$overlay.find('.oe_handle.n')), e: $(this.$overlay.find('.oe_handle.e')), s: $(this.$overlay.find('.oe_handle.s')), w: $(this.$overlay.find('.oe_handle.w'))},
             helper: "ui-resizable-helper",
             grid: [width, height],
@@ -194,7 +203,7 @@ options.registry.website_sale = options.Class.extend({
                 if (colspan !== self.$target.prop("colspan") || rowspan !== self.$target.prop("rowspan")) {
                     ajax.jsonRpc('/shop/drag_and_drop_resize/' + self.product_tmpl_id, 'call', {'x': colspan, 'y': rowspan})
                         .done(function(result) {
-                            $('#product_table').replaceWith(result.template);
+                            $product_grid.find('#product_table').replaceWith(result.template);
                             $('.oe_overlay').detach();
                             self.rebind_event();
                         });

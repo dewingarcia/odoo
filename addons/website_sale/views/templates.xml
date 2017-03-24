@@ -204,8 +204,6 @@
                                 <div class="oe_product_cart" t-att-data-publish="product.website_published and 'on' or 'off'">
                                     <t t-set="product_image_big" t-value="td_product['x']+td_product['y'] &gt; 2" />
                                     <t t-call="website_sale.products_item" />
-                                    <div class='oe_drop_zone oe_insert oe_vertical hidden'/>
-                                    <div class='oe_drop_zone oe_insert oe_vertical cloned_drop_zone hidden'/>
                                 </div>
                             </td>
                         </t>
