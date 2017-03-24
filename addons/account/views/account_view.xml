@@ -100,6 +100,32 @@
                 </tree>
             </field>
         </record>
+
+        <record id="view_account_account_kanban" model="ir.ui.view">
+            <field name="name">account.account.kanban</field>
+            <field name="model">account.account</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile">
+                    <field name="name"/>
+                    <field name="code"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div t-attf-class="oe_kanban_global_click">
+                                <div class="row">
+                                    <div class="col-xs-6">
+                                        <strong><field name="name"/></strong>
+                                    </div>
+                                    <div class="col-xs-6 text-right">
+                                        <span class="badge"><t t-esc="record.code.value"/></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
         <record id="view_account_search" model="ir.ui.view">
             <field name="name">account.account.search</field>
             <field name="model">account.account</field>
@@ -119,7 +145,7 @@
             <field name="name">Chart of Accounts</field>
             <field name="res_model">account.account</field>
             <field name="view_type">form</field>
-            <field name="view_mode">tree,form</field>
+            <field name="view_mode">tree,kanban,form</field>
             <field name="search_view_id" ref="view_account_search"/>
             <field name="view_id" ref="view_account_list"/>
             <field name="help" type="html">
