@@ -57,6 +57,7 @@ QUnit.module('basic_fields', {
                     trululu: 1,
                     sequence: 4,
                     currency_id: 2,
+                    selection: 'normal',
                 }, {
                     id: 4,
                     display_name: "aaa",
@@ -64,6 +65,7 @@ QUnit.module('basic_fields', {
                     sequence: 9,
                     int_field: false,
                     qux: false,
+                    selection: 'done',
                 },
                 {id: 3, bar: true, foo: "gnap", int_field: 17, qux: -3.89859, m2o: 1, m2m: []},
                 {id: 5, bar: false, foo: "blop", int_field: -4, qux: 9.1, m2o: 1, m2m: [1], currency_id: 1}],
@@ -1825,6 +1827,188 @@ QUnit.module('basic_fields', {
             "should now have no empty star since the value is the third value");
 
         list.destroy();
+    });
+
+
+    QUnit.module('StateSelectionWidget');
+
+    QUnit.test('state_selection widget in form view', function (assert) {
+        assert.expect(21);
+
+        var form = createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<sheet>' +
+                        '<group>' +
+                            '<field name="selection" widget="state_selection"/>' +
+                        '</group>' +
+                    '</sheet>' +
+                '</form>',
+            res_id: 1,
+        });
+
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 1,
+            "should have one red status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 0,
+            "should not have one green status since selection is the second, blocked state");
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+            "there should not be a dropdown");
+
+        // Click on the status button to make the dropdown appear
+        form.$('.o_form_field.o_selection .o_status').first().click();
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 1,
+            "there should be a dropdown");
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible li').length, 2,
+            "there should be two options in the dropdown");
+
+        // Click on the first option, "Normal"
+        form.$('ul.dropdown-menu.state:visible li').first().click();
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+            "there should not be a dropdown anymore");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+            "should not have one red status since selection is the first, normal state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 0,
+            "should not have one green status since selection is the first, normal state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status').length, 1,
+            "should have one grey status since selection is the first, normal state");
+
+        // // switch to edit mode and check the result
+        form.$buttons.find('.o_form_button_edit').click();
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+            "there should still not be a dropdown");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+            "should still not have one red status since selection is the first, normal state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 0,
+            "should still not have one green status since selection is the first, normal state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status').length, 1,
+            "should still have one grey status since selection is the first, normal state");
+
+        // Click on the status button to make the dropdown appear
+        form.$('.o_form_field.o_selection .o_status').first().click();
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 1,
+            "there should be a dropdown");
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible li').length, 2,
+            "there should be two options in the dropdown");
+
+        // Click on the last option, "Done"
+        form.$('ul.dropdown-menu.state:visible li').last().click();
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+            "there should not be a dropdown anymore");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+            "should not have one red status since selection is the third, done state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 1,
+            "should have one green status since selection is the third, done state");
+
+        // save
+        form.$buttons.find('.o_form_button_save').click();
+        assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+            "there should still not be a dropdown anymore");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+            "should still not have one red status since selection is the third, done state");
+        assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 1,
+            "should still have one green status since selection is the third, done state");
+
+        form.destroy();
+    });
+
+    QUnit.skip('state_selection widget in editable list view', function(assert) {
+        assert.expect(6);
+
+        var list = createView({
+            View: ListView,
+            model: 'partner',
+            data: this.data,
+            arch: '<tree editable="bottom"><field name="selection" widget="state_selection"/></tree>',
+            debug: true,
+        });
+
+        // TODO: this widget doesn't work in editable list view on master
+
+        // assert.strictEqual(list.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 1,
+        //     "should have one red status since selection is the second, blocked state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 0,
+        //     "should not have one green status since selection is the second, blocked state");
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+        //     "there should not be a dropdown");
+        //
+        // // Click on the status button to make the dropdown appear
+        // form.$('.o_form_field.o_selection .o_status').first().click();
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 1,
+        //     "there should be a dropdown");
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible li').length, 2,
+        //     "there should be two options in the dropdown");
+        //
+        // // Click on the first option, "Normal"
+        // form.$('ul.dropdown-menu.state:visible li').first().click();
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+        //     "there should not be a dropdown anymore");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+        //     "should not have one red status since selection is the first, normal state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 0,
+        //     "should not have one green status since selection is the first, normal state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status').length, 1,
+        //     "should have one grey status since selection is the first, normal state");
+        //
+        // // // switch to edit mode and check the result
+        // form.$buttons.find('.o_form_button_edit').click();
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+        //     "there should still not be a dropdown");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+        //     "should still not have one red status since selection is the first, normal state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 0,
+        //     "should still not have one green status since selection is the first, normal state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status').length, 1,
+        //     "should still have one grey status since selection is the first, normal state");
+        //
+        // // Click on the status button to make the dropdown appear
+        // form.$('.o_form_field.o_selection .o_status').first().click();
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 1,
+        //     "there should be a dropdown");
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible li').length, 2,
+        //     "there should be two options in the dropdown");
+        //
+        // // Click on the last option, "Done"
+        // form.$('ul.dropdown-menu.state:visible li').last().click();
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+        //     "there should not be a dropdown anymore");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+        //     "should not have one red status since selection is the third, done state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 1,
+        //     "should have one green status since selection is the third, done state");
+        //
+        // // save
+        // form.$buttons.find('.o_form_button_save').click();
+        // assert.strictEqual(form.$('ul.dropdown-menu.state:visible').length, 0,
+        //     "there should still not be a dropdown anymore");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_red').length, 0,
+        //     "should still not have one red status since selection is the third, done state");
+        // assert.strictEqual(form.$('.o_form_field.o_selection > a span.o_status.o_status_green').length, 1,
+        //     "should still have one green status since selection is the third, done state");
+
+
+        // assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').length, 5,
+        //     "should have 5 cells");
+        // assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').first().text(), 'yop',
+        //     "value should be displayed properly as text");
+        //
+        // // Edit a line and check the result
+        // var $cell = list.$('tbody td:not(.o_list_record_selector)').first();
+        // $cell.click();
+        // assert.ok($cell.hasClass('o_edit_mode'), 'should be set as edit mode');
+        // assert.strictEqual($cell.find('input').val(), 'yop',
+        //     'should have the corect value in internal input');
+        // $cell.find('input').val('brolo').trigger('input');;
+        //
+        // // save
+        // list.$buttons.find('.o_list_button_save').click();
+        // $cell = list.$('tbody td:not(.o_list_record_selector)').first();
+        // assert.ok(!$cell.hasClass('o_edit_mode'), 'should not be in edit mode anymore');
+        // assert.strictEqual(list.$('tbody td:not(.o_list_record_selector)').first().text(), 'brolo',
+        //     "value should be properly updated");
+
+        // list.destroy();
     });
 
 

@@ -1144,9 +1144,50 @@ var StateSelectionWidget = AbstractField.extend({
         'click a': function (e) {
             e.preventDefault();
         },
-        'click li': 'set_selection'
+        'click li': '_set_selection'
     },
-    prepare_dropdown_values: function () {
+    replace_element: true,
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * This widget uses the FormSelection template but needs to customize it a bit.
+     *
+     * @private
+     * @override
+     */
+    _render: function () {
+        var self = this;
+        var states = this._prepare_dropdown_values();
+        // Adapt "FormSelection"
+        var current_state = _.find(states, function (state) {
+            return state.name === self.value;
+        });
+        // Like priority, default on the first possible value if no value is given.
+        if (!current_state) {
+            current_state = states[0];
+        }
+        this.$('.o_status')
+            .removeClass('o_status_red o_status_green')
+            .addClass(current_state.state_class);
+
+        // Render "FormSelection.Items" and move it into "FormSelection"
+        var $items = $(qweb.render('FormSelection.items', {
+            states: _.without(states, current_state)
+        }));
+        var $dropdown = this.$('.dropdown-menu');
+        $dropdown.children().remove(); // remove old items
+        $items.appendTo($dropdown);
+    },
+
+    /**
+     * Prepares the state values to be rendered using the FormSelection.Items template.
+     *
+     * @private
+     */
+    _prepare_dropdown_values: function () {
         var self = this;
         var _data = [];
         var current_stage_id = self.recordData.stage_id && self.recordData.stage_id[0];
@@ -1174,26 +1215,17 @@ var StateSelectionWidget = AbstractField.extend({
         });
         return _data;
     },
-    _render: function () {
-        var self = this;
-        var states = this.prepare_dropdown_values();
-        // Adapt "FormSelection"
-        var current_state = _.find(states, function (state) {
-            return state.name === self.value;
-        });
-        this.$('.o_status')
-            .removeClass('o_status_red o_status_green')
-            .addClass(current_state.state_class);
 
-        // Render "FormSelection.Items" and move it into "FormSelection"
-        var $items = $(qweb.render('FormSelection.items', {
-            states: _.without(states, current_state)
-        }));
-        var $dropdown = this.$('.dropdown-menu');
-        $dropdown.children().remove(); // remove old items
-        $items.appendTo($dropdown);
-    },
-    set_selection: function (ev) {
+    //--------------------------------------------------------------------------
+    // Handlers
+    //--------------------------------------------------------------------------
+
+    /**
+     * Intercepts the click on the FormSelection.Item to set the widget value.
+     *
+     * @private
+     */
+    _set_selection: function (ev) {
         var li = $(ev.target).closest('li');
         if (li.length) {
             var value = String(li.data('value'));
