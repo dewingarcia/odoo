@@ -321,9 +321,18 @@ var MenuEntryDialog = widget.LinkDialog.extend({
         return this._super.apply(this, arguments);
     },
     start: function () {
+        var self = this;
         this.$(".o_link_dialog_preview").remove();
         this.$(".window-new, .link-style").closest(".form-group").remove();
         this.$("label[for='o_link_dialog_label_input']").text(_t("Menu Label"));
+
+        if (!this.data.text) { // add create page option only when adding new menu
+            this.$el.find('#o_link_dialog_label_input').closest('.form-group').after(qweb.render('website.contentMenu.dialog.edit.link_menu_options'));
+            this.$el.find('input[name=link_menu_options]').on('change', function(ev) {
+                self.$el.find('#o_link_dialog_url_input').closest('.form-group').toggle();
+            });
+        }
+
         return this._super.apply(this, arguments);
     },
     save: function () {
@@ -332,6 +341,9 @@ var MenuEntryDialog = widget.LinkDialog.extend({
             $e.closest('.form-group').addClass('has-error');
             $e.focus();
             return;
+        }
+        if (this.$el.find('input[name=link_menu_options]:checked').val() == 'new_page') {
+            window.location = '/website/add/' + encodeURIComponent($e.val()) + '?add_menu=1';
         }
         return this._super.apply(this, arguments);
     }
