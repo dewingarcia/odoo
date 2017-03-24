@@ -196,8 +196,17 @@ class Employee(models.Model):
         self.name = self.user_id.name
         self.image = self.user_id.image
 
+    def _sync_user(self, user):
+        return dict(
+            name=user.name,
+            image=user.image,
+            work_email=user.email,
+        )
+
     @api.model
     def create(self, vals):
+        if vals.get('user_id'):
+            vals.update(self._sync_user(self.env['res.users'].browse(vals['user_id'])))
         tools.image_resize_images(vals)
         return super(Employee, self).create(vals)
 
