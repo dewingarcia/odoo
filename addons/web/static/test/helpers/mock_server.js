@@ -64,11 +64,10 @@ var MockServer = Class.extend({
     fieldsViewGet: function (arch, model) {
         var fields = $.extend(true, {}, this.data[model].fields);
         var fvg = this._fieldsViewGet(arch, model, fields);
-        var viewType = fvg.arch.tag;
         var fields_views = {};
-        fields_views[viewType] = fvg;
+        fields_views[fvg.type] = fvg;
         data_manager.processViews(fields_views, fields);
-        return fields_views[viewType];
+        return fields_views[fvg.type];
     },
     /**
      * Simulate a complete RPC call. This is the main method for this class.
@@ -220,6 +219,8 @@ var MockServer = Class.extend({
         return {
             arch: arch,
             fields: _.pick(fields, _.keys(fieldNodes)),
+            model: model,
+            type: arch.tag === 'tree' ? 'list' : arch.tag,
         };
     },
     /**
