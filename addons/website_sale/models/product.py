@@ -175,8 +175,8 @@ class ProductTemplate(models.Model):
             return self.set_sequence_bottom()
 
     def drag_drop_product_up(self, sequence, dragged_product_sequence, target_product_id):
-        if sequence is not dragged_product_sequence:
-            next_product_tmpl = self.search([('website_sequence', '<=', sequence), ('website_sequence', '>', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
+        if sequence != dragged_product_sequence:
+            next_product_tmpl = self.search([('id', 'not in', [self.id]), ('website_sequence', '<=', sequence), ('website_sequence', '>=', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
         else:
             next_product_tmpl = self.search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
         self.website_sequence = sequence
@@ -184,11 +184,11 @@ class ProductTemplate(models.Model):
             x.website_sequence = x.website_sequence - 1
 
     def drag_drop_product_down(self, sequence, dragged_product_sequence, target_product_id):
-        if sequence is not dragged_product_sequence:
-            prev_product_tmpl = self.search([('website_sequence', '>', sequence), ('website_sequence', '<', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
+        if sequence != dragged_product_sequence:
+            prev_product_tmpl = self.search([('id', 'not in', [self.id]), ('website_sequence', '>=', sequence), ('website_sequence', '<=', dragged_product_sequence), ('website_published', '=', self.website_published)], order='website_sequence desc')
         else:
             prev_product_tmpl = self.search([('website_sequence', '=', sequence), ('id', 'not in', [self.id, target_product_id]), ('website_published', '=', self.website_published)], order='website_sequence desc')
-        self.website_sequence = sequence + 1
+        self.website_sequence = sequence
         for x in prev_product_tmpl:
             x.website_sequence = x.website_sequence + 1
 
