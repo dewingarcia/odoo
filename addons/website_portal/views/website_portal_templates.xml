@@ -27,6 +27,17 @@
         </ul>
     </template>
 
+    <template id="portal_navigation_pager" name="Portal Record Pager Navigation">
+        <div class="ml8 record_pager btn-group btn-group-xs pull-right" role="group">
+            <a t-att-class="'btn btn-default %s' % ('disabled' if not nav_prev_url else '')" t-att-href="nav_prev_url or '#'" >
+                <i class="fa fa-arrow-left" aria-hidden="true"></i>
+            </a>
+            <a t-att-class="'btn btn-default %s' % ('disabled' if not nav_next_url else '')" t-att-href="nav_next_url or '#'" >
+                <i class="fa fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+    </template>
+
     <!--
         The search bar is composed of 2 buttons : a "filter by" and a "sort by". Changing the 'sortby'
         criteria will keep the number of page, query params, ... Changing the 'filterby' param will

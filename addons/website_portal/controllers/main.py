@@ -8,6 +8,8 @@ from odoo.tools.translate import _
 
 from odoo.fields import Date
 
+from odoo.addons.base.ir.ir_ui_view import keep_query
+
 
 def get_records_pager(ids, current):
     if current.id in ids:
@@ -24,7 +26,7 @@ class website_account(http.Controller):
     MANDATORY_BILLING_FIELDS = ["name", "phone", "email", "street", "city", "country_id"]
     OPTIONAL_BILLING_FIELDS = ["zipcode", "state_id", "vat", "company_name"]
 
-    _items_per_page = 20
+    _items_per_page = 5
 
     def _prepare_portal_layout_values(self):
         """ prepare the values to render portal layout template. This returns the
@@ -61,6 +63,53 @@ class website_account(http.Controller):
                 'item_count': group[groupby + '_count']
             })
         return groups
+
+    def _get_navigation_urls(self, record, domain=[], order_by='caca DESC'):
+        # domain from rules and filter by
+        domain_rules = request.env['ir.rule']._compute_domain(record._name, 'read')
+        domain += domain_rules
+
+        # build query, using ORM for secuity matter
+        query = record._where_calc(domain)
+        record._apply_ir_rules(query, 'read') ## TODO JEM requited ?
+        from_clause, where_clause, where_clause_params = query.get_sql()
+        where_str = where_clause or ''
+
+        # check that order_by is valid
+        try:
+            record._generate_order_by(order_by, query)
+        except ValueError:
+            order_by = 'create_date DESC'
+
+        # Compute next and prev with only one query SQL.
+        # NOTE: This may be problematic with the condition like ('id', 'in', [ids])
+        # if ids is a too long list. We should then use `split_for_in_conditions`
+        # but this will break the performance.
+        query = """SELECT *
+                FROM (
+                    SELECT  %s.id,
+                        LAG(%s.id) over (order by %s) as prev_id,
+                        LEAD(%s.id) over (order by %s) as next_id
+                    FROM %s
+                    WHERE %s
+                ) x
+                WHERE id=%%s AND id IN (id, prev_id, next_id)
+            """ % (record._table, record._table, order_by, record._table, order_by, from_clause, where_str)
+
+        request.env.cr.execute(query, where_clause_params + [record.id])
+        result = request.env.cr.dictfetchall()
+        result = result[0] if len(result) else {}
+
+        prev_url = False
+        if result.get('prev_id'):
+            prev_url = '%s?%s' % (record.browse(result['prev_id']).website_url, keep_query())
+        next_url = False
+        if result.get('next_id'):
+            next_url = '%s?%s' % (record.browse(result['next_id']).website_url, keep_query())
+        return {
+            'nav_prev_url': prev_url,
+            'nav_next_url': next_url,
+        }
 
     @http.route(['/my', '/my/home'], type='http', auth="user", website=True)
     def account(self, **kw):

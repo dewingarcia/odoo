@@ -19,16 +19,22 @@ class WebsiteAccount(website_account):
         })
         return values
 
+    # Projects
+
+    def _get_project_searchbar_sortings(self):
+        return {
+            'date': {'label': _('Newest'), 'order': 'create_date desc'},
+            'name': {'label': _('Name'), 'order': 'name'},
+        }
+
     @http.route(['/my/projects', '/my/projects/page/<int:page>'], type='http', auth="user", website=True)
     def my_projects(self, page=1, date_begin=None, date_end=None, sortby=None, **kw):
         values = self._prepare_portal_layout_values()
         Project = request.env['project.project']
         domain = [('privacy_visibility', '=', 'portal')]
 
-        searchbar_sortings = {
-            'date': {'label': _('Newest'), 'order': 'create_date desc'},
-            'name': {'label': _('Name'), 'order': 'name'},
-        }
+        searchbar_sortings = self._get_project_searchbar_sortings()
+
         if not sortby:
             sortby = 'date'
         order = searchbar_sortings[sortby]['order']
@@ -50,7 +56,6 @@ class WebsiteAccount(website_account):
 
         # content according to pager and archive selected
         projects = Project.search(domain, order=order, limit=self._items_per_page, offset=pager['offset'])
-        request.session['my_projects_history'] = projects.ids[:100]
 
         values.update({
             'date': date_begin,
@@ -68,21 +73,20 @@ class WebsiteAccount(website_account):
     @http.route(['/my/project/<model("project.project"):project>'], type='http', auth="user", website=True)
     def my_project(self, project=None, **kw):
         vals = {'project': project, }
-        history = request.session.get('my_projects_history', [])
-        vals.update(get_records_pager(history, project))
+        vals.update(self._get_navigation_urls('my_projects_history', project))
         return request.render("website_project.my_project", vals)
 
-    @http.route(['/my/tasks', '/my/tasks/page/<int:page>'], type='http', auth="user", website=True)
-    def my_tasks(self, page=1, date_begin=None, date_end=None, sortby=None, filterby=None, **kw):
-        values = self._prepare_portal_layout_values()
-        domain = [('project_id.privacy_visibility', '=', 'portal')]
+    # Tasks
 
-        searchbar_sortings = {
+    def _get_task_searchbar_sortings(self):
+        return {
             'date': {'label': _('Newest'), 'order': 'create_date desc'},
             'name': {'label': _('Title'), 'order': 'name'},
             'stage': {'label': _('Stage'), 'order': 'stage_id'},
             'update': {'label': _('Last Stage Update'), 'order': 'date_last_stage_update desc'},
         }
+
+    def _get_task_searchbar_filters(self):
         searchbar_filters = {
             'all': {'label': _('All'), 'domain': []},
         }
@@ -92,6 +96,15 @@ class WebsiteAccount(website_account):
             searchbar_filters.update({
                 str(proj.id): {'label': proj.name, 'domain': [('project_id', '=', proj.id)]}
             })
+        return searchbar_filters
+
+    @http.route(['/my/tasks', '/my/tasks/page/<int:page>'], type='http', auth="user", website=True)
+    def my_tasks(self, page=1, date_begin=None, date_end=None, sortby=None, filterby=None, **kw):
+        values = self._prepare_portal_layout_values()
+        domain = [('project_id.privacy_visibility', '=', 'portal')]
+
+        searchbar_sortings = self._get_task_searchbar_sortings()
+        searchbar_filters = self._get_task_searchbar_filters()
 
         # default sort by value
         if not sortby:
@@ -119,12 +132,10 @@ class WebsiteAccount(website_account):
         )
         # content according to pager and archive selected
         tasks = request.env['project.task'].search(domain, order=order, limit=self._items_per_page, offset=pager['offset'])
-        request.session['my_tasks_history'] = tasks.ids[:100]
 
         values.update({
             'date': date_begin,
             'date_end': date_end,
-            'projects': projects,
             'tasks': tasks,
             'page_name': 'task',
             'archive_groups': archive_groups,
@@ -140,6 +151,9 @@ class WebsiteAccount(website_account):
     @http.route(['/my/task/<model("project.task"):task>'], type='http', auth="user", website=True)
     def my_task(self, task=None, **kw):
         vals = {'task': task, 'user': request.env.user}
-        history = request.session.get('my_tasks_history', [])
-        vals.update(get_records_pager(history, task))
+
+        order_by = self._get_task_searchbar_sortings()[kw.get('sortby', 'date')]['order']
+        filter_by_domain = self._get_task_searchbar_filters()[kw.get('filterby', 'all')]['domain']
+
+        vals.update(self._get_navigation_urls(task, domain=filter_by_domain, order_by=order_by))
         return request.render("website_project.my_task", vals)
