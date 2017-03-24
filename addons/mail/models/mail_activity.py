@@ -27,6 +27,12 @@ class MailActivityType(models.Model):
         'ir.model', 'Model', index=True,
         help='Specify a model if the activity should be specific to a model'
              'and not available when managing activities for other models.')
+    recommended_activity_ids = fields.Many2many(
+        'mail.activity.type', 'mail_activity_rel', 'activity_id', 'recommended_id',
+        string='Recommended Next Activities')
+    preceding_activity_ids = fields.Many2many(
+        'mail.activity.type', 'mail_activity_rel', 'recommended_id', 'activity_id',
+        string='Preceding Activities')
 
 
 class MailActivity(models.Model):
@@ -77,11 +83,30 @@ class MailActivity(models.Model):
         ('today', 'Today'),
         ('planned', 'Planned')], 'State',
         compute='_compute_state')
+    recommended_activity_id = fields.Many2one("mail.activity.type", string="Recommended Activities")
+    last_activity_type_id = fields.Many2one('mail.activity.type', 'Previous Activity', default=False)
+    # To display or hide recommended activity label
+    enable_recommended_activity = fields.Boolean(compute='_is_recommended_activity_enable')
+
+    @api.multi
+    def _is_recommended_activity_enable(self):
+        for records in self:
+            if records.activity_type_id.recommended_activity_ids.ids:
+                records.enable_recommended_activity = True
+            else:
+                records.enable_recommended_activity = False
 
     @api.depends('res_model', 'res_id')
     def _compute_res_name(self):
         for activity in self:
             activity.res_name = self.env[activity.res_model].browse(activity.res_id).name_get()[0][1]
+
+    @api.onchange('last_activity_type_id')
+    def _onchange_last_activity_type_id(self):
+        for act in self:
+            next_acts = act.last_activity_type_id.recommended_activity_ids.sorted(key=lambda r: r.id)
+            if next_acts:
+                act.recommended_activity_id = next_acts[0]
 
     @api.depends('date_deadline')
     def _compute_state(self):
@@ -102,6 +127,11 @@ class MailActivity(models.Model):
             if not self.summary:
                 self.summary = self.activity_type_id.summary
             self.date_deadline = (datetime.now() + timedelta(days=self.activity_type_id.days))
+
+    @api.onchange('recommended_activity_id')
+    def _onchange_recommended_activity_id(self):
+        self.activity_type_id = self.recommended_activity_id
+        self.summary = self.recommended_activity_id.summary
 
     @api.model
     def create(self, values):
