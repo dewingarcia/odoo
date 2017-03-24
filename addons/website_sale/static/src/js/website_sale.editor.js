@@ -150,16 +150,9 @@ options.registry.website_sale = options.Class.extend({
                 startx = event.pageX;
                 var $all_other_published_td = $product_grid.find('div.oe_product_cart[data-publish=on]').not(self.$target.find('div.oe_product_cart'));
                 $all_other_published_td.each(function() {
-                    $(this).find('.oe_drop_zone').not('.cloned_drop_zone').removeClass('hidden').css('height', $(this).height());
+                    $(this).find('.oe_drop_zone').removeClass('hidden').css('height', $(this).height());
+                    $(this).find('.oe_drop_zone.cloned_drop_zone').removeClass('hidden').css({'height': $(this).height(), 'float': 'right'});
                 });
-                var all_publish_on_td = $('tr').find('td').has('div.oe_product_cart[data-publish=on]');
-                var all_publish_off_td = $('td div.oe_product_cart[data-publish=off]').parents('td').prev('td').has('div.oe_product_cart[data-publish=on]');
-                var all_td = $.merge(all_publish_on_td, all_publish_off_td);
-                if(all_td) {
-                    all_td.each(function() {
-                        $(this).find('.cloned_drop_zone').removeClass('hidden').css('height', $(this).height()).css('float','right');
-                    })
-                }
             },
             stop: function(event, ui) {
                 stopx = event.pageX;
@@ -177,13 +170,13 @@ options.registry.website_sale = options.Class.extend({
             }
         });
 
-        $(".oe_drop_zone").droppable({
+        $product_grid.find(".oe_drop_zone").droppable({
             tolerance: 'pointer',
             drop: function(event, ui) {
                 is_dragged = true;
+                target_product_id = $(this).parents('td').data('id');
                 target_product_sequence = $(this).parents('td').data('sequence');
                 dragged_product_sequence = self.$target.data('sequence');
-                target_product_id = $(this).parents('td').data('id');
             },
         });
     },
@@ -208,7 +201,7 @@ options.registry.website_sale = options.Class.extend({
                             self.rebind_event();
                         });
                 } else {
-                    $(this).prop("style", ""); // Bad fix to revert resize, there should be some api to revert resize
+                    $(this).prop("style", ""); // Bad fix to revert resize, there should be some methodo to revert resize
                 }
             }
         });
