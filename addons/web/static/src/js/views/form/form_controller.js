@@ -14,7 +14,7 @@ var qweb = core.qweb;
 var FormController = BasicController.extend({
     // className: "o_form_view",
     custom_events: _.extend({}, BasicController.prototype.custom_events, {
-        add_one2many_record: '_onAddOne2ManyRecord',
+        open_one2many_record: '_onOpenOne2ManyRecord',
         bounce_edit: '_onBounceEdit',
         button_clicked: '_onButtonClicked',
         open_record: '_onOpenRecord',
@@ -399,32 +399,47 @@ var FormController = BasicController.extend({
     //--------------------------------------------------------------------------
 
     /**
-     * @private
-     * @param {OdooEvent} event
-     */
-    _onAddOne2ManyRecord: function (event) {
-        var field = event.data.field;
-        var attrs = event.data.attrs;
-        new dialogs.FormViewDialog(this, {
-            res_model: field.relation,
-            shouldSaveLocally: true,
-            domain: event.data.domain,
-            context: event.data.context,
-            on_save: event.data.on_save,
-            title: _t('Create: ') + field.string,
-            initial_view: 'form',
-            fields_view: attrs.views ? attrs.views.form : undefined,
-            form_view_options: {'not_interactible_on_create': true},
-            model: this.model,
-            parentID: this.handle,
-        }).open();
-    },
-    /**
      * Bounce the 'Edit' button.
      */
     _onBounceEdit: function () {
         if (this.$buttons) {
             this.$buttons.find('.o_form_button_edit').openerpBounce();
+        }
+    },
+    /**
+     * @param {OdooEvent} event
+     */
+    _onButtonClicked: function (event) {
+        // stop the event's propagation as a form controller might have other
+        // form controllers in its descendants (e.g. in a FormViewDialog)
+        event.stopPropagation();
+        var self = this;
+        var def;
+
+        var attrs = event.data.attrs;
+        if (attrs.confirm) {
+            var d = $.Deferred();
+            Dialog.confirm(this, attrs.confirm, { confirm_callback: function () {
+                self._callButtonAction(attrs, event.data.record);
+            }}).on("closed", null, function () {
+                d.resolve();
+            });
+            def = d.promise();
+        } else if (attrs.special) {
+            def = this._callButtonAction(attrs, event.data.record);
+        } else {
+            def = this.saveRecord().then(function () {
+                return self._callButtonAction(attrs, event.data.record);
+            });
+        }
+        def.then(function () {
+            self.reload();
+        });
+
+        if (event.data.show_wow) {
+            def.then(function () {
+                self.show_wow();
+            });
         }
     },
     /**
@@ -470,40 +485,35 @@ var FormController = BasicController.extend({
         this._super.apply(this, arguments);
     },
     /**
+     * @private
      * @param {OdooEvent} event
      */
-    _onButtonClicked: function (event) {
-        // stop the event's propagation as a form controller might have other
-        // form controllers in its descendants (e.g. in a FormViewDialog)
-        event.stopPropagation();
+    _onOpenOne2ManyRecord: function (event) {
         var self = this;
-        var def;
-
-        var attrs = event.data.attrs;
-        if (attrs.confirm) {
-            var d = $.Deferred();
-            Dialog.confirm(this, attrs.confirm, { confirm_callback: function () {
-                self._callButtonAction(attrs, event.data.record);
-            }}).on("closed", null, function () {
-                d.resolve();
-            });
-            def = d.promise();
-        } else if (attrs.special) {
-            def = this._callButtonAction(attrs, event.data.record);
-        } else {
-            def = this.saveRecord().then(function () {
-                return self._callButtonAction(attrs, event.data.record);
-            });
+        var field = event.data.field;
+        var on_saved = function (record) {
+            self.model.setFieldProps(record.id, event.data.viewInfo);
+            event.data.on_saved(record);
+        };
+        var record;
+        if (event.data.id) {
+            record = this.model.get(event.data.id, {raw: true});
         }
-        def.then(function () {
-            self.reload();
-        });
 
-        if (event.data.show_wow) {
-            def.then(function () {
-                self.show_wow();
-            });
-        }
+        new dialogs.FormViewDialog(this, {
+            context: event.data.context,
+            domain: event.data.domain,
+            fields_view: event.data.fields_view,
+            model: this.model,
+            on_saved: on_saved,
+            parentID: this.handle,
+            recordID: record && record.id,
+            readonly: event.data.readonly,
+            res_id: record && record.res_id,
+            res_model: field.relation,
+            shouldSaveLocally: true,
+            title: (record ? _t("Open:") : _t("Create")) + field.string,
+        }).open();
     },
     /**
      * Open a record in a form view dialog
@@ -512,7 +522,7 @@ var FormController = BasicController.extend({
      */
     _onOpenRecord: function (event) {
         var self = this;
-        var record = this.model.get(event.data.id);
+        var record = this.model.get(event.data.id, {raw: true});
         var model = record.model;
         var res_id = record.res_id;
         var fieldsViewDef;
@@ -534,7 +544,6 @@ var FormController = BasicController.extend({
                 model: self.model,
                 parentID: self.handle,
                 recordID: record.id,
-                shouldSaveLocally: event.data.shouldSaveLocally,
             }).open();
         });
     },

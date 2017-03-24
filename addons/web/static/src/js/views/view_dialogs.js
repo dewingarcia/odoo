@@ -136,15 +136,7 @@ var FormViewDialog = ViewDialog.extend({
         }
         this._super(parent, options);
     },
-    /**
-     * If we changed some fieldsInfo, we need to restore them now.
-     */
-    destroy: function () {
-        if (this.recordID && this.previousFieldProps) {
-            this.model.setFieldProps(this.recordID, this.previousFieldProps);
-        }
-        this._super.apply(this, arguments);
-    },
+
     //--------------------------------------------------------------------------
     // Public
     //--------------------------------------------------------------------------
