@@ -637,6 +637,39 @@
             </field>
         </record>
 
+        <record id="view_fleet_vehicle_odometer_kanban" model="ir.ui.view">
+            <field name="name">fleet.vehicle.odometer.kanban</field>
+            <field name="model">fleet.vehicle.odometer</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile">
+                    <field name="vehicle_id"/>
+                    <field name="date"/>
+                    <field name="value"/>
+                    <field name="unit"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div t-attf-class="oe_kanban_global_click">
+                                <div>
+                                    <strong><field name="vehicle_id"/></strong>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-5">
+                                        <i class="fa fa-clock-o"/>
+                                        <t t-esc="record.date.value"/>
+                                    </div>
+                                    <div class="col-xs-7">
+                                        <span class="pull-right">
+                                            <i class="fa fa-tachometer"/> <t t-esc="record.value.value"/> <t t-esc="record.unit.value"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
         <record id='fleet_vehicle_odometer_view_search' model='ir.ui.view'>
             <field name="name">fleet.vehicle.odometer.search</field>
             <field name="model">fleet.vehicle.odometer</field>
@@ -668,7 +701,7 @@
             <field name="name">Vehicles Odometer</field>
             <field name="res_model">fleet.vehicle.odometer</field>
             <field name="view_type">form</field>
-            <field name="view_mode">tree,graph</field>
+            <field name="view_mode">tree,kanban,graph</field>
             <field name="context">{"search_default_groupby_vehicle" : True}</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
