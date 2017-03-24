@@ -1238,6 +1238,19 @@ var StateSelectionWidget = AbstractField.extend({
 });
 
 var LabelSelection = AbstractField.extend({
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * This widget renders a simple non-editable label. Color classes can be set
+     * using the 'classes' key from the options tag, such as:
+     * <field [...] options="{'classes': {'value': 'className', ...}}"/>
+     *
+     * @private
+     * @override
+     */
     _render: function () {
         this.classes = this.nodeOptions && this.nodeOptions.classes || {};
         var lbl_class = this.classes[this.value] || 'primary';

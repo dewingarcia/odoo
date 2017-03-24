@@ -2012,6 +2012,79 @@ QUnit.module('basic_fields', {
     });
 
 
+    QUnit.module('LabelSelectionWidget');
+
+    QUnit.test('label_selection widget in form view', function (assert) {
+        assert.expect(12);
+
+        var form = createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<sheet>' +
+                        '<group>' +
+                            '<field name="selection" widget="label_selection" ' +
+                            ' options="{\'classes\': {\'normal\': \'default\', \'blocked\': \'warning\',\'done\': \'success\'}}"/>' +
+                        '</group>' +
+                    '</sheet>' +
+                '</form>',
+            res_id: 1,
+        });
+
+        assert.strictEqual(form.$('.o_form_field.label.label-warning').length, 1,
+            "should have a red status label since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-default').length, 0,
+            "should not have a grey status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-success').length, 0,
+            "should not have a green status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-warning').text(), 'Blocked',
+            "the label should say 'Blocked' since this is the label value for that state");
+
+        // // switch to edit mode and check the result
+        form.$buttons.find('.o_form_button_edit').click();
+        assert.strictEqual(form.$('.o_form_field.label.label-warning').length, 1,
+            "should have a red status label since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-default').length, 0,
+            "should not have a grey status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-success').length, 0,
+            "should not have a green status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-warning').text(), 'Blocked',
+            "the label should say 'Blocked' since this is the label value for that state");
+
+        // save
+        form.$buttons.find('.o_form_button_save').click();
+        assert.strictEqual(form.$('.o_form_field.label.label-warning').length, 1,
+            "should have a red status label since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-default').length, 0,
+            "should not have a grey status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-success').length, 0,
+            "should not have a green status since selection is the second, blocked state");
+        assert.strictEqual(form.$('.o_form_field.label.label-warning').text(), 'Blocked',
+            "the label should say 'Blocked' since this is the label value for that state");
+
+        form.destroy();
+    });
+
+    QUnit.test('label_selection widget in editable list view', function(assert) {
+        assert.expect(0);
+
+        var list = createView({
+            View: ListView,
+            model: 'partner',
+            data: this.data,
+            arch: '<tree editable="bottom">' +
+                    '<field name="selection" widget="label_selection"' +
+                    ' options="{\'classes\': {\'normal\': \'default\', \'blocked\': \'warning\',\'done\': \'success\'}}"/>' +
+                  '</tree>',
+        });
+
+        // TODO: this widget behaves strangely in list view but it was not instantiable in master.
+
+        list.destroy();
+    });
+
+
     QUnit.module('FieldDomain');
 
     QUnit.test('basic domain field usage is ok', function (assert) {
