@@ -528,6 +528,40 @@
             </field>
         </record>
 
+        <record id="view_fleet_vehicle_log_contract_kanban" model="ir.ui.view">
+            <field name="name">fleet.vehicle.log.contract.kanban</field>
+            <field name="model">fleet.vehicle.log.contract</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile">
+                    <field name="vehicle_id"/>
+                    <field name="start_date"/>
+                    <field name="expiration_date"/>
+                    <field name="state"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div t-attf-class="oe_kanban_global_click">
+                                <div>
+                                    <strong><field name="vehicle_id"/></strong>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-7">
+                                        <i class="fa fa-clock-o"/>
+                                        <t t-esc="record.start_date.value"/>-
+                                        <t t-esc="record.expiration_date.value"/>
+                                    </div>
+                                    <div class="col-xs-5">
+                                        <span class="pull-right">
+                                            <field name="state" widget="kanban_label_selection" options="{'classes': {'open': 'default', 'toclose': 'warning', 'closed': 'danger'}}"/>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
         <record id="fleet_vehicle_log_contract_view_graph" model="ir.ui.view">
            <field name="name">fleet.vehicle.log.contract.graph</field>
            <field name="model">fleet.vehicle.log.contract</field>
@@ -554,7 +588,7 @@
             <field name="name">Vehicles Contracts</field>
             <field name="res_model">fleet.vehicle.log.contract</field>
             <field name="view_type">form</field>
-            <field name="view_mode">tree,form,graph</field>
+            <field name="view_mode">tree,kanban,form,graph</field>
             <field name="help" type="html">
               <p class="oe_view_nocontent_create">
                 Click to create a new contract.
