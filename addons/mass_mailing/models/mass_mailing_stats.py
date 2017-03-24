@@ -76,7 +76,7 @@ class MailMailStats(models.Model):
             if not target or not target.exists():
                 continue
             email = ''
-            for email_field in ('email', 'email_from'):
+            for email_field in ('email_from', 'email'):
                 if email_field in target and target[email_field]:
                     email = ' <%s>' % target[email_field]
                     break
